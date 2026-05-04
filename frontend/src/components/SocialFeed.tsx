@@ -1,6 +1,7 @@
 import React from 'react';
 import { useEvents, type SystemEvent } from '../api/hooks/useEvents';
 import { useNavigate } from 'react-router-dom';
+import { getUserDisplayName } from '../utils/userUtils';
 
 const timeAgo = (date: string | Date) => {
   const now = new Date();
@@ -89,7 +90,7 @@ const SocialFeed: React.FC = () => {
             ) : (
               <div className="w-10 h-10 rounded-full bg-gradient-to-br from-ipl-navy to-ipl-gold/20 flex items-center justify-center border border-white/20">
                 <span className="text-sm font-bold text-ipl-gold">
-                  {event.username.charAt(0).toUpperCase()}
+                  {getUserDisplayName({ name: event.username, alias: event.alias, use_alias: event.use_alias }).charAt(0).toUpperCase()}
                 </span>
               </div>
             )}
@@ -101,14 +102,14 @@ const SocialFeed: React.FC = () => {
           <div className="flex flex-col gap-0.5 min-w-0">
             <div className="flex items-center gap-2">
               <span className="font-bold text-white/90 text-sm truncate">
-                {event.username}
+                {getUserDisplayName({ name: event.username, alias: event.alias, use_alias: event.use_alias })}
               </span>
               <span className="text-[10px] text-white/40 whitespace-nowrap">
                 {renderTime(event.timestamp)}
               </span>
             </div>
             <p className="text-xs text-white/70 leading-snug break-words">
-              {event.message}
+              {event.message.replace(event.username, getUserDisplayName({ name: event.username, alias: event.alias, use_alias: event.use_alias }))}
             </p>
           </div>
 

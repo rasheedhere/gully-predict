@@ -2,6 +2,7 @@ import { useLeaderboard } from '../api/hooks/useMatches';
 import { useAuthStore } from '../store/auth';
 import { useState } from 'react';
 import { Trophy, History, X, Info, ChevronDown, ChevronUp, Zap, Target, Check, AlertCircle } from 'lucide-react';
+import { getUserDisplayName } from '../utils/userUtils';
 
 export default function LeaderboardSection({ leagueId, leagueName, tournamentName }: { leagueId: string, leagueName: string, tournamentName: string }) {
   const { user: currentUser } = useAuthStore();
@@ -76,7 +77,7 @@ export default function LeaderboardSection({ leagueId, leagueName, tournamentNam
                           </div>
                           <div className="flex flex-col min-w-0">
                             <span className={`text-xs md:text-sm font-display tracking-wide truncate max-w-[80px] md:max-w-[120px] ${entry.rank <= 3 ? 'text-white' : 'text-gray-300'}`}>
-                              {entry.username}
+                              {getUserDisplayName({ name: entry.username, alias: entry.alias, use_alias: entry.use_alias })}
                             </span>
                             <span className="text-[8px] md:text-[10px] text-gray-500 uppercase font-display tracking-tighter">
                               M: {entry.matches_played}
@@ -155,7 +156,9 @@ export default function LeaderboardSection({ leagueId, leagueName, tournamentNam
                     alt=""
                   />
                   <div>
-                    <h3 className="text-white font-display uppercase text-sm tracking-tight">{selectedUser.username}</h3>
+                    <h3 className="text-white font-display uppercase text-sm tracking-tight">
+                      {getUserDisplayName({ name: selectedUser.username, alias: selectedUser.alias, use_alias: selectedUser.use_alias })}
+                    </h3>
                     <p className="text-ipl-gold text-[10px] font-display uppercase tracking-widest">Rank #{selectedUser.rank}</p>
                   </div>
                 </div>

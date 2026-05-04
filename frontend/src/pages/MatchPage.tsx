@@ -9,6 +9,8 @@ import { useAuthStore } from '../store/auth';
 import { apiClient } from '../api/client';
 import toast from 'react-hot-toast';
 import { getTeamColor, getTeamShortName } from '../utils/teamColors';
+import { getUserDisplayName } from '../utils/userUtils';
+import { getTeamLogo } from '../utils/teamLogos';
 
 export default function MatchPage() {
   const { id } = useParams();
@@ -338,12 +340,44 @@ export default function MatchPage() {
         <p className="text-gray-400 mt-6 font-display uppercase tracking-[0.3em] font-bold text-xs ring-offset-2">
           Match {matchNumber}
         </p>
-        <h1 className="text-3xl md:text-5xl text-white font-display mt-4 flex flex-col md:flex-row items-center justify-center gap-2 md:gap-0">
-          <span className="leading-tight" style={{ color: getTeamColor(match.team1) }}>{match.team1}</span>
-          <span className="text-gray-600 mx-4 text-xl md:text-3xl">VS</span>
-          <span className="leading-tight" style={{ color: getTeamColor(match.team2) }}>{match.team2}</span>
-        </h1>
-        <p className="text-gray-400 mt-8 font-display uppercase tracking-widest text-[10px] flex items-center justify-center gap-2 opacity-60">
+        <div className="flex flex-col md:flex-row items-center justify-center gap-8 md:gap-16 mt-8">
+          <div className="flex flex-col items-center gap-4">
+            <div 
+              className="w-24 h-24 md:w-32 md:h-32 rounded-3xl flex items-center justify-center border-2 shadow-2xl overflow-hidden p-3 bg-black/40 relative group"
+              style={{ borderColor: `${getTeamColor(match.team1)}50`, boxShadow: `0 0 40px ${getTeamColor(match.team1)}20` }}
+            >
+              <div className="absolute inset-0 bg-gradient-to-br from-white/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+              {getTeamLogo(match.team1) ? (
+                <img src={getTeamLogo(match.team1)!} alt={match.team1} className="w-full h-full object-contain drop-shadow-[0_0_15px_rgba(255,255,255,0.4)]" />
+              ) : (
+                <span className="text-4xl font-display text-white">{getTeamShortName(match.team1)}</span>
+              )}
+            </div>
+            <span className="text-2xl md:text-4xl font-display font-bold leading-tight" style={{ color: getTeamColor(match.team1) }}>{match.team1}</span>
+          </div>
+
+          <div className="flex flex-col items-center">
+            <span className="text-gray-600 font-display text-2xl md:text-4xl italic tracking-widest opacity-40">VS</span>
+            <div className="w-[2px] h-16 bg-gradient-to-b from-transparent via-ipl-gold/20 to-transparent mt-4" />
+          </div>
+
+          <div className="flex flex-col items-center gap-4">
+            <div 
+              className="w-24 h-24 md:w-32 md:h-32 rounded-3xl flex items-center justify-center border-2 shadow-2xl overflow-hidden p-3 bg-black/40 relative group"
+              style={{ borderColor: `${getTeamColor(match.team2)}50`, boxShadow: `0 0 40px ${getTeamColor(match.team2)}20` }}
+            >
+              <div className="absolute inset-0 bg-gradient-to-br from-white/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+              {getTeamLogo(match.team2) ? (
+                <img src={getTeamLogo(match.team2)!} alt={match.team2} className="w-full h-full object-contain drop-shadow-[0_0_15px_rgba(255,255,255,0.4)]" />
+              ) : (
+                <span className="text-4xl font-display text-white">{getTeamShortName(match.team2)}</span>
+              )}
+            </div>
+            <span className="text-2xl md:text-4xl font-display font-bold leading-tight" style={{ color: getTeamColor(match.team2) }}>{match.team2}</span>
+          </div>
+        </div>
+
+        <p className="text-gray-400 mt-12 font-display uppercase tracking-widest text-[10px] flex items-center justify-center gap-2 opacity-60">
           <MapPin className="w-3.5 h-3.5 text-ipl-gold" />
           {match.venue}
         </p>
@@ -370,14 +404,16 @@ export default function MatchPage() {
                 <CheckCircle2 className="w-24 h-24 text-ipl-gold" />
               </div>
               <label className="block text-[10px] font-display text-ipl-gold uppercase tracking-[0.2em] mb-4">Official Winner</label>
-              <div
-                className="text-3xl font-display tracking-widest uppercase"
-                style={{
+              <div className="text-3xl font-display tracking-widest uppercase flex items-center gap-4">
+                {match?.results?.[winnerQId] && getTeamLogo(match.results[winnerQId]) && (
+                  <img src={getTeamLogo(match.results[winnerQId])!} alt="" className="w-10 h-10 object-contain" />
+                )}
+                <span style={{
                   color: match?.results?.[winnerQId] ? getTeamColor(match.results[winnerQId]) : 'white',
                   textShadow: match?.results?.[winnerQId] ? `0 0 20px ${getTeamColor(match.results[winnerQId])}60` : 'none'
-                }}
-              >
-                {match?.results?.[winnerQId] || 'TBD'}
+                }}>
+                  {match?.results?.[winnerQId] || 'TBD'}
+                </span>
               </div>
             </div>
 
@@ -606,7 +642,7 @@ export default function MatchPage() {
                               <div className="flex flex-col">
                                 <div className="flex items-center gap-1 md:gap-2">
                                   <span className={`${isDesktop ? 'md:text-[13px] md:font-black' : 'text-xs font-bold'} tracking-tight leading-none ${isMyRow ? 'text-ipl-gold' : 'text-white'}`}>
-                                    {pred.user.name}
+                                    {getUserDisplayName(pred.user)}
                                   </span>
                                   {match.status === 'completed' && pred.points_awarded !== undefined && pred.points_awarded !== null && (
                                     <div className="group-score relative">

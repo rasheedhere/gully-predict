@@ -11,6 +11,7 @@ from backend.auth import oauth, create_access_token
 from backend.dependencies import get_current_user
 from backend.utils.cache import backend_cache
 from backend.utils.events import dispatch_event
+from backend.utils.alias import generate_random_alias
 
 router = APIRouter(prefix="/api", tags=["auth"])
 
@@ -71,11 +72,19 @@ async def auth_callback(request: Request, db: AsyncSession = Depends(get_db)):
         
         if not user:
             # Create user on first login
+            # Generate unique alias
+            alias = generate_random_alias()
+            # Basic collision check (loop until unique)
+            while (await db.execute(select(User).where(User.alias == alias))).scalars().first():
+                alias = generate_random_alias()
+
             user = User(
                 id=str(uuid.uuid4()),
                 google_id=google_id,
                 email=email,
                 name=name,
+                alias=alias,
+                use_alias=False, # Default to original name
                 avatar_url=avatar_url,
                 is_guest=is_guest_allowed
             )
@@ -130,11 +139,14 @@ async def dev_login(request: Request, role: str = "user", db: AsyncSession = Dep
     user = result.scalars().first()
 
     if not user:
+        alias = generate_random_alias()
         user = User(
             id=str(uuid.uuid4()),
             google_id=f"dev-{role}",
             email=email,
             name=f"Dev {role.capitalize()}",
+            alias=alias,
+            use_alias=False,
             avatar_url=None,
             is_admin=(role == "admin"),
             is_guest=(role == "guest"),
@@ -174,6 +186,8 @@ async def dev_login(request: Request, role: str = "user", db: AsyncSession = Dep
             "id": user.id,
             "email": user.email,
             "name": user.name,
+            "alias": user.alias,
+            "use_alias": user.use_alias,
             "avatar": user.avatar_url,
             "is_admin": user.is_admin,
             "is_guest": user.is_guest,
@@ -194,9 +208,49 @@ async def get_me(user: User = Depends(get_current_user), db: AsyncSession = Depe
         "id": user.id,
         "email": user.email,
         "name": user.name,
+        "alias": user.alias,
+        "use_alias": user.use_alias,
         "avatar": user.avatar_url,
         "is_admin": user.is_admin,
         "is_guest": user.is_guest,
         "is_telegram_admin": user.is_telegram_admin,
         "is_league_admin": is_league_admin or user.is_admin
     }
+
+@router.put("/user/profile")
+async def update_profile(
+    payload: dict,
+    user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+):
+    alias = payload.get("alias")
+    use_alias = payload.get("use_alias")
+
+    # Re-fetch user in this session to avoid "not persistent" error
+    result = await db.execute(select(User).where(User.id == user.id))
+    db_user = result.scalars().first()
+    
+    if not db_user:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    if alias is not None:
+        # Check uniqueness
+        if alias != db_user.alias:
+            result = await db.execute(select(User).where(User.alias == alias))
+            existing = result.scalars().first()
+            if existing:
+                raise HTTPException(status_code=400, detail="Alias already taken")
+            db_user.alias = alias
+
+    if use_alias is not None:
+        db_user.use_alias = use_alias
+
+    await db.commit()
+    await db.refresh(db_user)
+    
+    return {"status": "success", "user": {
+        "id": db_user.id,
+        "name": db_user.name,
+        "alias": db_user.alias,
+        "use_alias": db_user.use_alias
+    }}

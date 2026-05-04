@@ -24,7 +24,7 @@ async def get_events(
         2. Events in leagues they belong to.
         3. Public events (no league_id).
     """
-    query = select(SystemEvent, User.name, User.avatar_url).outerjoin(User, SystemEvent.user_id == User.id)
+    query = select(SystemEvent, User.name, User.alias, User.use_alias, User.avatar_url).outerjoin(User, SystemEvent.user_id == User.id)
 
     if not current_user.is_admin:
         # Get leagues user belongs to
@@ -46,13 +46,15 @@ async def get_events(
     events_raw = result.all()
 
     formatted_events = []
-    for event, user_name, user_avatar in events_raw:
+    for event, user_name, user_alias, user_use_alias, user_avatar in events_raw:
         formatted_events.append({
             "id": event.id,
             "event_type": event.event_type,
             "timestamp": event.timestamp,
             "user_id": event.user_id,
             "username": user_name or "System",
+            "alias": user_alias,
+            "use_alias": user_use_alias,
             "user_avatar": user_avatar,
             "league_id": event.league_id,
             "match_id": event.match_id,

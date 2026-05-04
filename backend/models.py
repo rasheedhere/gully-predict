@@ -23,6 +23,8 @@ class User(Base):
     google_id: Mapped[str] = mapped_column(String, unique=True, index=True)
     email: Mapped[str] = mapped_column(String, unique=True, index=True)
     name: Mapped[str] = mapped_column(String)
+    alias: Mapped[Optional[str]] = mapped_column(String, unique=True, index=True, nullable=True)
+    use_alias: Mapped[bool] = mapped_column(Boolean, default=False, server_default='false')
     avatar_url: Mapped[Optional[str]] = mapped_column(String, nullable=True)
     is_admin: Mapped[bool] = mapped_column(Boolean, default=False)
     is_ai: Mapped[bool] = mapped_column(Boolean, default=False)

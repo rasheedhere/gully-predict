@@ -5,11 +5,14 @@ import { Trophy, LayoutDashboard, Settings, LogOut, Menu, X, BarChart2, Megaphon
 import { useEffect, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { apiClient } from '../api/client';
+import ProfileModal from './ProfileModal';
+import { getUserDisplayName } from '../utils/userUtils';
 
 export default function Layout() {
   const { isAuthenticated, user, logout: storeLogout, setUser, token } = useAuthStore();
   const queryClient = useQueryClient();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [isProfileOpen, setIsProfileOpen] = useState(false);
   const location = useLocation();
   const { data: leagues, isLoading: leaguesLoading } = useMyLeagues();
 
@@ -103,16 +106,24 @@ export default function Layout() {
 
             <div className="flex items-center gap-4">
               {user && (
-                <div className="flex items-center gap-3">
-                  <div className="flex flex-col items-end">
-                    <span className="text-sm font-medium hidden sm:block leading-none">{user.name}</span>
-                    {user.is_guest && (
-                      <span className="text-[8px] bg-ipl-gold/20 text-ipl-gold border border-ipl-gold/30 px-1.5 py-0.5 mt-1 rounded font-bold uppercase tracking-tighter hidden sm:block">
-                        Guest Access
-                      </span>
-                    )}
-                  </div>
-                  <img src={user.avatar || `https://ui-avatars.com/api/?name=${user.name}&background=0B0E1A&color=F4C430`} alt="avatar" className="w-8 h-8 rounded-full border border-ipl-gold/50" />
+                <div className="flex items-center gap-3 group">
+                  <button 
+                    onClick={() => setIsProfileOpen(true)}
+                    className="flex flex-col items-end hover:text-ipl-gold transition-colors text-right"
+                  >
+                    <span className="text-sm font-display font-bold hidden sm:block leading-none italic uppercase tracking-tight">
+                      {getUserDisplayName(user)}
+                    </span>
+                    <span className="text-[8px] text-gray-500 font-display uppercase tracking-widest mt-1 group-hover:text-ipl-gold/50 transition-colors">
+                      Identity Settings
+                    </span>
+                  </button>
+                  <button onClick={() => setIsProfileOpen(true)} className="relative">
+                    <img src={user.avatar || `https://ui-avatars.com/api/?name=${user.name}&background=0B0E1A&color=F4C430`} alt="avatar" className="w-9 h-9 rounded-xl border border-white/10 group-hover:border-ipl-gold transition-all shadow-lg object-cover" />
+                    <div className="absolute -bottom-1 -right-1 w-3.5 h-3.5 bg-ipl-gold rounded-full border-2 border-ipl-navy flex items-center justify-center">
+                      <Settings className="w-2 h-2 text-ipl-navy" />
+                    </div>
+                  </button>
                   <button onClick={handleLogout} className="hidden md:block text-gray-400 hover:text-white transition-colors ml-2" title="Logout">
                     <LogOut className="w-5 h-5" />
                   </button>
@@ -165,6 +176,11 @@ export default function Layout() {
       <main className="flex-1 w-full max-w-[1280px] mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <Outlet />
       </main>
+
+      <ProfileModal 
+        isOpen={isProfileOpen} 
+        onClose={() => setIsProfileOpen(false)} 
+      />
     </div>
   );
 }

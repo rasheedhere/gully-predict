@@ -52,6 +52,8 @@ async def fetch_leaderboard_data(db: AsyncSession, league_id: str):
     query = select(
         User.id,
         User.name,
+        User.alias,
+        User.use_alias,
         User.avatar_url,
         func.coalesce(LeaderboardCache.total_points, 0).label("total_points"),
         func.coalesce(TournamentUserMapping.base_powerups, 10).label("base_powerups"),
@@ -94,6 +96,8 @@ async def fetch_leaderboard_data(db: AsyncSession, league_id: str):
         users_data.append({
             "id": row.id,
             "name": row.name,
+            "alias": row.alias,
+            "use_alias": row.use_alias,
             "avatar_url": row.avatar_url,
             "total_points": row.total_points,
             "remaining_powerups": remaining,
@@ -179,7 +183,7 @@ async def fetch_leaderboard_data(db: AsyncSession, league_id: str):
 
 
     entries = []
-    for rank, (uid, name, avatar, points, remaining_powerups, joined_at) in enumerate(users_data, start=1):
+    for rank, (uid, name, alias, use_alias, avatar, points, remaining_powerups, joined_at) in enumerate(users_data, start=1):
         # Use pre-fetched progression data; filter to matches after joined_at
         raw_progression = user_progression.get(uid, [])
         # Filter to matches after the user joined the league
@@ -195,7 +199,10 @@ async def fetch_leaderboard_data(db: AsyncSession, league_id: str):
         
         entries.append({
             "rank": rank,
+            "id": uid,
             "username": name,
+            "alias": alias,
+            "use_alias": use_alias,
             "avatar_url": avatar,
             "total_points": points,
             "matches_played": matches_played,
@@ -215,7 +222,7 @@ async def get_match_leaderboard(match_id: str, db: AsyncSession = Depends(get_db
         return cached
 
     result = await db.execute(
-        select(User.id, User.name, User.avatar_url, LeaderboardEntry.points)
+        select(User.id, User.name, User.alias, User.use_alias, User.avatar_url, LeaderboardEntry.points)
         .outerjoin(AllowlistedEmail, User.email == AllowlistedEmail.email)
         .join(LeaderboardEntry, User.id == LeaderboardEntry.user_id)
         .where(LeaderboardEntry.match_id == match_id)
@@ -225,10 +232,13 @@ async def get_match_leaderboard(match_id: str, db: AsyncSession = Depends(get_db
     )
     
     entries = []
-    for rank, (uid, name, avatar, points) in enumerate(result.all(), start=1):
+    for rank, (uid, name, alias, use_alias, avatar, points) in enumerate(result.all(), start=1):
         entries.append({
             "rank": rank,
+            "id": uid,
             "username": name,
+            "alias": alias,
+            "use_alias": use_alias,
             "avatar_url": avatar,
             "match_points": points
         })
@@ -253,7 +263,7 @@ async def get_match_podiums(db: AsyncSession = Depends(get_db)):
     podiums = []
     for m in matches:
         lb_res = await db.execute(
-            select(User.name, User.avatar_url, LeaderboardEntry.points, CampaignResponse.use_powerup)
+            select(User.id, User.name, User.alias, User.use_alias, User.avatar_url, LeaderboardEntry.points, CampaignResponse.use_powerup)
             .join(LeaderboardEntry, User.id == LeaderboardEntry.user_id)
             .outerjoin(CampaignResponse, (User.id == CampaignResponse.user_id) & (LeaderboardEntry.match_id == CampaignResponse.match_id) & (CampaignResponse.use_powerup == True))
             .where(LeaderboardEntry.match_id == m.id)
@@ -265,7 +275,7 @@ async def get_match_podiums(db: AsyncSession = Depends(get_db)):
         current_rank = 0
         last_points = None
         
-        for i, (name, avatar, pts, used_pw) in enumerate(all_players):
+        for i, (uid, name, alias, use_alias, avatar, pts, used_pw) in enumerate(all_players):
             if pts != last_points:
                 current_rank = i + 1
             
@@ -273,7 +283,10 @@ async def get_match_podiums(db: AsyncSession = Depends(get_db)):
                 break
                 
             top_players.append({
+                "id": uid,
                 "username": name,
+                "alias": alias,
+                "use_alias": use_alias,
                 "avatar_url": avatar,
                 "points": pts,
                 "rank": current_rank,
@@ -314,6 +327,8 @@ async def get_analysis_data(db: AsyncSession = Depends(get_db)):
         select(
             User.id,
             User.name,
+            User.alias,
+            User.use_alias,
             User.avatar_url,
             func.sum(LeaderboardEntry.points).label("weekly_points"),
             func.count(LeaderboardEntry.match_id).label("matches_played")
@@ -329,9 +344,12 @@ async def get_analysis_data(db: AsyncSession = Depends(get_db)):
     )
     
     weekly_stats = []
-    for uid, name, avatar, pts, count in weekly_res.all():
+    for uid, name, alias, use_alias, avatar, pts, count in weekly_res.all():
         weekly_stats.append({
+            "id": uid,
             "username": name,
+            "alias": alias,
+            "use_alias": use_alias,
             "avatar_url": avatar,
             "points": pts,
             "matches": count
@@ -341,7 +359,10 @@ async def get_analysis_data(db: AsyncSession = Depends(get_db)):
     today_start = now - timedelta(days=1)
     today_res = await db.execute(
         select(
+            User.id,
             User.name,
+            User.alias,
+            User.use_alias,
             User.avatar_url,
             func.sum(LeaderboardEntry.points).label("today_points"),
             func.count(LeaderboardEntry.match_id).label("matches_played")
@@ -355,9 +376,12 @@ async def get_analysis_data(db: AsyncSession = Depends(get_db)):
     )
     
     today_stats = []
-    for name, avatar, pts, count in today_res.all():
+    for uid, name, alias, use_alias, avatar, pts, count in today_res.all():
         today_stats.append({
+            "id": uid,
             "username": name,
+            "alias": alias,
+            "use_alias": use_alias,
             "avatar_url": avatar,
             "points": pts,
             "matches": count
@@ -367,7 +391,10 @@ async def get_analysis_data(db: AsyncSession = Depends(get_db)):
     from backend.models import CampaignResponse, TournamentUserMapping
     powerup_usage_res = await db.execute(
         select(
+            User.id,
             User.name,
+            User.alias,
+            User.use_alias,
             User.avatar_url,
             TournamentUserMapping.base_powerups,
             Match.team1,
@@ -388,10 +415,13 @@ async def get_analysis_data(db: AsyncSession = Depends(get_db)):
 
     
     powerup_stats_map = {}
-    for name, avatar, base, t1, t2, mid, start_time, points, status in powerup_usage_res.all():
-        if name not in powerup_stats_map:
-            powerup_stats_map[name] = {
+    for uid, name, alias, use_alias, avatar, base, t1, t2, mid, start_time, points, status in powerup_usage_res.all():
+        if uid not in powerup_stats_map:
+            powerup_stats_map[uid] = {
+                "id": uid,
                 "username": name,
+                "alias": alias,
+                "use_alias": use_alias,
                 "avatar_url": avatar,
                 "base_powerups": base or 10,
                 "used_matches": [],
@@ -400,7 +430,7 @@ async def get_analysis_data(db: AsyncSession = Depends(get_db)):
             }
         
         m_no = mid.split("-")[2] if "-" in mid else mid
-        powerup_stats_map[name]["used_matches"].append({
+        powerup_stats_map[uid]["used_matches"].append({
             "match_id": mid,
             "match_number": m_no,
             "teams": f"{t1} vs {t2}",
@@ -419,17 +449,20 @@ async def get_analysis_data(db: AsyncSession = Depends(get_db)):
     
     # Include all relevant users even if they haven't used powerups
     all_users_res = await db.execute(
-        select(User.name, User.avatar_url, TournamentUserMapping.base_powerups)
+        select(User.id, User.name, User.alias, User.use_alias, User.avatar_url, TournamentUserMapping.base_powerups)
         .outerjoin(AllowlistedEmail, User.email == AllowlistedEmail.email)
         .outerjoin(TournamentUserMapping, (User.id == TournamentUserMapping.user_id) & (TournamentUserMapping.tournament_id == tournament_id))
         .where(User.is_guest == False)
         .where(or_(AllowlistedEmail.email != None, User.is_ai == True))
     )
     all_users_list = all_users_res.all()
-    for name, avatar, base in all_users_list:
-        if name not in powerup_stats_map:
-            powerup_stats_map[name] = {
+    for uid, name, alias, use_alias, avatar, base in all_users_list:
+        if uid not in powerup_stats_map:
+            powerup_stats_map[uid] = {
+                "id": uid,
                 "username": name,
+                "alias": alias,
+                "use_alias": use_alias,
                 "avatar_url": avatar,
                 "base_powerups": base or 10,
                 "used_matches": []
@@ -460,7 +493,7 @@ async def get_analysis_data(db: AsyncSession = Depends(get_db)):
     accuracy_map = {}
     for uid, name, base_pts, count in accuracy_res.all():
         if count > 0:
-            accuracy_map[name] = round((base_pts / (count * 55)) * 100, 1)
+            accuracy_map[uid] = round((base_pts / (count * 55)) * 100, 1)
 
     # 5. Match Wins Stats (Who won the most matches)
     match_wins_res = await db.execute(
@@ -473,28 +506,36 @@ async def get_analysis_data(db: AsyncSession = Depends(get_db)):
     )
 
     
-    match_scores = {} # match_id -> List of (username, points)
-    for mid, name, pts in match_wins_res.all():
+    match_scores = {} # match_id -> List of (uid, points)
+    for mid, uid, points in (await db.execute(
+        select(Match.id, User.id, LeaderboardEntry.points)
+        .join(LeaderboardEntry, Match.id == LeaderboardEntry.match_id)
+        .join(User, LeaderboardEntry.user_id == User.id)
+        .where(Match.status == "completed")
+        .where(Match.id.in_(valid_match_ids))
+        .where(User.is_guest == False)
+    )).all():
         if mid not in match_scores:
             match_scores[mid] = []
-        match_scores[mid].append((name, pts))
+        match_scores[mid].append((uid, points))
         
-    user_wins_map = {} # username -> List of match_numbers
+    user_wins_map = {} # uid -> List of match_numbers
     for mid, players in match_scores.items():
         if not players: continue
         max_pts = max(p[1] for p in players)
         # Rule: Any player with the max score is a winner
         winners = [p[0] for p in players if p[1] == max_pts]
         m_no = mid.split("-")[2] if "-" in mid else mid
-        for winner_name in winners:
-            if winner_name not in user_wins_map:
-                user_wins_map[winner_name] = []
-            user_wins_map[winner_name].append(m_no)
+        for winner_uid in winners:
+            if winner_uid not in user_wins_map:
+                user_wins_map[winner_uid] = []
+            user_wins_map[winner_uid].append(m_no)
 
     # 6. Standing & Percentile Calculation (Based on LeaderboardCache for Global League)
     from backend.models import LeaderboardCache
     lb_result = await db.execute(
         select(
+            User.id,
             User.name,
             func.coalesce(LeaderboardCache.total_points, 0).label("total_points")
         )
@@ -505,17 +546,19 @@ async def get_analysis_data(db: AsyncSession = Depends(get_db)):
         .order_by(func.coalesce(LeaderboardCache.total_points, 0).desc())
     )
     
-    lb_data = lb_result.all()
-    total_players = len(lb_data)
+    lb_data_rows = lb_result.all()
+    total_players = len(lb_data_rows)
     percentile_map = {}
-    for rank, (name, pts) in enumerate(lb_data, start=1):
+    points_map = {}
+    for rank, (uid, name, pts) in enumerate(lb_data_rows, start=1):
         if total_players > 0:
             percentile = round(((total_players - rank + 1) / total_players) * 100, 1)
-            percentile_map[name] = percentile
+            percentile_map[uid] = percentile
+            points_map[uid] = pts
 
     # 7. Badges & Special Achievements (Simplified by fetching LeaderboardEntry points_breakdown)
     all_le_res = await db.execute(
-        select(User.name, LeaderboardEntry.points, LeaderboardEntry.points_breakdown, Match.id.label("match_id"), Match.start_time, Match.status)
+        select(User.id, User.name, LeaderboardEntry.points, LeaderboardEntry.points_breakdown, Match.id.label("match_id"), Match.start_time, Match.status)
         .join(User, LeaderboardEntry.user_id == User.id)
         .join(Match, LeaderboardEntry.match_id == Match.id)
         .where(Match.id.in_(valid_match_ids))
@@ -546,14 +589,14 @@ async def get_analysis_data(db: AsyncSession = Depends(get_db)):
     maxwell_map = {}
     switch_map = {}
 
-    for name, pts, breakdown, mid, m_start_time, m_status in all_les:
+    for uid, name, pts, breakdown, mid, m_start_time, m_status in all_les:
         if m_status != "completed": continue
-        if name not in user_entries: user_entries[name] = []
-        user_entries[name].append(pts)
-        chase_events.append((name, m_start_time, pts))
+        if uid not in user_entries: user_entries[uid] = []
+        user_entries[uid].append(pts)
+        chase_events.append((uid, m_start_time, pts))
 
         # Check universe boss (max single score)
-        boss_map[name] = max(boss_map.get(name, 0), pts)
+        boss_map[uid] = max(boss_map.get(uid, 0), pts)
         
         if not breakdown or "rules" not in breakdown: continue
         
@@ -595,7 +638,7 @@ async def get_analysis_data(db: AsyncSession = Depends(get_db)):
         if pts >= 30:
             cb_map[name] = cb_map.get(name, 0) + 1
 
-    for name, scores in user_entries.items():
+    for uid, scores in user_entries.items():
         # Streaks
         max_streak = 0
         current_streak = 0
@@ -614,15 +657,15 @@ async def get_analysis_data(db: AsyncSession = Depends(get_db)):
             else:
                 current_ht = 0
                 
-        streak_map[name] = max_streak
-        ht_map[name] = max_ht
+        streak_map[uid] = max_streak
+        ht_map[uid] = max_ht
         
         last_10 = scores[-10:]
-        wall_map[name] = len([s for s in last_10 if s >= 20])
+        wall_map[uid] = len([s for s in last_10 if s >= 20])
         
         final_5 = scores[-5:]
         if len(final_5) >= 3:
-            dhoni_map[name] = sum(final_5) / len(final_5)
+            dhoni_map[uid] = sum(final_5) / len(final_5)
 
     chase_map = {}
     chase_date_map = {}
@@ -634,10 +677,18 @@ async def get_analysis_data(db: AsyncSession = Depends(get_db)):
         max_val = max(data_map.values())
         if max_val <= 0: return []
         winners = []
-        for name, val in data_map.items():
+        for uid, val in data_map.items():
             if val == max_val:
-                avatar = next((u[1] for u in all_users_list if u[0] == name), None)
-                winners.append({"username": name, "avatar_url": avatar, "value": val})
+                row = next((u for u in all_users_list if u.id == uid), None)
+                if row:
+                    winners.append({
+                        "id": uid,
+                        "username": row.name,
+                        "alias": row.alias,
+                        "use_alias": row.use_alias,
+                        "avatar_url": row.avatar_url,
+                        "value": val
+                    })
         return winners
 
     def get_chase_winners(data_map, date_map):
@@ -665,6 +716,32 @@ async def get_analysis_data(db: AsyncSession = Depends(get_db)):
     }
 
     # 9. Final Response Structure
+    accuracy_stats = []
+    for uid, name, alias, use_alias, avatar, base in all_users_list:
+        accuracy_stats.append({
+            "id": uid,
+            "username": name,
+            "alias": alias,
+            "use_alias": use_alias,
+            "avatar_url": avatar,
+            "accuracy": accuracy_map.get(uid, 0),
+            "percentile": percentile_map.get(uid, 0),
+            "total_points": points_map.get(uid, 0),
+            "badges": [b for b in [
+                {"type": "streak", "name": "Heath Streak", "value": streak_map.get(uid, 0)} if streak_map.get(uid, 0) >= 2 else None,
+                {"type": "brave", "name": "Bravo Award", "value": bravo_map.get(uid, 0)} if bravo_map.get(uid, 0) >= 1 else None,
+                {"type": "bumrah", "name": "Yorker King", "value": bumrah_map.get(uid, 0)} if bumrah_map.get(uid, 0) >= 1 else None,
+                {"type": "wall", "name": "The Wall", "value": "Consistent"} if wall_map.get(uid, 0) >= 7 else None,
+                {"type": "malinga", "name": "Hat-Trick", "value": "Triple Threat"} if ht_map.get(uid, 0) >= 3 else None,
+                {"type": "sachin", "name": "Master Blaster", "value": "Milestone"} if points_map.get(uid, 0) >= 500 else None,
+                {"type": "maxwell", "name": "The Big Show", "value": f"{maxwell_map.get(uid, 0)} Pts"} if maxwell_map.get(uid, 0) >= 40 else None,
+                {"type": "kohli", "name": "Chase Master", "value": f"Up {chase_map.get(uid, 0)} ({chase_date_map.get(uid).strftime('%b %d') if chase_date_map.get(uid) else ''})"} if chase_map.get(uid, 0) >= 3 else None,
+                {"type": "russell", "name": "Impact Player", "value": "Powerplay King"} if impact_map.get(uid, 0) >= 100 else None,
+                {"type": "sixster", "name": "Sixster", "value": f"{sixster_map.get(uid, 0)} Sixes"} if sixster_map.get(uid, 0) >= 1 else None,
+                {"type": "fourster", "name": "Fourster", "value": f"{fourster_map.get(uid, 0)} Fours"} if fourster_map.get(uid, 0) >= 1 else None,
+            ] if b is not None]
+        })
+
     analysis_data = {
         "weekly_podium": weekly_stats[:5],
         "today_podium": today_stats[:5],
@@ -679,29 +756,7 @@ async def get_analysis_data(db: AsyncSession = Depends(get_db)):
             } 
             for k, v in powerup_stats_map.items()
         ],
-        "accuracy_stats": [
-            {
-                "username": name,
-                "avatar_url": avatar,
-                "accuracy": accuracy_map.get(name, 0),
-                "percentile": percentile_map.get(name, 0),
-                "total_points": next((pts for n, pts in lb_data if n == name), 0),
-                "badges": [
-                    {"type": "streak", "name": "Heath Streak", "value": streak_map.get(name, 0)} if streak_map.get(name, 0) >= 2 else None,
-                    {"type": "brave", "name": "Bravo Award", "value": bravo_map.get(name, 0)} if bravo_map.get(name, 0) >= 1 else None,
-                    {"type": "bumrah", "name": "Yorker King", "value": bumrah_map.get(name, 0)} if bumrah_map.get(name, 0) >= 1 else None,
-                    {"type": "wall", "name": "The Wall", "value": "Consistent"} if wall_map.get(name, 0) >= 7 else None,
-                    {"type": "malinga", "name": "Hat-Trick", "value": "Triple Threat"} if ht_map.get(name, 0) >= 3 else None,
-                    {"type": "sachin", "name": "Master Blaster", "value": "Milestone"} if next((pts for n, pts in lb_data if n == name), 0) >= 500 else None,
-                    {"type": "maxwell", "name": "The Big Show", "value": f"{maxwell_map.get(name, 0)} Pts"} if maxwell_map.get(name, 0) >= 40 else None,
-                    {"type": "kohli", "name": "Chase Master", "value": f"Up {chase_map.get(name, 0)} ({chase_date_map.get(name).strftime('%b %d') if chase_date_map.get(name) else ''})"} if chase_map.get(name, 0) >= 3 else None,
-                    {"type": "russell", "name": "Impact Player", "value": "Powerplay King"} if impact_map.get(name, 0) >= 100 else None,
-                    {"type": "sixster", "name": "Sixster", "value": f"{sixster_map.get(name, 0)} Sixes"} if sixster_map.get(name, 0) >= 1 else None,
-                    {"type": "fourster", "name": "Fourster", "value": f"{fourster_map.get(name, 0)} Fours"} if fourster_map.get(name, 0) >= 1 else None,
-                ]
-            }
-            for name, avatar, base in all_users_list
-        ]
+        "accuracy_stats": accuracy_stats
     }
     
     # Filter out None badges

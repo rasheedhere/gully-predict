@@ -2,6 +2,8 @@ import { Link } from 'react-router-dom';
 import CountdownTimer from './CountdownTimer';
 import { MapPin, CheckCircle2, AlertCircle } from 'lucide-react';
 import { useAuthStore } from '../store/auth';
+import { getTeamColor, getTeamShortName } from '../utils/teamColors';
+import { getTeamLogo } from '../utils/teamLogos';
 interface MatchCardProps {
   id: string;
   team1: string;
@@ -14,8 +16,12 @@ interface MatchCardProps {
 
 export default function MatchCard({ id, team1, team2, venue, tossTime, status, has_predicted }: MatchCardProps) {
   const { user } = useAuthStore();
-  const t1Color = '#ffffff';
-  const t2Color = '#ffffff';
+  const t1Color = getTeamColor(team1);
+  const t2Color = getTeamColor(team2);
+  const t1Logo = getTeamLogo(team1);
+  const t2Logo = getTeamLogo(team2);
+  const t1Short = getTeamShortName(team1);
+  const t2Short = getTeamShortName(team2);
 
   const matchNoMatch = id.match(/ipl-\d{4}-(\d+)/);
   const matchNumber = matchNoMatch ? matchNoMatch[1] : null;
@@ -55,17 +61,40 @@ export default function MatchCard({ id, team1, team2, venue, tossTime, status, h
         </div>
       )}
 
-      <div className="flex justify-between items-center mb-8 relative z-10 w-full">
-        <div className="flex flex-col items-center flex-1">
-          <span className="text-4xl font-display transition-transform group-hover:scale-110" style={{ color: t1Color, textShadow: `0 0 15px ${t1Color}80` }}>
+      <div className="flex justify-between items-center mb-8 relative z-10 w-full gap-4">
+        <div className="flex flex-col items-center flex-1 gap-3 min-w-0">
+          <div 
+            className="w-20 h-20 rounded-2xl flex items-center justify-center border-2 shadow-lg overflow-hidden p-2.5 bg-black/40 group-hover:scale-105 transition-transform duration-500 shrink-0"
+            style={{ borderColor: `${t1Color}40`, boxShadow: `0 0 20px ${t1Color}20`, backgroundColor: `${t1Color}10` }}
+          >
+            {t1Logo ? (
+              <img src={t1Logo} alt={team1} className="w-full h-full object-contain" />
+            ) : (
+              <span className="text-xl font-bold text-white font-display">{t1Short}</span>
+            )}
+          </div>
+          <span className="text-lg font-display text-center leading-tight transition-colors group-hover:text-ipl-gold truncate w-full" style={{ color: t1Color }}>
             {team1}
           </span>
         </div>
 
-        <div className="text-gray-600 font-display text-xl mx-4 italic">VS</div>
+        <div className="text-gray-600 font-display text-base italic flex flex-col items-center shrink-0">
+          <span className="tracking-[0.3em] opacity-30">VS</span>
+          <div className="w-[1px] h-12 bg-gradient-to-b from-transparent via-white/10 to-transparent mt-2" />
+        </div>
 
-        <div className="flex flex-col items-center flex-1">
-          <span className="text-4xl font-display transition-transform group-hover:scale-110" style={{ color: t2Color, textShadow: `0 0 15px ${t2Color}80` }}>
+        <div className="flex flex-col items-center flex-1 gap-3 min-w-0">
+          <div 
+            className="w-20 h-20 rounded-2xl flex items-center justify-center border-2 shadow-lg overflow-hidden p-2.5 bg-black/40 group-hover:scale-105 transition-transform duration-500 shrink-0"
+            style={{ borderColor: `${t2Color}40`, boxShadow: `0 0 20px ${t2Color}20`, backgroundColor: `${t2Color}10` }}
+          >
+            {t2Logo ? (
+              <img src={t2Logo} alt={team2} className="w-full h-full object-contain" />
+            ) : (
+              <span className="text-xl font-bold text-white font-display">{t2Short}</span>
+            )}
+          </div>
+          <span className="text-lg font-display text-center leading-tight transition-colors group-hover:text-ipl-gold truncate w-full" style={{ color: t2Color }}>
             {team2}
           </span>
         </div>
