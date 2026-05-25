@@ -204,11 +204,11 @@ export default function MatchPage() {
           <select
             {...register(registerName, { required: true })}
             disabled={isLocked}
-            className={`w-full bg-ipl-navy border-2 p-4 text-white focus:outline-none focus:border-ipl-gold transition-all appearance-none disabled:opacity-50 ${error ? 'border-red-500/50' : 'border-white/20'}`}
+            className={`w-full bg-white/5 border border-white/10 rounded-xl p-3 md:p-4 text-white font-display text-sm md:text-base focus:outline-none focus:border-ipl-gold focus:bg-white/10 transition-all appearance-none disabled:opacity-50 shadow-inner ${error ? 'border-red-500/50' : 'border-white/20'}`}
           >
-            <option value="">Select Option</option>
+            <option value="" className="bg-ipl-navy">Select Option</option>
             {q.options?.map((opt: string) => (
-              <option key={opt} value={opt}>{opt}</option>
+              <option key={opt} value={opt} className="bg-ipl-navy">{opt}</option>
             ))}
           </select>
         ) : q.answer_type === 'multiple_choice' ? (
@@ -216,7 +216,7 @@ export default function MatchPage() {
             {q.options?.map((opt: string) => (
               <label key={opt} className="cursor-pointer">
                 <input type="radio" value={opt} {...register(registerName, { required: true })} className="peer sr-only" disabled={isLocked} />
-                <div className={`p-3 border-2 text-center font-display text-xs transition-all peer-checked:bg-ipl-gold peer-checked:text-black peer-checked:border-ipl-gold border-white/20 text-gray-400`}>
+                <div className={`p-3 md:p-4 border border-white/10 rounded-xl text-center font-display text-xs md:text-sm transition-all peer-checked:bg-ipl-gold peer-checked:text-black peer-checked:border-ipl-gold peer-checked:shadow-[0_0_15px_rgba(255,215,0,0.3)] hover:border-white/30 text-gray-400 bg-white/5 shadow-inner`}>
                   {opt}
                 </div>
               </label>
@@ -228,7 +228,7 @@ export default function MatchPage() {
             type={q.answer_type === 'number' || q.answer_type === 'free_number' ? 'number' : 'text'}
             disabled={isLocked}
             placeholder={q.answer_type === 'number' || q.answer_type === 'free_number' ? '0' : 'Type your answer'}
-            className={`w-full bg-ipl-navy border-2 p-4 text-white focus:outline-none focus:border-ipl-gold transition-all disabled:opacity-50 ${error ? 'border-red-500/50' : 'border-white/20'}`}
+            className={`w-full bg-white/5 border border-white/10 rounded-xl p-3 md:p-4 text-white font-display text-sm md:text-base focus:outline-none focus:border-ipl-gold focus:bg-white/10 transition-all disabled:opacity-50 shadow-inner ${error ? 'border-red-500/50' : 'border-white/20'}`}
           />
         )}
       </div>
@@ -299,19 +299,21 @@ export default function MatchPage() {
 
   return (
     <div className="space-y-8 max-w-[1600px] mx-auto w-full px-2 md:px-6 pb-20">
-      <div className="glass-panel p-8 text-center border-b-[4px] border-ipl-gold relative overflow-hidden">
-        <div className={`absolute top-4 right-4 rounded-full border backdrop-blur-md font-display text-[10px] tracking-widest px-4 py-1.5 font-bold uppercase shadow-lg transition-all ${isLocked 
-          ? 'bg-ipl-live/10 border-ipl-live/30 text-ipl-live shadow-[0_0_15px_rgba(232,64,64,0.15)]' 
-          : 'bg-ipl-gold/10 border-ipl-gold/30 text-ipl-gold shadow-[0_0_15px_rgba(255,215,0,0.15)]'}`}>
-          {isLocked ? 'Predictions Closed' : 'Predictions Open'}
+      <div className="glass-panel p-4 md:p-8 text-center border-b-[4px] border-ipl-gold relative overflow-hidden">
+        <div className="flex justify-between items-center w-full mb-4 md:mb-0 relative md:absolute md:top-4 md:left-0 md:w-full md:px-4 z-10 px-1">
+          <div className="rounded-full border border-white/10 bg-white/5 backdrop-blur-md text-gray-300 font-display text-[9px] md:text-[10px] tracking-widest px-3 md:px-4 py-1.5 uppercase shadow-lg">
+            Powerups: <span className="text-white font-bold">{powerupsLeft}/{totalPowerups}</span>
+          </div>
+          <div className={`rounded-full border backdrop-blur-md font-display text-[9px] md:text-[10px] tracking-widest px-3 md:px-4 py-1.5 font-bold uppercase shadow-lg transition-all ${isLocked 
+            ? 'bg-ipl-live/10 border-ipl-live/30 text-ipl-live shadow-[0_0_15px_rgba(232,64,64,0.15)]' 
+            : 'bg-ipl-gold/10 border-ipl-gold/30 text-ipl-gold shadow-[0_0_15px_rgba(255,215,0,0.15)]'}`}>
+            {isLocked ? 'Predictions Closed' : 'Predictions Open'}
+          </div>
         </div>
-        <div className="absolute top-4 left-4 rounded-full border border-white/10 bg-white/5 backdrop-blur-md text-gray-300 font-display text-[10px] tracking-widest px-4 py-1.5 uppercase shadow-lg">
-          Powerups: <span className="text-white font-bold">{powerupsLeft}/{totalPowerups}</span>
-        </div>
-        <p className="text-gray-400 mt-6 font-display uppercase tracking-[0.3em] font-bold text-xs ring-offset-2">
+        <p className="text-gray-400 mt-2 md:mt-6 font-display uppercase tracking-[0.3em] font-bold text-xs md:text-sm ring-offset-2">
           Match {matchNumber}
         </p>
-        <div className="flex items-start justify-center gap-4 md:gap-16 mt-8">
+        <div className="flex items-start justify-center gap-4 md:gap-16 mt-6 md:mt-8">
           <div className="flex flex-col items-center gap-3 flex-1 min-w-0">
             <div 
               className="w-20 h-20 md:w-32 md:h-32 rounded-2xl md:rounded-3xl flex items-center justify-center border-2 shadow-2xl overflow-hidden p-2 md:p-3 bg-black/40 relative group shrink-0"
@@ -321,17 +323,17 @@ export default function MatchPage() {
               {getTeamLogo(match.team1) ? (
                 <img src={getTeamLogo(match.team1)!} alt={match.team1} className="w-full h-full object-contain drop-shadow-[0_0_15px_rgba(255,255,255,0.4)]" />
               ) : (
-                <span className="text-2xl md:text-4xl font-display text-white">{getTeamShortName(match.team1)}</span>
+                <span className="text-2xl md:text-3xl font-display text-white">{getTeamShortName(match.team1)}</span>
               )}
             </div>
-            <span className="text-lg md:text-4xl font-display font-bold leading-tight text-center break-words w-full" style={{ color: getTeamColor(match.team1) }}>
+            <span className="text-lg md:text-2xl lg:text-3xl font-display font-bold leading-tight text-center break-words w-full" style={{ color: getTeamColor(match.team1) }}>
               <span className="md:hidden">{getTeamShortName(match.team1)}</span>
               <span className="hidden md:inline">{match.team1}</span>
             </span>
           </div>
 
-          <div className="flex flex-col items-center mt-6 md:mt-10 shrink-0">
-            <span className="text-gray-600 font-display text-lg md:text-4xl italic tracking-widest opacity-40">VS</span>
+          <div className="flex flex-col items-center shrink-0 mt-5 md:mt-10">
+            <span className="text-gray-600 font-display text-lg md:text-3xl italic tracking-widest opacity-40">VS</span>
             <div className="w-[1px] md:w-[2px] h-8 md:h-16 bg-gradient-to-b from-transparent via-ipl-gold/20 to-transparent mt-2 md:mt-4" />
           </div>
 
@@ -344,10 +346,10 @@ export default function MatchPage() {
               {getTeamLogo(match.team2) ? (
                 <img src={getTeamLogo(match.team2)!} alt={match.team2} className="w-full h-full object-contain drop-shadow-[0_0_15px_rgba(255,255,255,0.4)]" />
               ) : (
-                <span className="text-2xl md:text-4xl font-display text-white">{getTeamShortName(match.team2)}</span>
+                <span className="text-2xl md:text-3xl font-display text-white">{getTeamShortName(match.team2)}</span>
               )}
             </div>
-            <span className="text-lg md:text-4xl font-display font-bold leading-tight text-center break-words w-full" style={{ color: getTeamColor(match.team2) }}>
+            <span className="text-lg md:text-2xl lg:text-3xl font-display font-bold leading-tight text-center break-words w-full" style={{ color: getTeamColor(match.team2) }}>
               <span className="md:hidden">{getTeamShortName(match.team2)}</span>
               <span className="hidden md:inline">{match.team2}</span>
             </span>
@@ -439,32 +441,32 @@ export default function MatchPage() {
 
 
       {!isLocked && (
-        <div className="glass-panel p-8">
-          <div className="flex justify-between items-center mb-8 border-b-2 border-white/5 pb-4">
-            <div className="flex items-center gap-4">
-              <h2 className="text-2xl font-display text-white">YOUR PREDICTIONS</h2>
+        <div className="glass-panel p-4 md:p-8">
+          <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6 md:mb-8 border-b-2 border-white/5 pb-4">
+            <div className="flex items-center gap-3 md:gap-4 w-full md:w-auto">
+              <h2 className="text-xl md:text-2xl font-display text-white">YOUR PREDICTIONS</h2>
               {hasPredicted && (
-                <div className="flex items-center gap-2 px-3 py-1 bg-green-500/10 border border-green-500/20 rounded-full animate-pulse">
-                  <div className="w-2 h-2 bg-green-500 rounded-full shadow-[0_0_8px_#22c55e]"></div>
-                  <span className="text-[10px] font-display text-green-500 uppercase tracking-tighter">Predictions Saved</span>
+                <div className="flex items-center gap-2 px-2 md:px-3 py-1 bg-green-500/10 border border-green-500/20 rounded-full animate-pulse">
+                  <div className="w-1.5 h-1.5 md:w-2 md:h-2 bg-green-500 rounded-full shadow-[0_0_8px_#22c55e]"></div>
+                  <span className="text-[9px] md:text-[10px] font-display text-green-500 uppercase tracking-tighter">Saved</span>
                 </div>
               )}
             </div>
             {!currentUser?.is_guest && (
-              <div className="flex items-center gap-4">
+              <div className="flex flex-wrap items-center gap-2 md:gap-4 w-full md:w-auto mt-2 md:mt-0">
                 <button
                   type="button"
                   onClick={() => setShowAutoPredictConfirm(true)}
                   disabled={isLocked || hasPredicted || hasAutoPredicted}
-                  className={`group flex items-center gap-1.5 text-[10px] sm:text-xs font-display uppercase tracking-widest px-3 sm:px-4 py-1.5 sm:py-2 rounded-full font-bold transition-all ${isLocked || hasPredicted || hasAutoPredicted
+                  className={`group flex items-center gap-1.5 text-[9px] sm:text-xs font-display uppercase tracking-widest px-3 sm:px-4 py-1.5 sm:py-2 rounded-full font-bold transition-all ${isLocked || hasPredicted || hasAutoPredicted
                     ? 'bg-gray-500 text-gray-300 opacity-40 cursor-not-allowed'
                     : 'bg-gradient-to-r from-[#004BA0] to-[#7B2FF7] text-white hover:shadow-[0_0_18px_rgba(123,47,247,0.6)] hover:scale-105'
                     }`}
                 >
-                  <Sparkles className="w-3 h-3 opacity-90 group-hover:animate-spin" />
+                  <Sparkles className="w-2.5 h-2.5 md:w-3 md:h-3 opacity-90 group-hover:animate-spin" />
                   AI Auto Predict
                 </button>
-                <div className="text-xs font-display text-ipl-gold uppercase tracking-widest bg-ipl-gold/10 px-3 py-1 rounded-full border border-ipl-gold/20 whitespace-nowrap">
+                <div className="text-[9px] md:text-xs font-display text-ipl-gold uppercase tracking-widest bg-ipl-gold/10 px-3 py-1.5 md:py-1 rounded-full border border-ipl-gold/20 whitespace-nowrap">
                   {powerupsLeft} POWERUPS LEFT
                 </div>
               </div>
