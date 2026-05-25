@@ -379,60 +379,102 @@ async def post_autopredict(
     if not master_campaign:
         raise HTTPException(status_code=404, detail="Master campaign not found for this tournament")
 
-    # Build answers dict
-    answers = {}
-    t1, t2 = match.team1, match.team2
-    for q in master_campaign.questions:
-        # replace placeholders just like in GET /predictions/data
-        opts = [_replace_placeholders(o, match) for o in q.options] if q.options else []
-        qtype = q.question_type
-        text = _replace_placeholders(q.question_text, match).lower()
-        val = None
+    def generate_answers(campaign: Campaign) -> dict:
+        ans = {}
+        for q in campaign.questions:
+            opts = [_replace_placeholders(o, match) for o in q.options] if q.options else []
+            qtype = q.question_type
+            text = _replace_placeholders(q.question_text, match).lower()
+            val = None
 
-        if set(opts) == {t1, t2}:
-            # This handles "Winner", "Most sixes", "Most fours", "Most dot balls" if they use the two teams as options
-            if qtype == "toggle" and "dot ball" in text:
-                val = random.choice([t1, t2]) # randomly pick for dot balls
-            elif qtype == "dropdown":
-                if "six" in text:
+            if set(opts) == {t1, t2}:
+                if qtype == "toggle" and "dot ball" in text:
                     val = random.choice([t1, t2])
-                elif "four" in text:
-                    val = random.choice([t1, t2])
+                elif qtype == "dropdown":
+                    if "six" in text:
+                        val = random.choice([t1, t2])
+                    elif "four" in text:
+                        val = random.choice([t1, t2])
+                    else:
+                        val = random.choice([t1, t2])
                 else:
-                    val = random.choice([t1, t2])
-            else:
-                if "win" in text:
-                    val = winner  # Keep match winner consistent with the POTM selection
-                else:
-                    val = random.choice([t1, t2])
-        elif qtype == "free_number" and ("powerplay" in text or "power play" in text):
-            if t1.lower() in text or "team1" in text:
-                val = str(team1_pp)
-            elif t2.lower() in text or "team2" in text:
-                val = str(team2_pp)
-        elif qtype == "free_text" and ("player" in text or "potm" in text or "man of" in text):
-            val = potm
+                    if "win" in text:
+                        val = winner
+                    else:
+                        val = random.choice([t1, t2])
+            elif qtype == "free_number" and ("powerplay" in text or "power play" in text):
+                if t1.lower() in text or "team1" in text:
+                    val = str(team1_pp)
+                elif t2.lower() in text or "team2" in text:
+                    val = str(team2_pp)
+            elif qtype == "free_text" and ("player" in text or "potm" in text or "man of" in text):
+                val = potm
 
-        if val is not None:
-            answers[q.id] = val
+            if val is not None:
+                ans[q.id] = val
+        return ans
 
-    # Upsert CampaignResponse for master campaign
-    new_resp = CampaignResponse(
-        id=str(uuid.uuid4()),
-        campaign_id=master_campaign.id,
-        user_id=current_user.id,
-        match_id=match_id,
-        answers=answers,
-        use_powerup=False,
-        is_auto_predicted=True,
+    # 1. Generate master campaign answers
+    master_answers = generate_answers(master_campaign)
+    combined_frontend_answers = {**master_answers}
+
+    async def upsert_response(cid: str, ans: dict):
+        resp_res = await db.execute(
+            select(CampaignResponse).where(
+                CampaignResponse.campaign_id == cid,
+                CampaignResponse.user_id == current_user.id,
+                CampaignResponse.match_id == match_id,
+            )
+        )
+        c_resp = resp_res.scalars().first()
+        if c_resp:
+            c_resp.answers = ans
+            c_resp.is_auto_predicted = True
+        else:
+            db.add(CampaignResponse(
+                id=str(uuid.uuid4()),
+                campaign_id=cid,
+                user_id=current_user.id,
+                match_id=match_id,
+                answers=ans,
+                use_powerup=False,
+                is_auto_predicted=True,
+            ))
+
+    await upsert_response(master_campaign.id, master_answers)
+
+    # 2. Generate league-specific campaign answers
+    league_result = await db.execute(
+        select(Campaign)
+        .join(League, League.id == Campaign.league_id)
+        .join(LeagueUserMapping, LeagueUserMapping.league_id == League.id)
+        .options(selectinload(Campaign.questions))
+        .where(
+            League.tournament_id == match.tournament_id,
+            Campaign.type == "match",
+            Campaign.is_master == False,
+            LeagueUserMapping.user_id == current_user.id,
+            Campaign.status == "active",
+            or_(
+                Campaign.target_matches.any(Match.id == match.id),
+                ~Campaign.target_matches.any()
+            ),
+        )
     )
-    db.add(new_resp)
+    for c in league_result.scalars().all():
+        c_answers = generate_answers(c)
+        if c_answers:
+            # Format answers specifically for frontend MatchPage dynamic rendering
+            for q_id, val in c_answers.items():
+                combined_frontend_answers[f"league_{c.id}_{q_id}"] = val
+            await upsert_response(c.id, c_answers)
+
     await db.commit()
     backend_cache.invalidate(f"user_pred_status:{current_user.id}")
     backend_cache.invalidate("leaderboard_*")
     backend_cache.invalidate("analysis_*")
 
-    return {**answers, "use_powerup": "No"}
+    return {**combined_frontend_answers, "use_powerup": "No"}
 
 
 # ── Submit Prediction ─────────────────────────────────────────────────────────
