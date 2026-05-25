@@ -65,7 +65,7 @@ def score_answer(question: CampaignQuestion, answer_value, correct_answer_overri
     return exact_points if user_str == correct_str else wrong_points
 
 
-async def calculate_campaign_scores(campaign_id: str, db: AsyncSession) -> None:
+async def calculate_campaign_scores(campaign_id: str, db: AsyncSession, match_id: str = None) -> None:
     """
     Score all CampaignResponses for a campaign.
     - Reads answers from CampaignResponse.answers (JSON dict)
@@ -128,7 +128,7 @@ async def calculate_campaign_scores(campaign_id: str, db: AsyncSession) -> None:
 
     for response in responses:
         answers = response.answers or {}  # {question_id: answer_value}
-        m_id = response.match_id or campaign.match_id
+        m_id = response.match_id or match_id
         overrides = overrides_by_match.get(m_id, general_overrides)
 
         total = 0
@@ -195,11 +195,11 @@ async def calculate_campaign_scores(campaign_id: str, db: AsyncSession) -> None:
         missing_user_ids = [uid for uid in all_user_ids if uid not in responded_user_ids]
 
         for uid in missing_user_ids:
-            if campaign.match_id and campaign.league_id:
+            if match_id and campaign.league_id:
                 lb_res = await db.execute(
                     select(LeaderboardEntry).where(
                         LeaderboardEntry.user_id == uid,
-                        LeaderboardEntry.match_id == campaign.match_id,
+                        LeaderboardEntry.match_id == match_id,
                         LeaderboardEntry.league_id == campaign.league_id,
                     )
                 )
@@ -210,7 +210,7 @@ async def calculate_campaign_scores(campaign_id: str, db: AsyncSession) -> None:
                     db.add(LeaderboardEntry(
                         id=str(_uuid.uuid4()),
                         user_id=uid,
-                        match_id=campaign.match_id,
+                        match_id=match_id,
                         league_id=campaign.league_id,
                         points=campaign.non_participation_penalty,
                         points_breakdown=None,

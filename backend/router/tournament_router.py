@@ -368,7 +368,6 @@ async def set_tournament_match_answers(
             Campaign.type == CampaignType.match,
             Campaign.status == CS.active,
             or_(
-                Campaign.match_id == match_id,
                 Campaign.target_matches.any(Match.id == match_id),
                 ~Campaign.target_matches.any()
             )
@@ -376,7 +375,7 @@ async def set_tournament_match_answers(
     )
     campaigns = campaigns_res.scalars().all()
     for campaign in campaigns:
-        await calculate_campaign_scores(campaign.id, db)
+        await calculate_campaign_scores(campaign.id, db, match_id=match_id)
 
     # Also update leaderboard cache
     from backend.scoring import update_leaderboard_cache
