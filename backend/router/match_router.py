@@ -244,10 +244,8 @@ async def get_match(
                 LeagueUserMapping.user_id == current_user.id,
                 Campaign.status == "active",
                 or_(
-                    Campaign.id.in_(
-                        select(CampaignTargetMatch.campaign_id).where(CampaignTargetMatch.match_id == m.id)
-                    ),
-                    ~Campaign.id.in_(select(CampaignTargetMatch.campaign_id))
+                    Campaign.target_matches.any(Match.id == m.id),
+                    ~Campaign.target_matches.any()
                 ),
             )
         )
