@@ -51,4 +51,7 @@ If you have accidentally deleted migration files or are in an inconsistent state
 - **Mutually Dependent Foreign Keys**: You might see a `SAWarning` about "unresolvable cycles". This is expected in this project due to complex relationships between `Tournaments`, `Leagues`, and `Matches`. Alembic handles this by skipping some FK constraints during sorting.
 - **SQLite Limitations**: SQLite does not support `ALTER TABLE ... RENAME COLUMN` in older versions. If you hit this, you may need to use Alembic's `render_as_batch=True` configuration (already set in `env.py`).
 - **Batch Mode & Named Constraints**: When adding foreign keys or constraints inside a `batch_alter_table` block (common for SQLite), you **MUST** provide an explicit name for the constraint (e.g., `batch_op.create_foreign_key('fk_name', ...)`). Leaving it as `None` will cause a `ValueError: Constraint must have a name` error in SQLite.
-- **Production (Neon/Postgres)**: Always test migrations locally before pushing. Neon migrations should be run via the same `alembic upgrade head` command against the production `DATABASE_URL`.
+- **Production (Neon/Postgres)**: Always test migrations locally before pushing. Because there is no CI/CD pipeline to run Alembic migrations in this project, you must run migrations manually against PROD after verifying them locally. To do this, run the command with the production `DATABASE_URL` and explicitly ask for approval:
+  ```bash
+  cd backend && DATABASE_URL="<PROD_URL>" alembic upgrade head
+  ```

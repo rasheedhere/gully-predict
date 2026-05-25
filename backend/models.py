@@ -303,12 +303,13 @@ class LeaderboardEntry(Base):
     """Per-(user, match, league) fact table for point history and progression charts."""
     __tablename__ = "leaderboard_entries"
     __table_args__ = (
-        UniqueConstraint("user_id", "match_id", "league_id", name="uq_leaderboard_entry"),
+        UniqueConstraint("user_id", "match_id", "campaign_id", "league_id", name="uq_leaderboard_entry"),
     )
 
     id: Mapped[str] = mapped_column(String, primary_key=True)
     user_id: Mapped[str] = mapped_column(String, ForeignKey("users.id"), index=True)
-    match_id: Mapped[str] = mapped_column(String, ForeignKey("matches.id"), index=True)
+    match_id: Mapped[Optional[str]] = mapped_column(String, ForeignKey("matches.id"), nullable=True, index=True)
+    campaign_id: Mapped[Optional[str]] = mapped_column(String, ForeignKey("campaigns.id"), nullable=True, index=True)
     # None = global league entry; set to league id for league-specific entries
     league_id: Mapped[Optional[str]] = mapped_column(String, ForeignKey("leagues.id"), nullable=True, index=True)
     points: Mapped[int] = mapped_column(Integer)

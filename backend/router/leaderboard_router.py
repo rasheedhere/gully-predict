@@ -196,7 +196,44 @@ async def fetch_leaderboard_data(db: AsyncSession, league_id: str):
                 "breakdown": final_breakdown,
                 "start_time": start_time
             })
-
+    user_campaigns = {}
+    if user_ids:
+        # Fetch LeaderboardEntry where match_id is None (General Campaigns)
+        camp_query = select(
+            LeaderboardEntry.user_id,
+            LeaderboardEntry.points,
+            LeaderboardEntry.points_breakdown,
+            Campaign.title,
+            Campaign.updated_at
+        ).join(Campaign, LeaderboardEntry.campaign_id == Campaign.id) \
+         .where(LeaderboardEntry.user_id.in_(user_ids)) \
+         .where(LeaderboardEntry.match_id == None) \
+         .where(Campaign.tournament_id == tournament_id)
+         
+        if not is_global:
+            # For league-specific leaderboards, we show global general campaigns + league's general campaigns
+            camp_query = camp_query.where(or_(LeaderboardEntry.league_id == None, LeaderboardEntry.league_id == league_id))
+        else:
+            camp_query = camp_query.where(LeaderboardEntry.league_id == None)
+            
+        camp_res = await db.execute(camp_query)
+        for uid, c_points, c_breakdown, c_title, c_date in camp_res.all():
+            if uid not in user_campaigns:
+                user_campaigns[uid] = []
+            
+            # Format breakdown similarly
+            final_breakdown = {
+                "rules": list(c_breakdown["rules"]) if c_breakdown and "rules" in c_breakdown else [],
+                "total": c_points or 0,
+                "powerup": c_breakdown.get("powerup", {"used": False, "multiplier": 1}) if c_breakdown else {"used": False, "multiplier": 1}
+            }
+                
+            user_campaigns[uid].append({
+                "campaign_title": c_title,
+                "points": c_points or 0,
+                "breakdown": final_breakdown,
+                "date": c_date.isoformat() if c_date else None
+            })
 
     entries = []
     for rank, u in enumerate(users_data, start=1):
@@ -221,6 +258,9 @@ async def fetch_leaderboard_data(db: AsyncSession, league_id: str):
 
         matches_played = len(raw_progression)
         
+        campaign_scores = user_campaigns.get(uid, [])
+        campaign_scores.sort(key=lambda x: x["date"] or "", reverse=True)
+
         entries.append({
             "rank": rank,
             "id": uid,
@@ -233,6 +273,7 @@ async def fetch_leaderboard_data(db: AsyncSession, league_id: str):
             "matches_played": matches_played,
             "remaining_powerups": remaining_powerups or 0,
             "progression": progression,
+            "campaign_scores": campaign_scores,
             "accuracy_pct": 0
         })
     

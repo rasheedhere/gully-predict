@@ -65,6 +65,7 @@ A private Gully Predict prediction platform for a group of friends. Users sign i
 ### 5. Campaigns
 - **Master Campaign** (`is_master=True`): Global questions applied to every match. One per tournament. All users answer these.
 - **League Campaigns**: Questions created by league admins. Only that league's members see and are scored on them.
+- **General Campaigns**: General campaigns (`CampaignType.general`) insert directly into `LeaderboardEntry` (with `match_id=None` and `campaign_id` populated) to serve as a universal points ledger. These scores are returned distinctly as `campaign_scores` in the leaderboard API so they don't corrupt chronological match history.
 - **Campaign Status**: Only campaigns with an `Active` status will render questions for users and be evaluated by the scoring engine. `Draft` campaigns are strictly ignored.
 - Questions support `order` field for manual reordering. Options can be sorted alphabetically via admin UI.
 - `CampaignResponse.answers` is a JSON dict keyed by `question.key`.

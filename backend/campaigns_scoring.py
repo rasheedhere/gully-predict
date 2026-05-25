@@ -160,15 +160,22 @@ async def calculate_campaign_scores(campaign_id: str, db: AsyncSession, match_id
         response.points_breakdown = {"rules": breakdown_rules, "total": total}
         responded_user_ids.add(response.user_id)
 
-        # Persist to LeaderboardEntry for league-scoped campaigns
-        if response.match_id and campaign.league_id:
-            lb_res = await db.execute(
-                select(LeaderboardEntry).where(
-                    LeaderboardEntry.user_id == response.user_id,
+        # Persist to LeaderboardEntry for league-scoped match campaigns OR any general campaigns
+        if (response.match_id and campaign.league_id) or campaign.type == CampaignType.general:
+            where_clauses = [LeaderboardEntry.user_id == response.user_id]
+            if campaign.type == CampaignType.general:
+                where_clauses.extend([
+                    LeaderboardEntry.match_id == None,
+                    LeaderboardEntry.campaign_id == campaign.id,
+                    LeaderboardEntry.league_id == campaign.league_id,
+                ])
+            else:
+                where_clauses.extend([
                     LeaderboardEntry.match_id == response.match_id,
                     LeaderboardEntry.league_id == campaign.league_id,
-                )
-            )
+                ])
+
+            lb_res = await db.execute(select(LeaderboardEntry).where(*where_clauses))
             lb_entry = lb_res.scalars().first()
             if lb_entry:
                 lb_entry.points = total
@@ -177,7 +184,8 @@ async def calculate_campaign_scores(campaign_id: str, db: AsyncSession, match_id
                 db.add(LeaderboardEntry(
                     id=str(_uuid.uuid4()),
                     user_id=response.user_id,
-                    match_id=response.match_id,
+                    match_id=response.match_id if campaign.type != CampaignType.general else None,
+                    campaign_id=campaign.id if campaign.type == CampaignType.general else None,
                     league_id=campaign.league_id,
                     points=total,
                     points_breakdown=response.points_breakdown,
@@ -197,14 +205,21 @@ async def calculate_campaign_scores(campaign_id: str, db: AsyncSession, match_id
         missing_user_ids = [uid for uid in all_user_ids if uid not in responded_user_ids]
 
         for uid in missing_user_ids:
-            if match_id and campaign.league_id:
-                lb_res = await db.execute(
-                    select(LeaderboardEntry).where(
-                        LeaderboardEntry.user_id == uid,
+            if (match_id and campaign.league_id) or campaign.type == CampaignType.general:
+                where_clauses = [LeaderboardEntry.user_id == uid]
+                if campaign.type == CampaignType.general:
+                    where_clauses.extend([
+                        LeaderboardEntry.match_id == None,
+                        LeaderboardEntry.campaign_id == campaign.id,
+                        LeaderboardEntry.league_id == campaign.league_id,
+                    ])
+                else:
+                    where_clauses.extend([
                         LeaderboardEntry.match_id == match_id,
                         LeaderboardEntry.league_id == campaign.league_id,
-                    )
-                )
+                    ])
+
+                lb_res = await db.execute(select(LeaderboardEntry).where(*where_clauses))
                 lb_entry = lb_res.scalars().first()
                 if lb_entry:
                     lb_entry.points = campaign.non_participation_penalty
@@ -212,7 +227,8 @@ async def calculate_campaign_scores(campaign_id: str, db: AsyncSession, match_id
                     db.add(LeaderboardEntry(
                         id=str(_uuid.uuid4()),
                         user_id=uid,
-                        match_id=match_id,
+                        match_id=match_id if campaign.type != CampaignType.general else None,
+                        campaign_id=campaign.id if campaign.type == CampaignType.general else None,
                         league_id=campaign.league_id,
                         points=campaign.non_participation_penalty,
                         points_breakdown=None,

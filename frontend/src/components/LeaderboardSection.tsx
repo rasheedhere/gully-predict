@@ -256,6 +256,83 @@ export default function LeaderboardSection({ leagueId, leagueName, tournamentNam
                   )}
                 </div>
               </div>
+
+              {selectedUser.campaign_scores?.length > 0 && (
+                <div className="space-y-3 mt-6 pt-6 border-t border-white/10 animate-in fade-in slide-in-from-bottom-2 duration-500">
+                  <div className="flex items-center gap-2 mb-4 border-b border-white/5 pb-2">
+                    <Trophy className="w-4 h-4 text-ipl-gold" />
+                    <h4 className="text-[10px] font-display text-white uppercase tracking-widest">Campaigns & Bonuses</h4>
+                  </div>
+                  
+                  <div className="space-y-2 pr-2">
+                    {selectedUser.campaign_scores.map((camp: any, idx: number) => {
+                      const isExpanded = expandedMatch === `camp-${idx}`;
+                      return (
+                        <div key={idx} className={`bg-white/5 border border-white/10 overflow-hidden transition-all duration-300 ${isExpanded ? 'border-ipl-gold/50 bg-ipl-gold/5' : 'hover:border-white/20'}`}>
+                          <button
+                            onClick={() => setExpandedMatch(isExpanded ? null : `camp-${idx}`)}
+                            className="w-full text-left p-3 flex flex-col group/row"
+                          >
+                            <div className="flex justify-between items-start mb-1 w-full">
+                              <span className="text-[9px] font-mono text-ipl-gold flex items-center gap-1 uppercase tracking-widest truncate pr-2">
+                                🏆 {camp.campaign_title}
+                                {camp.breakdown && (isExpanded ? <ChevronUp className="w-2.5 h-2.5 shrink-0" /> : <ChevronDown className="w-2.5 h-2.5 opacity-40 shrink-0" />)}
+                              </span>
+                              <span className={`text-xs font-display font-bold shrink-0 ${camp.points > 0 ? 'text-green-400' : camp.points < 0 ? 'text-red-400' : 'text-gray-500'}`}>
+                                {camp.points > 0 ? '+' : ''}{camp.points}
+                              </span>
+                            </div>
+                            <div className="text-[10px] text-gray-500 font-display uppercase tracking-tight truncate transition-colors">
+                              BONUS POINTS
+                            </div>
+                          </button>
+
+                          {isExpanded && camp.breakdown && (
+                            <div className="px-3 pb-3 pt-1 border-t border-white/5 animate-in fade-in slide-in-from-top-1 duration-200">
+                              <div className="space-y-1.5 mt-2">
+                                {camp.breakdown.rules?.map((rule: any, ridx: number) => (
+                                  <div key={ridx} className="flex justify-between items-center text-[9px] bg-white/5 p-1.5 rounded-sm">
+                                    <div className="flex items-center gap-1.5">
+                                      {rule.status === 'correct' || rule.status === 'bingo' ? (
+                                        <Check className="w-3 h-3 text-green-500 shrink-0" />
+                                      ) : rule.status === 'range' ? (
+                                        <Target className="w-3 h-3 text-blue-400 shrink-0" />
+                                      ) : (
+                                        <AlertCircle className="w-3 h-3 text-red-500/50 shrink-0" />
+                                      )}
+                                      <div className="flex flex-col">
+                                        <span className="text-gray-300 font-display uppercase tracking-tighter">{rule.category || rule.key}</span>
+                                        <span className="text-[7px] text-gray-500 font-mono">
+                                          P: {rule.predicted} | A: {rule.actual}
+                                        </span>
+                                      </div>
+                                    </div>
+                                    <span className={`font-mono font-bold ${rule.points > 0 ? 'text-green-400' : rule.points < 0 ? 'text-red-400' : 'text-gray-500'}`}>
+                                      {rule.points > 0 ? '+' : ''}{rule.points}
+                                    </span>
+                                  </div>
+                                ))}
+
+                                {camp.breakdown.powerup?.used && (
+                                  <div className="flex justify-between items-center text-[9px] bg-ipl-live/10 border border-ipl-live/20 p-1.5 rounded-sm">
+                                    <div className="flex items-center gap-1.5">
+                                      <Zap className="w-3 h-3 text-ipl-live" />
+                                      <span className="text-ipl-live font-display uppercase tracking-tighter">Powerup Applied (2x)</span>
+                                    </div>
+                                    <span className="text-ipl-live font-mono font-bold">
+                                      ×2
+                                    </span>
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
             </div>
           )}
 
