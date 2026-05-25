@@ -623,81 +623,83 @@ export function CampaignForm({ campaignId }: { campaignId?: string }) {
           </select>
           <p className="text-gray-600 text-[10px] font-display mt-1">Required for master templates.</p>
         </div>
-        <div className="col-span-1 md:col-span-3">
-          <div className="flex items-center justify-between mb-1.5">
-            <label className="text-gray-500 text-[10px] font-display uppercase tracking-widest block">Target Matches (Optional)</label>
-            <span className="text-[10px] text-gray-600 font-display uppercase tracking-widest">{selectedMatches.length} Selected</span>
-          </div>
-          
-          <div className="bg-black/40 border-2 border-white/10 p-3 space-y-3">
-            {/* Selected Pills */}
-            {selectedMatches.length > 0 && (
-              <div className="flex flex-wrap gap-2 pb-3 border-b-2 border-white/5">
-                {selectedMatches.map(m => (
-                  <span key={m.id} className="flex items-center gap-1.5 bg-ipl-gold/20 text-ipl-gold text-[10px] font-display uppercase tracking-widest px-2 py-1 border border-ipl-gold/30">
-                    <span className="opacity-70 font-bold mr-0.5">M{m.id.split('-').pop()}</span>
-                    {m.team1} vs {m.team2}
-                    <button 
-                      type="button"
-                      onClick={() => setTargetMatchIds(prev => prev.filter(id => id !== m.id))}
-                      className="text-ipl-gold hover:text-white transition-colors"
-                    >
-                      <X className="w-3 h-3" />
-                    </button>
-                  </span>
-                ))}
-              </div>
-            )}
+        {type === 'match' && (
+          <div className="col-span-1 md:col-span-3">
+            <div className="flex items-center justify-between mb-1.5">
+              <label className="text-gray-500 text-[10px] font-display uppercase tracking-widest block">Target Matches (Optional)</label>
+              <span className="text-[10px] text-gray-600 font-display uppercase tracking-widest">{selectedMatches.length} Selected</span>
+            </div>
             
-            {/* Search Input */}
-            <div className="flex gap-2">
-              <div className="relative flex-1">
-                <Search className="w-4 h-4 text-gray-500 absolute left-3 top-1/2 -translate-y-1/2" />
-                <input 
-                  type="text" 
-                  placeholder="Search teams, venue, or match number..." 
-                  value={matchSearch}
-                  onChange={(e) => setMatchSearch(e.target.value)}
-                  className="w-full bg-black/60 border border-white/10 py-2 pl-9 pr-3 text-white font-display text-xs placeholder:text-gray-600 focus:outline-none focus:border-ipl-gold transition-all" 
-                />
-              </div>
-              <button 
-                type="button"
-                onClick={() => {
-                  const newIds = filteredMatches.map(m => m.id);
-                  setTargetMatchIds(prev => [...prev, ...newIds]);
-                }}
-                disabled={filteredMatches.length === 0}
-                className="bg-white/10 hover:bg-white/20 text-white font-display text-[10px] uppercase tracking-widest px-4 py-2 transition-colors disabled:opacity-50"
-              >
-                Select All
-              </button>
-            </div>
-
-            {/* Scrollable List */}
-            <div className="max-h-40 overflow-y-auto space-y-1 pr-1 custom-scrollbar">
-              {filteredMatches.map(m => (
-                <button 
-                  key={m.id} 
-                  type="button"
-                  onClick={() => setTargetMatchIds(prev => [...prev, m.id])}
-                  className="w-full text-left flex items-center justify-between group hover:bg-white/5 p-2 transition-colors border-b border-white/5 last:border-0"
-                >
-                  <span className="text-gray-300 font-display text-xs">
-                    <span className="text-gray-500 font-bold mr-1.5">M{m.id.split('-').pop()}</span>
-                    {m.team1} vs {m.team2}
-                  </span>
-                  <Plus className="w-3 h-3 text-gray-600 group-hover:text-ipl-gold transition-colors" />
-                </button>
-              ))}
-              {filteredMatches.length === 0 && (
-                <p className="text-gray-500 text-[10px] font-display uppercase tracking-widest text-center py-4">
-                  {matchSearch ? 'No matches found.' : 'All matches selected.'}
-                </p>
+            <div className="bg-black/40 border-2 border-white/10 p-3 space-y-3">
+              {/* Selected Pills */}
+              {selectedMatches.length > 0 && (
+                <div className="flex flex-wrap gap-2 pb-3 border-b-2 border-white/5">
+                  {selectedMatches.map(m => (
+                    <span key={m.id} className="flex items-center gap-1.5 bg-ipl-gold/20 text-ipl-gold text-[10px] font-display uppercase tracking-widest px-2 py-1 border border-ipl-gold/30">
+                      <span className="opacity-70 font-bold mr-0.5">M{m.id.split('-').pop()}</span>
+                      {m.team1} vs {m.team2}
+                      <button 
+                        type="button"
+                        onClick={() => setTargetMatchIds(prev => prev.filter(id => id !== m.id))}
+                        className="text-ipl-gold hover:text-white transition-colors"
+                      >
+                        <X className="w-3 h-3" />
+                      </button>
+                    </span>
+                  ))}
+                </div>
               )}
+              
+              {/* Search Input */}
+              <div className="flex gap-2">
+                <div className="relative flex-1">
+                  <Search className="w-4 h-4 text-gray-500 absolute left-3 top-1/2 -translate-y-1/2" />
+                  <input 
+                    type="text" 
+                    placeholder="Search teams, venue, or match number..." 
+                    value={matchSearch}
+                    onChange={(e) => setMatchSearch(e.target.value)}
+                    className="w-full bg-black/60 border border-white/10 py-2 pl-9 pr-3 text-white font-display text-xs placeholder:text-gray-600 focus:outline-none focus:border-ipl-gold transition-all" 
+                  />
+                </div>
+                <button 
+                  type="button"
+                  onClick={() => {
+                    const newIds = filteredMatches.map(m => m.id);
+                    setTargetMatchIds(prev => [...prev, ...newIds]);
+                  }}
+                  disabled={filteredMatches.length === 0}
+                  className="bg-white/10 hover:bg-white/20 text-white font-display text-[10px] uppercase tracking-widest px-4 py-2 transition-colors disabled:opacity-50"
+                >
+                  Select All
+                </button>
+              </div>
+
+              {/* Scrollable List */}
+              <div className="max-h-40 overflow-y-auto space-y-1 pr-1 custom-scrollbar">
+                {filteredMatches.map(m => (
+                  <button 
+                    key={m.id} 
+                    type="button"
+                    onClick={() => setTargetMatchIds(prev => [...prev, m.id])}
+                    className="w-full text-left flex items-center justify-between group hover:bg-white/5 p-2 transition-colors border-b border-white/5 last:border-0"
+                  >
+                    <span className="text-gray-300 font-display text-xs">
+                      <span className="text-gray-500 font-bold mr-1.5">M{m.id.split('-').pop()}</span>
+                      {m.team1} vs {m.team2}
+                    </span>
+                    <Plus className="w-3 h-3 text-gray-600 group-hover:text-ipl-gold transition-colors" />
+                  </button>
+                ))}
+                {filteredMatches.length === 0 && (
+                  <p className="text-gray-500 text-[10px] font-display uppercase tracking-widest text-center py-4">
+                    {matchSearch ? 'No matches found.' : 'All matches selected.'}
+                  </p>
+                )}
+              </div>
             </div>
           </div>
-        </div>
+        )}
       </div>
 
       <section className="space-y-4">

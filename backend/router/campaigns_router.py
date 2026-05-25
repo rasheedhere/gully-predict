@@ -162,7 +162,7 @@ def _serialize_campaign(campaign: Campaign, my_response: CampaignResponse | None
 
 
 
-def _serialize_campaign_admin(campaign: Campaign) -> dict:
+def _serialize_campaign_admin(campaign: Campaign, cr_dict: dict = None) -> dict:
     """Admin view: always includes correct answers."""
     questions = [
         {
@@ -175,6 +175,7 @@ def _serialize_campaign_admin(campaign: Campaign) -> dict:
             "order_index": q.order_index,
             "is_mandatory": q.is_mandatory,
             "allow_powerup": q.allow_powerup,
+            "correct_answer": cr_dict.get(q.id) if cr_dict else None,
         }
         for q in campaign.questions
     ]
@@ -276,6 +277,7 @@ async def create_campaign(
     # In a master campaign, every question is mandatory by definition
     force_mandatory = payload.is_master
 
+    new_questions = []
     for q in payload.questions:
         cq = CampaignQuestion(
             id=str(uuid.uuid4()),
@@ -290,6 +292,15 @@ async def create_campaign(
             allow_powerup=q.allow_powerup,
         )
         db.add(cq)
+        new_questions.append(cq)
+
+    if campaign.type == CampaignType.general:
+        correct_answers = {}
+        for q_payload, cq in zip(payload.questions, new_questions):
+            if q_payload.correct_answer is not None:
+                correct_answers[cq.id] = q_payload.correct_answer
+        if correct_answers:
+            db.add(CampaignResult(campaign_id=campaign.id, correct_answers=correct_answers))
 
     await db.commit()
     backend_cache.invalidate("campaigns_list")
@@ -412,6 +423,25 @@ async def update_campaign(
                 await db.delete(q)
 
         campaign.questions = new_questions
+        
+        if campaign.type == CampaignType.general:
+            cr_res = await db.execute(select(CampaignResult).where(CampaignResult.campaign_id == campaign.id))
+            cr = cr_res.scalars().first()
+            correct_answers = {}
+            for q_payload in payload.questions:
+                if q_payload.correct_answer is not None:
+                    # Match by order assuming they are 1:1, or by matching properties.
+                    # Since new_questions corresponds 1:1 with payload.questions, we can zip.
+                    pass
+            for q_payload, cq in zip(payload.questions, new_questions):
+                if q_payload.correct_answer is not None:
+                    correct_answers[cq.id] = q_payload.correct_answer
+            
+            if correct_answers or cr:
+                if cr:
+                    cr.correct_answers = correct_answers
+                else:
+                    db.add(CampaignResult(campaign_id=campaign.id, correct_answers=correct_answers))
 
     await db.commit()
     backend_cache.invalidate("campaigns_list")
