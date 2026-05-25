@@ -18,7 +18,7 @@ This is the React + Vite + TypeScript frontend for the Gully Predict 2026 platfo
 
 ```bash
 npm install
-npm run dev       # starts dev server at http://localhost:5173
+npm run dev       # starts dev server at http://localhost:5000
 npm run build     # TypeScript check + production bundle
 ```
 

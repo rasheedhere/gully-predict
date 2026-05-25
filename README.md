@@ -73,7 +73,7 @@ cp .env.example .env
 ```bash
 ./start_all.sh
 # Backend:  http://localhost:8000
-# Frontend: http://localhost:5173
+# Frontend: http://localhost:5000
 ```
 
 The script:

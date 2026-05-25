@@ -58,7 +58,7 @@ async def auth_callback(request: Request, db: AsyncSession = Depends(get_db)):
 
         if not allowlisted_entry and not existing_user:
             # If email is not on allowlist AND user does not exist
-            return RedirectResponse(url=f"{os.environ.get('FRONTEND_URL', 'http://localhost:5173')}/login?error=not_invited")
+            return RedirectResponse(url=f"{os.environ.get('FRONTEND_URL', 'http://localhost:5000')}/login?error=not_invited")
             
         is_guest_allowed = allowlisted_entry.is_guest if allowlisted_entry else (existing_user.is_guest if existing_user else False)
             
@@ -111,7 +111,7 @@ async def auth_callback(request: Request, db: AsyncSession = Depends(get_db)):
         
         # Redirect back to frontend with Token (frontend handles parsing)
         # Assuming frontend grabs ?token=... and saves it to Zustand
-        return RedirectResponse(url=f"{os.environ.get('FRONTEND_URL', 'http://localhost:5173')}/auth/callback?token={jwt_token}")
+        return RedirectResponse(url=f"{os.environ.get('FRONTEND_URL', 'http://localhost:5000')}/auth/callback?token={jwt_token}")
         
     except Exception as e:
         import traceback
@@ -119,7 +119,7 @@ async def auth_callback(request: Request, db: AsyncSession = Depends(get_db)):
         print(f"Error Type: {type(e).__name__}")
         print(f"Error Detail: {str(e)}")
         traceback.print_exc()
-        return RedirectResponse(url=f"{os.environ.get('FRONTEND_URL', 'http://localhost:5173')}/login?error=auth_failed")
+        return RedirectResponse(url=f"{os.environ.get('FRONTEND_URL', 'http://localhost:5000')}/login?error=auth_failed")
 
 @router.get("/auth/dev-login")
 @router.post("/auth/dev-login")
@@ -171,7 +171,7 @@ async def dev_login(request: Request, role: str = "user", db: AsyncSession = Dep
     
     # If GET (browser URL), redirect to frontend
     if request.method == "GET":
-        frontend_url = os.environ.get('FRONTEND_URL', 'http://localhost:5173')
+        frontend_url = os.environ.get('FRONTEND_URL', 'http://localhost:5000')
         return RedirectResponse(url=f"{frontend_url}/auth/callback?token={jwt_token}")
     
     # If POST (frontend AJAX), return JSON

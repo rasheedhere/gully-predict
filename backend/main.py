@@ -19,7 +19,7 @@ app = FastAPI(title="Gully Predict API", lifespan=lifespan)
 
 # Allow CORS for local dev and frontend URL(s)
 # FRONTEND_URL can be a single URL or comma-separated list of URLs
-frontend_url_raw = os.environ.get("FRONTEND_URL", "http://localhost:5173")
+frontend_url_raw = os.environ.get("FRONTEND_URL", "http://localhost:5000")
 allowed_origins = [url.strip() for url in frontend_url_raw.split(",") if url.strip()]
 # Add n8n cloud origin for webhooks if needed
 allowed_origins.append("https://rasheedhere.app.n8n.cloud")

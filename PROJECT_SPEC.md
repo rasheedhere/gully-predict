@@ -36,7 +36,7 @@ JWT_EXPIRY_HOURS=8
 DATABASE_URL=sqlite+aiosqlite:///backend/database_dev.db
 GEMINI_API_KEY=            # Google AI Studio
 CRICAPI_KEY=               # cricapi.com (optional, for live data polling)
-FRONTEND_URL=http://localhost:5173
+FRONTEND_URL=http://localhost:5000
 ```
 
 ---
