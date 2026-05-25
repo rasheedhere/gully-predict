@@ -1,6 +1,6 @@
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useLeagueDetails, useKickMember, useRefreshJoinCode } from '../api/hooks/useLeagues';
-import { Trophy, Copy, RefreshCw, Trash2, ArrowLeft, ShieldCheck, Users, Zap, ExternalLink, ChevronLeft } from 'lucide-react';
+import { Copy, RefreshCw, Trash2, ShieldCheck, Users, Zap, ChevronLeft } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { getUserDisplayName } from '../utils/userUtils';
 

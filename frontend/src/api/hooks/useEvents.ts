@@ -8,6 +8,8 @@ export interface SystemEvent {
   user_id: string | null;
   username: string;
   user_avatar: string | null;
+  alias?: string | null;
+  use_alias?: boolean;
   league_id: string | null;
   match_id: string | null;
   message: string;

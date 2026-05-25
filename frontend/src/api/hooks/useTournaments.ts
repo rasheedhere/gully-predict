@@ -1,7 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
 import { apiClient } from '../client';
-import { useTournamentStore } from '../../store/tournament';
-import { useEffect } from 'react';
 
 export interface Tournament {
   id: string;

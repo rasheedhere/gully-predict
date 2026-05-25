@@ -1,6 +1,5 @@
 import { Outlet, Navigate, Link, useLocation } from 'react-router-dom';
 import { useAuthStore } from '../store/auth';
-import { useMyLeagues } from '../api/hooks/useLeagues';
 import { Trophy, LayoutDashboard, Settings, LogOut, Menu, X, BarChart2, Megaphone, Users, Activity as ActivityIcon } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
@@ -17,8 +16,6 @@ export default function Layout() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const location = useLocation();
-  const { data: leagues, isLoading: leaguesLoading } = useMyLeagues();
-
   const handleLogout = () => {
     storeLogout();
     queryClient.clear();

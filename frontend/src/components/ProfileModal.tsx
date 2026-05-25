@@ -1,7 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useAuthStore } from '../store/auth';
 import { useUpdateProfile } from '../api/hooks/useUser';
-import { X, User, Shield, Check, RefreshCw, AlertCircle } from 'lucide-react';
+import { X, User, Shield, Check, RefreshCw } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 interface ProfileModalProps {

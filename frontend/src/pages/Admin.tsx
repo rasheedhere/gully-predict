@@ -510,7 +510,7 @@ function CampaignManagement() {
                   <td className="p-4">
                     <div className="flex flex-col gap-1">
                       <span className="text-[10px] uppercase tracking-widest">{c.type}</span>
-                      <span className="text-[9px] text-gray-600 font-mono italic uppercase tracking-tighter">{c.match_id || 'Global'}</span>
+                      <span className="text-[9px] text-gray-600 font-mono italic uppercase tracking-tighter">{c.target_match_ids?.[0] || 'Global'}</span>
                     </div>
                   </td>
                   <td className="p-4">
@@ -736,7 +736,7 @@ function TournamentMatchManager({ tournamentId, onBack }: { tournamentId: string
     const date = new Date(m.start_time);
     const localDateTime = new Date(date.getTime() - date.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
     setStartTime(localDateTime);
-    toast.info(`Editing match: ${m.team1} vs ${m.team2}`);
+    toast(`Editing match: ${m.team1} vs ${m.team2}`);
   };
 
   const resetMatchForm = () => {
@@ -1183,7 +1183,7 @@ function TournamentQuestionBankManager({ tournamentId }: { tournamentId: string 
     setQuestionType(q.question_type);
     setOptionsStr(q.options ? q.options.join(', ') : '');
     // Scroll to form or just show it's editing
-    toast.info(`Editing question: ${q.key}`);
+    toast(`Editing question: ${q.key}`);
   };
 
   const resetForm = () => {
