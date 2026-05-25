@@ -504,7 +504,7 @@ export function CampaignForm({ campaignId }: { campaignId?: string }) {
 
     if (isEdit) {
       update(payload, {
-        onSuccess: () => { toast.success('Campaign updated'); navigate('/admin/campaigns'); },
+        onSuccess: () => { toast.success('Campaign updated'); },
         onError: (err: any) => toast.error(err?.response?.data?.detail ?? 'Update failed'),
       });
     } else {
