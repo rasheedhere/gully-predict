@@ -29,7 +29,7 @@ class AddMemberReq(BaseModel):
 def generate_join_code() -> str:
     return secrets.token_hex(4).upper()
 
-@router.post("/", status_code=status.HTTP_201_CREATED)
+@router.post("", status_code=status.HTTP_201_CREATED)
 async def create_league(
     req: LeagueCreateReq,
     current_user: User = Depends(get_current_user),
@@ -69,7 +69,7 @@ async def create_league(
     await db.refresh(new_league)
     return {"message": "League created successfully", "league_id": league_id, "join_code": new_league.join_code}
 
-@router.get("/")
+@router.get("")
 async def get_my_leagues(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db)
