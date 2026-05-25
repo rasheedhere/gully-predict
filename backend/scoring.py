@@ -361,6 +361,7 @@ async def update_leaderboard_cache(db: AsyncSession, tournament_id: str):
     # ── Global cache (league_id=None) ────────────────────────────────────────
     for user in all_users:
         uid = user.id
+        # Match points
         pts_res = await db.execute(
             select(LeaderboardEntry.points)
             .join(Match, LeaderboardEntry.match_id == Match.id)
@@ -370,9 +371,23 @@ async def update_leaderboard_cache(db: AsyncSession, tournament_id: str):
                 LeaderboardEntry.league_id == None,
             )
         )
-        # Legacy powerup decrement removed. Powerups are calculated dynamically or via mapping.
+        match_points = sum(pts for (pts,) in pts_res.all())
+
+        # General campaign points (Global)
+        camp_pts_res = await db.execute(
+            select(LeaderboardEntry.points)
+            .join(Campaign, LeaderboardEntry.campaign_id == Campaign.id)
+            .where(
+                LeaderboardEntry.user_id == uid,
+                Campaign.tournament_id == tournament_id,
+                LeaderboardEntry.league_id == None,
+                LeaderboardEntry.match_id == None,
+            )
+        )
+        camp_points = sum(pts for (pts,) in camp_pts_res.all() if pts is not None)
+
         base_points = mapping_map.get(uid, 0)
-        total = sum(pts for (pts,) in pts_res.all()) + base_points
+        total = match_points + camp_points + base_points
 
         cache_res = await db.execute(
             select(LeaderboardCache).where(
@@ -413,7 +428,22 @@ async def update_leaderboard_cache(db: AsyncSession, tournament_id: str):
                     Match.start_time >= joined_at,
                 )
             )
-            global_points = sum(pts for (pts,) in global_pts_res.all())
+            global_match_points = sum(pts for (pts,) in global_pts_res.all())
+
+            # Global general campaign points earned AFTER joining
+            # We use Campaign.ends_at (fallback to created_at) to determine if it locked after joining
+            global_camp_pts_res = await db.execute(
+                select(LeaderboardEntry.points)
+                .join(Campaign, LeaderboardEntry.campaign_id == Campaign.id)
+                .where(
+                    LeaderboardEntry.user_id == uid,
+                    Campaign.tournament_id == tournament_id,
+                    LeaderboardEntry.league_id == None,
+                    LeaderboardEntry.match_id == None,
+                    func.coalesce(Campaign.ends_at, Campaign.created_at) >= joined_at,
+                )
+            )
+            global_camp_points = sum(pts for (pts,) in global_camp_pts_res.all() if pts is not None)
 
             # League-specific campaign points
             league_pts_res = await db.execute(
@@ -425,7 +455,7 @@ async def update_leaderboard_cache(db: AsyncSession, tournament_id: str):
             league_points = sum(pts for (pts,) in league_pts_res.all() if pts is not None)
 
             base_points = mapping_map.get(uid, 0)
-            total = global_points + league_points + base_points
+            total = global_match_points + global_camp_points + league_points + base_points
 
             cache_res = await db.execute(
                 select(LeaderboardCache).where(

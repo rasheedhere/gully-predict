@@ -235,6 +235,12 @@ async def calculate_campaign_scores(campaign_id: str, db: AsyncSession, match_id
                     ))
 
     await db.commit()
+    
+    # Rebuild the DB leaderboard cache so the general campaigns appear in LeaderboardCache
+    if campaign.tournament_id:
+        from backend.scoring import update_leaderboard_cache
+        await update_leaderboard_cache(db, campaign.tournament_id)
+
     from backend.utils.cache import backend_cache
     backend_cache.invalidate("leaderboard_*")
     backend_cache.invalidate("analysis_*")
