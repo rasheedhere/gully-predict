@@ -12,8 +12,19 @@ if not DATABASE_URL:
 # Ensure we use the asyncpg driver, as PaaS providers like Render often supply postgres:// or postgresql://
 if DATABASE_URL.startswith("postgres://"):
     DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql+asyncpg://", 1)
-elif DATABASE_URL.startswith("postgresql://"):
+elif DATABASE_URL.startswith("postgresql://") and not DATABASE_URL.startswith("postgresql+asyncpg://"):
     DATABASE_URL = DATABASE_URL.replace("postgresql://", "postgresql+asyncpg://", 1)
+
+# asyncpg does not support 'sslmode', it uses 'ssl'
+if "sslmode=" in DATABASE_URL:
+    DATABASE_URL = DATABASE_URL.replace("sslmode=", "ssl=")
+# asyncpg does not support 'channel_binding'
+if "channel_binding=" in DATABASE_URL:
+    # remove channel_binding=... from the URL
+    import re
+    DATABASE_URL = re.sub(r'(&|\?)channel_binding=[^&]*', '', DATABASE_URL)
+    # clean up dangling ? or & at the end just in case
+    DATABASE_URL = DATABASE_URL.rstrip('?&')
 
 # Create the async engine
 engine = create_async_engine(DATABASE_URL, echo=False)
