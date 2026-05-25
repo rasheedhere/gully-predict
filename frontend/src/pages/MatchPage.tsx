@@ -3,8 +3,7 @@ import { useParams } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { useQueryClient } from '@tanstack/react-query';
 import { useMatch, useSubmitPrediction, useMyPredictions, useAllMatchPredictions } from '../api/hooks/useMatches';
-import { useUpdateMatchResults, useTriggerAIPredictions } from '../api/hooks/useAdmin';
-import { Trophy, Target, CheckCircle2, Edit2, Check, X, Sparkles, Settings, AlertTriangle, ShieldAlert, Bot, MapPin, ChevronDown, ChevronUp } from 'lucide-react';
+import { Trophy, Target, CheckCircle2, Edit2, Check, X, Sparkles, MapPin, ChevronDown, ChevronUp } from 'lucide-react';
 import { useAuthStore } from '../store/auth';
 import { apiClient } from '../api/client';
 import toast from 'react-hot-toast';
@@ -27,11 +26,6 @@ export default function MatchPage() {
   const { mutate: submitPrediction, isPending } = useSubmitPrediction(id || '');
   const { data: myPredictions } = useMyPredictions(id || '');
 
-  // Admin Scoring Processor State
-  const { mutate: updateResults, isPending: isUpdatingResults } = useUpdateMatchResults();
-  const { mutate: triggerAI, isPending: isTriggerAIPending } = useTriggerAIPredictions();
-  // Admin Results State: Map of {question_id: answer_value}
-  const [adminResults, setAdminResults] = useState<Record<string, any>>({});
 
   // Predictions are currently always open (start-lock disabled)
   const tossTime = data?.match?.tossTime ? new Date(data.match.tossTime) : null;
@@ -63,13 +57,6 @@ export default function MatchPage() {
       setHasAutoPredicted(!!myPredictions.is_auto_predicted);
     }
   }, [myPredictions, questions, reset]);
-
-
-  useEffect(() => {
-    if (data?.match?.results) {
-      setAdminResults(data.match.results);
-    }
-  }, [data]);
 
 
   const winnerQId = useMemo(() => {
@@ -309,25 +296,6 @@ export default function MatchPage() {
       setHasAutoPredicted(false);
     }
   };
-
-  const handleAdminResultSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!id) return;
-
-    updateResults({
-      matchId: id,
-      answers: adminResults
-    }, {
-      onSuccess: () => {
-        toast.success('Match results submitted and scoring triggered!');
-        queryClient.invalidateQueries({ queryKey: ['matches', id] });
-      },
-      onError: () => {
-        toast.error('Failed to update match results. Please try again.');
-      }
-    });
-  };
-
 
   return (
     <div className="space-y-8 max-w-[1600px] mx-auto w-full px-2 md:px-6 pb-20">
@@ -875,128 +843,6 @@ export default function MatchPage() {
         )}
       </div>
 
-      {/* ADMIN ZONE */}
-      {currentUser?.is_admin && (
-        <div className="mt-16 space-y-8 relative">
-          {/* Admin Zone Header */}
-          <div className="flex items-center gap-4 mb-4 opacity-70">
-            <div className="h-[1px] flex-1 bg-gradient-to-r from-transparent via-red-500/50 to-transparent"></div>
-            <div className="flex items-center gap-2 text-red-500 font-display tracking-widest text-[10px] uppercase">
-              <ShieldAlert className="w-3 h-3" />
-              Admin Access Zone
-            </div>
-            <div className="h-[1px] flex-1 bg-gradient-to-r from-transparent via-red-500/50 to-transparent"></div>
-          </div>
-
-          {/* Admin Match Result Processor Section */}
-          <section className="glass-panel p-8 border-t-4 border-t-ipl-gold shadow-[0_20px_50px_rgba(244,196,48,0.1)]">
-            <div className="flex items-center gap-3 mb-6">
-              <div className="p-3 bg-ipl-gold/10 rounded-lg">
-                <Settings className="w-6 h-6 text-ipl-gold" />
-              </div>
-              <h2 className="text-xl font-display text-white italic tracking-tighter">MATCH RESULT PROCESSOR</h2>
-            </div>
-
-            <div className="bg-ipl-gold/5 border border-ipl-gold/20 p-4 mb-8">
-              <div className="flex items-start gap-3">
-                <AlertTriangle className="w-5 h-5 text-ipl-gold shrink-0 mt-0.5" />
-                <p className="text-[10px] text-gray-400 font-display uppercase tracking-wider leading-relaxed">
-                  Caution: Triggering the scoring engine calculates points for ALL users immediately. Ensure facts are correct against official BCCI match data.
-                </p>
-              </div>
-            </div>
-
-            <form onSubmit={handleAdminResultSubmit} className="space-y-8">
-              {match.status === 'completed' && (
-                <div className="bg-red-500/10 border border-red-500/20 p-3 flex gap-3 items-center mb-6">
-                  <ShieldAlert className="w-5 h-5 text-red-500 shrink-0" />
-                  <p className="text-[10px] text-red-500 font-display uppercase tracking-widest leading-relaxed">
-                    Override Mode: Updating facts will RE-CALCULATE scores for all users immediately.
-                  </p>
-                </div>
-              )}
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-8">
-                {questions.filter((q: any) =>
-                  q.source_name === 'IPL Global' &&
-                  !q.question_text.toLowerCase().includes('booster') &&
-                  !q.question_text.toLowerCase().includes('powerup')
-                ).map((q: any) => (
-                  <div key={q.question_id} className="space-y-4">
-                    <label className="block text-[10px] font-display text-ipl-gold uppercase tracking-[0.2em]">
-                      {q.question_text}
-                    </label>
-
-                    {q.options ? (
-                      <div className={`grid ${q.options.length > 2 ? 'grid-cols-3' : 'grid-cols-2'} gap-3`}>
-                        {q.options.map((opt: string) => (
-                          <button
-                            key={opt}
-                            type="button"
-                            onClick={() => setAdminResults({ ...adminResults, [q.question_id]: opt })}
-                            className={`p-3 border-2 font-display text-[9px] tracking-widest transition-all ${adminResults[q.question_id] === opt ? 'border-ipl-gold bg-ipl-gold text-black' : 'border-white/10 text-gray-500 hover:border-white/20'}`}
-                          >
-                            {opt.toUpperCase()}
-                          </button>
-                        ))}
-                      </div>
-                    ) : (
-                      <input
-                        type={q.answer_type === 'free_number' ? 'number' : 'text'}
-                        value={adminResults[q.question_id] || ''}
-                        onChange={(e) => setAdminResults({ ...adminResults, [q.question_id]: e.target.value })}
-                        placeholder={q.answer_type === 'free_number' ? 'ENTER VALUE' : 'ENTER TEXT'}
-                        className="w-full bg-black/40 border-2 border-white/10 p-3 text-white focus:outline-none focus:border-ipl-gold transition-all font-display text-[10px] tracking-widest uppercase"
-                      />
-                    )}
-                  </div>
-                ))}
-              </div>
-
-              <button
-                type="submit"
-                disabled={isUpdatingResults || Object.keys(adminResults).length === 0}
-                className="w-full bg-ipl-gold text-black font-display py-4 uppercase tracking-[0.3em] font-black hover:bg-white hover:scale-[1.01] transition-all disabled:opacity-20"
-              >
-                {isUpdatingResults ? 'EXECUTING LOGIC...' : 'TRIGGER SCORING ENGINE'}
-              </button>
-            </form>
-          </section>
-
-          {/* AI Assassin Engine Section */}
-          <section className="glass-panel p-8 border-t-4 border-t-[#7B2FF7] shadow-[0_20px_50px_rgba(123,47,247,0.1)]">
-            <div className="flex items-center gap-3 mb-6">
-              <div className="p-3 bg-[#7B2FF7]/10 rounded-lg">
-                <Bot className="w-6 h-6 text-[#7B2FF7]" />
-              </div>
-              <h2 className="text-xl font-display text-white italic tracking-tighter">AI ASSASSIN ENGINE</h2>
-            </div>
-
-            <p className="text-gray-400 text-[10px] font-display tracking-widest uppercase leading-relaxed mb-6">
-              Manually trigger the AI Assassin to evaluate upcoming matches within the next 24 hours and lock in predictions.
-            </p>
-
-            <button
-              type="button"
-              onClick={() => {
-                triggerAI(undefined, {
-                  onSuccess: () => {
-                    toast.success('AI prediction job triggered!');
-                    // Give it a second to run the script then invalidate
-                    setTimeout(() => queryClient.invalidateQueries({ queryKey: ['predictions', 'all', id || match.id] }), 1500);
-                  },
-                  onError: () => toast.error('Failed to trigger AI')
-                });
-              }}
-              disabled={isTriggerAIPending}
-              className="w-full bg-gradient-to-r from-[#004BA0] to-[#7B2FF7] text-white font-display py-4 uppercase tracking-[0.3em] font-black hover:shadow-[0_0_20px_rgba(123,47,247,0.4)] disabled:opacity-50 disabled:grayscale transition-all"
-            >
-              {isTriggerAIPending ? 'EXECUTING NEURAL NET...' : 'TRIGGER AI ASSASSIN NOW'}
-            </button>
-          </section>
-        </div>
-      )}
-
       {/* AI Auto Predict Confirmation Modal */}
       {showAutoPredictConfirm && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
@@ -1048,6 +894,7 @@ export default function MatchPage() {
           </div>
         </div>
       )}
+
     </div>
   );
 }

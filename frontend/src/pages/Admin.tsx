@@ -551,10 +551,10 @@ function SystemManagement() {
 
       <div className="grid gap-6">
         <button
-          onClick={() => triggerAI(undefined, { onSuccess: () => toast.success('Scoring engine triggered') })}
-          className="py-5 bg-ipl-live text-white font-display text-xs uppercase tracking-[0.4em] hover:bg-red-600 transition-all shadow-neon shadow-red-500/20"
+          onClick={() => triggerAI(undefined, { onSuccess: () => toast.success('AI Assassin triggered') })}
+          className="py-5 bg-gradient-to-r from-[#004BA0] to-[#7B2FF7] text-white font-display text-xs uppercase tracking-[0.4em] hover:shadow-[0_0_20px_rgba(123,47,247,0.4)] transition-all shadow-neon shadow-[#7B2FF7]/20"
         >
-          {isPending ? 'PROCESSING...' : 'TRIGGER GLOBAL SCORING'}
+          {isPending ? 'EXECUTING NEURAL NET...' : 'TRIGGER AI ASSASSIN'}
         </button>
         <div className="text-[10px] text-gray-600 font-mono uppercase tracking-widest italic">
           Last processed: {new Date().toLocaleString()}
