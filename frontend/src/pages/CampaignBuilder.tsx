@@ -706,7 +706,7 @@ export function CampaignForm({ campaignId }: { campaignId?: string }) {
         <div className="flex items-center justify-between">
           <p className="text-gray-400 font-display text-xs uppercase tracking-widest">Questions ({questions.length})</p>
           <div className="flex items-center gap-3">
-            {questionBank && questionBank.questions.length > 0 && (
+            {type === 'match' && questionBank && questionBank.questions.length > 0 && (
               <select 
                 className="bg-black/40 border-2 border-white/10 py-1.5 px-3 text-white font-display text-xs focus:outline-none focus:border-ipl-gold transition-all"
                 onChange={(e) => {
@@ -737,7 +737,7 @@ export function CampaignForm({ campaignId }: { campaignId?: string }) {
                 <option value="">+ From Bank</option>
                 {questionBank.questions.map((q: any) => {
                   const alreadyAdded = questions.some(existing => existing.key === q.key);
-                  const isMasterLocal = !isMaster && masterQuestionsKeys.has(q.key);
+                  const isMasterLocal = !isMaster && type === 'match' && masterQuestionsKeys.has(q.key);
                   const isDisabled = alreadyAdded || isMasterLocal;
                   return (
                     <option key={q.id} value={q.id} disabled={isDisabled}>

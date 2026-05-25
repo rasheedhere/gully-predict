@@ -623,7 +623,14 @@ async def admin_get_campaign(
         if not campaign.league_id or not await _is_league_admin(db, current_user.id, campaign.league_id):
             raise HTTPException(status_code=403, detail="Not authorized to view this campaign")
 
-    return _serialize_campaign_admin(campaign)
+    cr_dict = None
+    if campaign.type == CampaignType.general:
+        cr_res = await db.execute(select(CampaignResult).where(CampaignResult.campaign_id == campaign_id))
+        cr = cr_res.scalars().first()
+        if cr:
+            cr_dict = cr.correct_answers
+
+    return _serialize_campaign_admin(campaign, cr_dict)
 
 
 @router.get("/admin/{campaign_id}/responses")
