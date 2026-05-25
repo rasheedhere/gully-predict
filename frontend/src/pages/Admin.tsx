@@ -524,7 +524,7 @@ function CampaignManagement() {
                   </td>
                   <td className="p-4 text-right">
                     <a
-                      href={`/admin/campaigns/${c.id}`}
+                      href={`/admin/campaigns/${c.id}/edit`}
                       className="inline-flex items-center gap-2 px-4 py-2 bg-white/5 border border-white/10 text-white hover:bg-white hover:text-ipl-navy transition-all font-display text-[10px] uppercase tracking-widest ml-auto"
                     >
                       <Pencil className="w-3 h-3" />
