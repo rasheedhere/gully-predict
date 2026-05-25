@@ -509,7 +509,7 @@ export default function CampaignPage() {
                               <div className="grid gap-2 md:grid-cols-2">
                                 {allPredictions.map((resp: any) => {
                                   const userAnsVal = resp.answers[q.id];
-                                  const ptsAwarded = resp.points_breakdown?.rules?.find((r: any) => r.question_id === q.id)?.points ?? 0;
+                                  const ptsAwarded = resp.points_breakdown?.rules?.find((r: any) => (r.key && r.key === q.key) || r.category === q.question_text)?.points ?? 0;
 
                                   return (
                                     <div key={resp.prediction_id} className="flex items-center justify-between p-3 rounded bg-white/5 border border-white/5 hover:border-white/10 transition-colors">
@@ -532,9 +532,9 @@ export default function CampaignPage() {
                                         </div>
                                       </div>
                                       
-                                      {ptsAwarded !== undefined && ptsAwarded !== null && ptsAwarded !== 0 && (
+                                      {ptsAwarded !== undefined && ptsAwarded !== null && (
                                         <div className={`shrink-0 text-xs font-display font-bold px-2 py-0.5 rounded ${
-                                          ptsAwarded > 0 ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400'
+                                          ptsAwarded > 0 ? 'bg-green-500/20 text-green-400' : ptsAwarded < 0 ? 'bg-red-500/20 text-red-400' : 'bg-gray-500/20 text-gray-400'
                                         }`}>
                                           {ptsAwarded > 0 ? '+' : ''}{ptsAwarded}
                                         </div>
@@ -583,7 +583,7 @@ export default function CampaignPage() {
                               <div className="p-4 border-t border-white/5 bg-black/20 space-y-4">
                                 {campaign.questions.map((q: any) => {
                                   const userAnsVal = resp.answers[q.id];
-                                  const ptsAwarded = resp.points_breakdown?.rules?.find((r: any) => r.question_id === q.id)?.points ?? 0;
+                                  const ptsAwarded = resp.points_breakdown?.rules?.find((r: any) => (r.key && r.key === q.key) || r.category === q.question_text)?.points ?? 0;
 
                                   return (
                                     <div key={q.id} className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 p-3 bg-white/5 rounded">
@@ -604,9 +604,9 @@ export default function CampaignPage() {
                                             Correct: {String(q.correct_answer)}
                                           </div>
                                         )}
-                                        {ptsAwarded !== undefined && ptsAwarded !== null && ptsAwarded !== 0 && (
+                                        {ptsAwarded !== undefined && ptsAwarded !== null && (
                                           <div className={`text-xs font-display font-bold px-2 py-0.5 rounded ${
-                                            ptsAwarded > 0 ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400'
+                                            ptsAwarded > 0 ? 'bg-green-500/20 text-green-400' : ptsAwarded < 0 ? 'bg-red-500/20 text-red-400' : 'bg-gray-500/20 text-gray-400'
                                           }`}>
                                             {ptsAwarded > 0 ? '+' : ''}{ptsAwarded}
                                           </div>
