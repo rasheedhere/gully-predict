@@ -9,6 +9,12 @@ DATABASE_URL = os.environ.get("DATABASE_URL")
 if not DATABASE_URL:
     raise ValueError("DATABASE_URL must be specified in the environment variables.")
 
+# Ensure we use the asyncpg driver, as PaaS providers like Render often supply postgres:// or postgresql://
+if DATABASE_URL.startswith("postgres://"):
+    DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql+asyncpg://", 1)
+elif DATABASE_URL.startswith("postgresql://"):
+    DATABASE_URL = DATABASE_URL.replace("postgresql://", "postgresql+asyncpg://", 1)
+
 # Create the async engine
 engine = create_async_engine(DATABASE_URL, echo=False)
 
