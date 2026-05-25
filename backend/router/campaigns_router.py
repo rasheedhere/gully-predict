@@ -440,6 +440,8 @@ async def update_campaign(
             if correct_answers or cr:
                 if cr:
                     cr.correct_answers = correct_answers
+                    from sqlalchemy.orm.attributes import flag_modified
+                    flag_modified(cr, "correct_answers")
                 else:
                     db.add(CampaignResult(campaign_id=campaign.id, correct_answers=correct_answers))
 
