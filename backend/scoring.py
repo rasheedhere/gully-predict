@@ -8,6 +8,7 @@ Core match scoring engine.
 import uuid
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
+from sqlalchemy import func
 
 from backend.models import (
     Match, User, CampaignQuestion, Campaign, CampaignResponse,
