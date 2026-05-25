@@ -136,6 +136,8 @@ async def calculate_campaign_scores(campaign_id: str, db: AsyncSession, match_id
 
         for q_id, q in question_map.items():
             answer_value = answers.get(q_id)
+            if answer_value is None and q.key:
+                answer_value = answers.get(q.key)
             # For tournament campaigns: look up by question.key; otherwise by question.id
             if use_key_lookup:
                 override = overrides.get(q.key) if q.key else None

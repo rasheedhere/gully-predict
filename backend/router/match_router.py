@@ -414,7 +414,7 @@ async def post_autopredict(
             val = potm
 
         if val is not None:
-            answers[q.key if q.key else q.id] = val
+            answers[q.id] = val
 
     # Upsert CampaignResponse for master campaign
     new_resp = CampaignResponse(

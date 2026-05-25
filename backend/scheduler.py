@@ -205,7 +205,7 @@ async def generate_ai_prediction(db, match: Match, ai_user: User):
             val = potm
 
         if val is not None:
-            answers[q.key if q.key else q.id] = val
+            answers[q.id] = val
 
     # Upsert CampaignResponse
     resp_res = await db.execute(
