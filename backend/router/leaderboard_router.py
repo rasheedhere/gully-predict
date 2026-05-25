@@ -156,6 +156,7 @@ async def fetch_leaderboard_data(db: AsyncSession, league_id: str):
                 .where(CampaignResponse.user_id.in_(user_ids))
                 .where(CampaignResponse.match_id.in_(valid_match_ids))
                 .where(Campaign.is_master == False)
+                .where(Campaign.league_id == league_id)
             )
             for uid, mid, breakdown in ca_res.all():
                 if breakdown and "rules" in breakdown:
@@ -250,6 +251,7 @@ async def get_match_leaderboard(match_id: str, db: AsyncSession = Depends(get_db
         .outerjoin(AllowlistedEmail, User.email == AllowlistedEmail.email)
         .join(LeaderboardEntry, User.id == LeaderboardEntry.user_id)
         .where(LeaderboardEntry.match_id == match_id)
+        .where(LeaderboardEntry.league_id == None)
         .where(User.is_guest == False, User.is_dev == False)
         .where(or_(AllowlistedEmail.email != None, User.is_ai == True))
         .order_by(LeaderboardEntry.points.desc())

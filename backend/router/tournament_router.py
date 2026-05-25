@@ -364,9 +364,13 @@ async def set_tournament_match_answers(
     campaigns_res = await db.execute(
         select(Campaign).where(
             Campaign.tournament_id == tournament_id,
-            Campaign.match_id == match_id,
             Campaign.type == CampaignType.match,
             Campaign.status == CS.active,
+            or_(
+                Campaign.match_id == match_id,
+                Campaign.target_matches.any(Match.id == match_id),
+                ~Campaign.target_matches.any()
+            )
         )
     )
     campaigns = campaigns_res.scalars().all()

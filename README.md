@@ -8,7 +8,7 @@ A sophisticated, private Gully Predict Cricket prediction platform for competiti
 
 ### 🏆 Multi-League & Campaign System
 - **Tournament-Based Architecture**: Matches belong to a Tournament (e.g., IPL 2026). Multiple private Leagues exist within each Tournament.
-- **Dynamic Campaigns**: Admins create "Master" (global) or league-specific campaigns with flexible question types.
+- **Dynamic Campaigns**: Admins create "Master" (global) or league-specific campaigns with flexible question types. Campaigns must be explicitly marked as `Active` to appear on user prediction forms and to be scored.
 - **Rich Question Types**: Multiple choice, toggle, dropdown, free text, numeric inputs with configurable scoring tiers.
 - **Advanced Scoring**: Per-question scoring rules (exact match, numeric difference, multi-choice tiers).
 - **League-Scoped Reveal**: Community predictions are segmented by league — users only see predictions from members of their shared leagues.
