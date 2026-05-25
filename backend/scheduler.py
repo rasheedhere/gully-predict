@@ -166,7 +166,7 @@ async def generate_ai_prediction(db, match: Match, ai_user: User):
                 ans_val = more_fours_team
 
         if ans_val is not None:
-            answers[q.id] = ans_val
+            answers[q.key if q.key else q.id] = ans_val
 
     # Upsert CampaignResponse
     resp_res = await db.execute(
