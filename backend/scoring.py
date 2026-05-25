@@ -74,10 +74,23 @@ async def sync_match_results_to_campaign_questions(match_id: str, db: AsyncSessi
 
     from sqlalchemy.orm import selectinload
     cam_res = await db.execute(
-        select(Campaign).options(selectinload(Campaign.questions))
+        select(Campaign).options(selectinload(Campaign.questions), selectinload(Campaign.target_matches))
         .where(Campaign.tournament_id == match.tournament_id, Campaign.is_master == True)
     )
-    master_cam = cam_res.scalars().first()
+    all_masters = cam_res.scalars().all()
+    master_cam = None
+    fallback_master = None
+    for mc in all_masters:
+        if mc.target_matches:
+            if any(tm.id == match_id for tm in mc.target_matches):
+                master_cam = mc
+                break
+        else:
+            fallback_master = mc
+
+    if not master_cam:
+        master_cam = fallback_master
+
     if not master_cam:
         return
 
@@ -171,17 +184,29 @@ async def calculate_match_scores(match_id: str, db: AsyncSession):
         raise ValueError(f"Match {match_id} not found")
 
     # ── Master campaign questions ─────────────────────────────────────────────
-    q_res = await db.execute(
-        select(CampaignQuestion, Campaign.id.label("campaign_id"))
-        .join(Campaign, CampaignQuestion.campaign_id == Campaign.id)
+    cam_res = await db.execute(
+        select(Campaign).options(selectinload(Campaign.questions), selectinload(Campaign.target_matches))
         .where(Campaign.tournament_id == match.tournament_id, Campaign.is_master == True)
     )
-    questions = q_res.all()
-    if not questions:
+    all_masters = cam_res.scalars().all()
+    master_cam = None
+    fallback_master = None
+    for mc in all_masters:
+        if mc.target_matches:
+            if any(tm.id == match_id for tm in mc.target_matches):
+                master_cam = mc
+                break
+        else:
+            fallback_master = mc
+
+    if not master_cam:
+        master_cam = fallback_master
+
+    if not master_cam:
         return  # No master campaign found
 
-    master_campaign_id = questions[0].campaign_id
-    question_map = {q.CampaignQuestion.id: q.CampaignQuestion for q in questions}
+    master_campaign_id = master_cam.id
+    question_map = {q.id: q for q in master_cam.questions}
 
     # ── Ground truth ─────────────────────────────────────────────────────────
     cmr_res = await db.execute(
@@ -214,10 +239,12 @@ async def calculate_match_scores(match_id: str, db: AsyncSession):
         match_number = int(match_id.split("-")[-1])
     except (ValueError, IndexError):
         pass
-    penalty_points = -5 if match_number >= 12 else 0
+    penalty_points = -5 if match_number >= 2 else 0
 
     # ── Score each user ───────────────────────────────────────────────────────
     user_points: dict[str, int] = {}
+    users_res = await db.execute(select(User).where(User.is_guest == False, User.is_dev == False))
+    all_users = users_res.scalars().all()
 
     for user in all_users:
         response = responses_by_user.get(user.id)
@@ -225,7 +252,10 @@ async def calculate_match_scores(match_id: str, db: AsyncSession):
         if not response:
             # No prediction — apply penalty (AI exempt before match 25)
             # Do NOT penalize if the user joined after the match started
-            if user.created_at and match.start_time and user.created_at > match.start_time:
+            from datetime import UTC
+            u_created = user.created_at if user.created_at.tzinfo else user.created_at.replace(tzinfo=UTC)
+            m_start = match.start_time if match.start_time.tzinfo else match.start_time.replace(tzinfo=UTC)
+            if u_created > m_start:
                 current_penalty = 0
             else:
                 current_penalty = penalty_points
@@ -319,7 +349,7 @@ async def update_leaderboard_cache(db: AsyncSession, tournament_id: str):
     Rebuilds LeaderboardCache for all users across global and league scopes
     for a given tournament.
     """
-    users_res = await db.execute(select(User).where(User.is_guest == False))
+    users_res = await db.execute(select(User).where(User.is_guest == False, User.is_dev == False))
     all_users = users_res.scalars().all()
     
     # Pre-fetch tournament mappings
@@ -416,3 +446,9 @@ async def update_leaderboard_cache(db: AsyncSession, tournament_id: str):
                 ))
 
     await db.commit()
+
+    # Invalidate memory cache for all leaderboards, analysis, and podiums
+    from backend.utils.cache import backend_cache
+    backend_cache.invalidate("leaderboard_*")
+    backend_cache.invalidate("analysis_*")
+    backend_cache.invalidate("match_podiums")

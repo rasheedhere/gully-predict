@@ -35,17 +35,17 @@ export default function LeaderboardSection({ leagueId, leagueName, tournamentNam
             <div className="p-8 text-center animate-pulse text-white font-display text-xl tracking-widest">LOADING STANDINGS...</div>
           ) : (
             <div className="overflow-x-auto w-full custom-scrollbar">
-              <table className="w-full text-left border-collapse min-w-[450px] md:min-w-[700px] whitespace-nowrap">
+              <table className="w-full text-left border-collapse table-fixed whitespace-nowrap">
                 <thead>
                   <tr className="bg-white/5 border-b border-white/10">
-                    <th className="p-2 md:p-4 font-display tracking-wider text-gray-400 text-[10px] md:text-xs uppercase w-12 text-center">Rank</th>
-                    <th className="p-2 md:p-4 font-display tracking-wider text-gray-400 text-[10px] md:text-xs uppercase">Player</th>
-                    <th className="p-2 md:p-4 font-display tracking-wider text-gray-400 text-center hidden lg:table-cell">
+                    <th className="p-2 md:p-4 font-display tracking-wider text-gray-400 text-[10px] md:text-xs uppercase w-10 md:w-16 text-center">Rank</th>
+                    <th className="p-2 md:p-4 font-display tracking-wider text-gray-400 text-[10px] md:text-xs uppercase w-auto">Player</th>
+                    <th className="p-2 md:p-4 font-display tracking-wider text-gray-400 text-center hidden lg:table-cell lg:w-[200px]">
                       <div className="text-[10px] md:text-xs uppercase">History</div>
                       <div className="text-[8px] text-gray-500 font-mono tracking-tighter mt-0.5 opacity-60">(Latest → Oldest)</div>
                     </th>
-                    <th className="p-2 md:p-4 font-display tracking-wider text-gray-400 text-[10px] md:text-xs uppercase text-right">Points</th>
-                    <th className="p-2 md:p-4 font-display tracking-wider text-gray-400 text-[10px] md:text-xs uppercase text-center w-16">Pwrups</th>
+                    <th className="p-2 md:p-4 font-display tracking-wider text-gray-400 text-[10px] md:text-xs uppercase text-right w-16 md:w-24">Points</th>
+                    <th className="p-2 md:p-4 font-display tracking-wider text-gray-400 text-[10px] md:text-xs uppercase text-center w-12 md:w-20">Pwrups</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -71,22 +71,22 @@ export default function LeaderboardSection({ leagueId, leagueName, tournamentNam
                         </div>
                       </td>
                       <td className="p-2 md:p-4">
-                        <div className="flex items-center gap-2 md:gap-4">
+                        <div className="flex items-center gap-2 md:gap-4 overflow-hidden">
                           <div className="w-8 h-8 md:w-10 md:h-10 rounded-full border border-white/10 overflow-hidden group-hover:border-ipl-gold transition-colors shrink-0">
                             <img src={entry.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${entry.username}`} alt={entry.username} />
                           </div>
-                          <div className="flex flex-col min-w-0">
-                            <span className={`text-xs md:text-sm font-display tracking-wide truncate max-w-[80px] md:max-w-[120px] ${entry.rank <= 3 ? 'text-white' : 'text-gray-300'}`}>
+                          <div className="flex flex-col min-w-0 flex-1">
+                            <span className={`text-xs md:text-sm font-display tracking-wide truncate w-full ${entry.rank <= 3 ? 'text-white' : 'text-gray-300'}`}>
                               {getUserDisplayName({ name: entry.username, alias: entry.alias, use_alias: entry.use_alias })}
                             </span>
-                            <span className="text-[8px] md:text-[10px] text-gray-500 uppercase font-display tracking-tighter">
+                            <span className="text-[8px] md:text-[10px] text-gray-500 uppercase font-display tracking-tighter truncate w-full">
                               M: {entry.matches_played}
                             </span>
                           </div>
                         </div>
                       </td>
                       <td className="p-2 md:p-4 hidden lg:table-cell">
-                        <div className="flex items-center justify-center gap-1.5 overflow-x-auto custom-scrollbar pb-1">
+                        <div className="flex items-center justify-start gap-1.5 overflow-x-auto custom-scrollbar pb-1 px-1">
                           {entry.progression?.slice(0, 10).map((prog: any, idx: number) => (
                             <div
                               key={idx}

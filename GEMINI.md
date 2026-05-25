@@ -75,8 +75,9 @@ A private Gully Predict prediction platform for a group of friends. Users sign i
 - **Leaderboard**: `LeaderboardCache` stores `league_id=None` (global) and per-league totals.
 - **Time-Bound Scoring**: League points only count from matches/campaigns that locked after the user's `joined_at` timestamp.
 
-### 7. Late Entrants & Powerups (Tournament Scoping)
+### 7. Late Entrants & Powerups (Tournament & Campaign Scoping)
 - **Tournament Scoping**: User stats (`base_points`, `base_powerups`, `powerups_used`) are stored in `TournamentUserMapping`. This allows users to participate in multiple tournaments with separate balances.
+- **Campaign Scoping**: Master campaigns can specify their own `max_powerups`. If set, powerups used for matches targeted by that master campaign are drawn from this isolated quota instead of the tournament global limit (e.g. used for Playoffs).
 - **Base Points Handicap**: Late entrants can be given a catch-up handicap via `TournamentUserMapping.base_points`. This adds to their total score in both Global and Private leagues.
 - **Retroactive Penalty Protection**: The scoring engine skips non-participation penalties for any match that started *before* the user's `created_at` timestamp.
 

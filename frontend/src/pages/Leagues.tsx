@@ -3,11 +3,15 @@ import { useMyLeagues, useJoinLeague } from '../api/hooks/useLeagues';
 import { useNavigate } from 'react-router-dom';
 import { Trophy, Plus, Sparkles, ShieldCheck, ChevronRight } from 'lucide-react';
 import toast from 'react-hot-toast';
+import { useTournamentStore } from '../store/tournament';
 
 export default function Leagues() {
-  const { data: leagues, isLoading } = useMyLeagues();
+  const { data: allLeagues, isLoading } = useMyLeagues();
+  const { activeTournamentId } = useTournamentStore();
   const joinLeague = useJoinLeague();
   const navigate = useNavigate();
+
+  const leagues = allLeagues?.filter((l: any) => l.tournament_id === activeTournamentId) || [];
 
   const [joinCode, setJoinCode] = useState('');
 

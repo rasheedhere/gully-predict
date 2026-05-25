@@ -95,6 +95,11 @@ MatchStats          match_id, stats_json (Gemini-generated head-to-head, form, p
 - Accepts sequential IDs (1, 2, 3) and auto-formats to `tournament-year-number`.
 - Required CSV columns: `id, team1, team2, venue, toss_time`
 
+### ✅ Phase 9: Playoff Scoping & Powerup Limits
+- Master Campaigns can define `target_match_ids` to override the fallback tournament master for a specific subset of matches (e.g., Playoffs).
+- Campaign-level powerup limits: Master Campaigns can declare a `max_powerups` value. Usage inside these matches is counted strictly against this isolated quota instead of the global tournament limit.
+- AI Auto-Predict accounts for match-specific master campaign overrides, intelligently replaces team name variables, and randomizes picks for heuristic logic.
+
 ---
 
 ## Scoring Logic
@@ -112,7 +117,7 @@ MatchStats          match_id, stats_json (Gemini-generated head-to-head, form, p
 | AI Assassin penalty | Starts from Match 25 |
 
 ### Powerup (2× Booster)
-- Tracked globally per user (`User.base_powerups`).
+- Tracked per tournament (`TournamentUserMapping.base_powerups`) **or** per master campaign (`Campaign.max_powerups`).
 - Multiplies: Winner, POM, Powerplay
 - Does **not** multiply: Sixes, Fours
 

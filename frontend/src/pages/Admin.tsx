@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Users, ShieldCheck, Mail, Trash2, Cpu, Plus, Trophy, RefreshCw, Calendar, MapPin, Sword, Star, Pencil, X } from 'lucide-react';
+import { Users, ShieldCheck, Mail, Trash2, Cpu, Plus, Trophy, RefreshCw, Calendar, MapPin, Sword, Star, Pencil, X, List } from 'lucide-react';
 import { useAuthStore } from '../store/auth';
 import { Navigate } from 'react-router-dom';
 import {
@@ -27,6 +27,7 @@ import { useMatches } from '../api/hooks/useMatches';
 import { useCreateLeague, useLeagueDetails, useToggleLeagueAdmin, useKickMember } from '../api/hooks/useLeagues';
 import { teamColors, getTeamColor, getTeamShortName } from '../utils/teamColors';
 import { getTeamLogo } from '../utils/teamLogos';
+import { useAdminCampaigns } from '../api/hooks/useCampaigns';
 import toast from 'react-hot-toast';
 
 export default function Admin() {
@@ -456,8 +457,10 @@ function UserManagement() {
 
 function CampaignManagement() {
   const { user } = useAuthStore();
+  const { data: campaigns, isLoading } = useAdminCampaigns();
+
   return (
-    <div className="max-w-2xl mx-auto">
+    <div className="max-w-4xl mx-auto space-y-8">
       <section className="glass-panel p-10 border-t-2 border-ipl-gold flex flex-col items-center justify-center text-center">
         <ShieldCheck className="w-16 h-16 text-ipl-gold mb-6 opacity-20" />
         <h2 className="text-2xl font-display text-white mb-2 uppercase italic tracking-tighter">
@@ -471,6 +474,68 @@ function CampaignManagement() {
         <a href="/admin/campaigns" className="px-10 py-4 bg-white text-ipl-navy font-display text-xs uppercase tracking-[0.3em] font-bold hover:bg-ipl-gold transition-all">
           Launch Builder
         </a>
+      </section>
+
+      <section className="glass-panel p-6 border-t-2 border-white/10">
+        <div className="flex items-center justify-between mb-8">
+          <div className="flex items-center gap-3">
+            <List className="w-6 h-6 text-ipl-gold" />
+            <h2 className="text-xl font-display text-white italic uppercase tracking-tight">Campaign Registry</h2>
+          </div>
+        </div>
+
+        <div className="overflow-hidden rounded-xl border border-white/5 bg-black/20">
+          <table className="w-full text-left">
+            <thead>
+              <tr className="border-b border-white/10 bg-white/5 text-[9px] uppercase tracking-[0.2em] text-gray-500 font-display">
+                <th className="p-4 font-normal">Campaign Title</th>
+                <th className="p-4 font-normal">Type & Match</th>
+                <th className="p-4 font-normal">Status</th>
+                <th className="p-4 font-normal text-right">Actions</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-white/5 font-display text-xs text-gray-400">
+              {isLoading ? (
+                <tr><td colSpan={4} className="p-10 text-center animate-pulse text-[10px] uppercase tracking-widest text-gray-600">Loading Campaigns...</td></tr>
+              ) : campaigns?.length === 0 ? (
+                <tr><td colSpan={4} className="p-10 text-center text-[10px] uppercase tracking-widest text-gray-600">No campaigns found</td></tr>
+              ) : campaigns?.map(c => (
+                <tr key={c.id} className="group hover:bg-white/5 transition-all">
+                  <td className="p-4">
+                    <div className="flex flex-col">
+                      <span className="text-sm text-white group-hover:text-ipl-gold transition-colors">{c.title}</span>
+                      <span className="text-[9px] text-gray-600 font-mono tracking-tighter uppercase">{c.id}</span>
+                    </div>
+                  </td>
+                  <td className="p-4">
+                    <div className="flex flex-col gap-1">
+                      <span className="text-[10px] uppercase tracking-widest">{c.type}</span>
+                      <span className="text-[9px] text-gray-600 font-mono italic uppercase tracking-tighter">{c.match_id || 'Global'}</span>
+                    </div>
+                  </td>
+                  <td className="p-4">
+                    <span className={`px-2 py-0.5 border rounded text-[8px] uppercase tracking-widest font-bold w-fit ${
+                      c.status === 'active' ? 'bg-ipl-live/10 text-ipl-live border-ipl-live/20' :
+                      c.status === 'closed' ? 'bg-red-500/10 text-red-500 border-red-500/20' :
+                      'bg-gray-500/10 text-gray-400 border-gray-500/20'
+                    }`}>
+                      {c.status}
+                    </span>
+                  </td>
+                  <td className="p-4 text-right">
+                    <a
+                      href={`/admin/campaigns/${c.id}`}
+                      className="inline-flex items-center gap-2 px-4 py-2 bg-white/5 border border-white/10 text-white hover:bg-white hover:text-ipl-navy transition-all font-display text-[10px] uppercase tracking-widest ml-auto"
+                    >
+                      <Pencil className="w-3 h-3" />
+                      Edit
+                    </a>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       </section>
     </div>
   );

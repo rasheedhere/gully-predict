@@ -180,9 +180,9 @@ async def post_match_results_webhook(
         await calculate_match_scores(match.id, db)
         
         # Invalidate caches
-        backend_cache.invalidate("global_leaderboard")
+        backend_cache.invalidate("leaderboard_*")
+        backend_cache.invalidate("analysis_*")
         backend_cache.invalidate("match_podiums")
-        backend_cache.invalidate("analysis")
         backend_cache.invalidate(f"match_leaderboard_{match.id}")
         
         return {

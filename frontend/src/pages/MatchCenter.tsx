@@ -1,11 +1,13 @@
 import MatchCard from '../components/MatchCard';
 import { useMatches, useMyPredictionStatus } from '../api/hooks/useMatches';
 import { useAuthStore } from '../store/auth';
+import { useTournamentStore } from '../store/tournament';
 import { Sparkles } from 'lucide-react';
 
 export default function MatchCenter() {
   const { user } = useAuthStore();
-  const { data: matches, isLoading, error } = useMatches();
+  const { activeTournamentId } = useTournamentStore();
+  const { data: matches, isLoading, error } = useMatches(activeTournamentId || undefined);
   const { data: predictedMatchIds } = useMyPredictionStatus();
 
   if (isLoading) return <div className="text-white text-center font-display tracking-widest animate-pulse mt-20">LOADING ARENA...</div>;
@@ -20,7 +22,8 @@ export default function MatchCenter() {
   const futureMatches = matches?.filter(m => {
     const d = new Date(m.tossTime);
     const now = new Date();
-    return d.toDateString() !== now.toDateString();
+    // Must not be today, and must be in the future
+    return d.toDateString() !== now.toDateString() && d > now;
   }) || [];
 
   return (

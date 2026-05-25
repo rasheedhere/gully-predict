@@ -15,7 +15,7 @@ from backend.models import (
     User, Match, MatchStatus, Tournament,
     Campaign, CampaignQuestion, CampaignResponse,
     LeagueUserMapping, League, CampaignMatchResult,
-    TournamentUserMapping,
+    TournamentUserMapping, CampaignTargetMatch,
     SystemEventType,
 )
 from backend.utils.cache import backend_cache
@@ -159,33 +159,59 @@ async def get_match(
 
     # Scoped Stats
     mapping = await _get_tournament_user_mapping(db, m.tournament_id, current_user.id)
-    
-    # Powerups used (count of responses where use_powerup=True for this user in this tournament)
-    powerups_res = await db.execute(
-        select(CampaignResponse)
-        .join(Campaign, CampaignResponse.campaign_id == Campaign.id)
-        .where(
-            CampaignResponse.user_id == current_user.id,
-            CampaignResponse.use_powerup == True,
-            Campaign.tournament_id == m.tournament_id
-        )
-    )
-    powerups_used = len(powerups_res.scalars().all())
-
     # ── Build question list ───────────────────────────────────────────────────
     final_questions = []
 
     # 1. Master campaign questions
+    from backend.models import CampaignTargetMatch
     master_result = await db.execute(
         select(Campaign)
-        .options(selectinload(Campaign.questions))
+        .options(selectinload(Campaign.questions), selectinload(Campaign.target_matches))
         .where(
             Campaign.tournament_id == m.tournament_id,
             Campaign.is_master == True,
             Campaign.type == "match",
         )
     )
-    master_campaign = master_result.scalars().first()
+    all_masters = master_result.scalars().all()
+    
+    master_campaign = None
+    fallback_master = None
+    for mc in all_masters:
+        if mc.target_matches:
+            if any(tm.id == m.id for tm in mc.target_matches):
+                master_campaign = mc
+                break
+        else:
+            fallback_master = mc
+
+    if not master_campaign:
+        master_campaign = fallback_master
+
+    if master_campaign and master_campaign.max_powerups is not None:
+        total_powerups = master_campaign.max_powerups
+        powerups_res = await db.execute(
+            select(CampaignResponse)
+            .where(
+                CampaignResponse.user_id == current_user.id,
+                CampaignResponse.use_powerup == True,
+                CampaignResponse.campaign_id == master_campaign.id
+            )
+        )
+        powerups_used = len(powerups_res.scalars().all())
+    else:
+        total_powerups = mapping.base_powerups
+        powerups_res = await db.execute(
+            select(CampaignResponse)
+            .join(Campaign, CampaignResponse.campaign_id == Campaign.id)
+            .where(
+                CampaignResponse.user_id == current_user.id,
+                CampaignResponse.use_powerup == True,
+                Campaign.tournament_id == m.tournament_id,
+                Campaign.max_powerups == None
+            )
+        )
+        powerups_used = len(powerups_res.scalars().all())
 
     if master_campaign:
         for q in master_campaign.questions:
@@ -217,7 +243,12 @@ async def get_match(
                 Campaign.is_master == False,
                 LeagueUserMapping.user_id == current_user.id,
                 Campaign.status == "active",
-                or_(Campaign.match_id == m.id, Campaign.match_id == None),
+                or_(
+                    Campaign.id.in_(
+                        select(CampaignTargetMatch.campaign_id).where(CampaignTargetMatch.match_id == m.id)
+                    ),
+                    ~Campaign.id.in_(select(CampaignTargetMatch.campaign_id))
+                ),
             )
         )
         for c, league_name in league_result.all():
@@ -251,7 +282,7 @@ async def get_match(
         "match": match_dict,
         "questions": final_questions,
         "powerups_used": powerups_used,
-        "total_powerups": mapping.base_powerups,
+        "total_powerups": total_powerups,
     }
 
 
@@ -328,11 +359,25 @@ async def post_autopredict(
     more_fours = (match.team1 if random.random() > 0.5 else match.team2) if match_number >= 39 else None
 
     # Fetch master campaign questions
+    from backend.models import CampaignTargetMatch
     cam_res = await db.execute(
-        select(Campaign).options(selectinload(Campaign.questions))
+        select(Campaign).options(selectinload(Campaign.questions), selectinload(Campaign.target_matches))
         .where(Campaign.tournament_id == match.tournament_id, Campaign.is_master == True)
     )
-    master_campaign = cam_res.scalars().first()
+    all_masters = cam_res.scalars().all()
+    master_campaign = None
+    fallback_master = None
+    for mc in all_masters:
+        if mc.target_matches:
+            if any(tm.id == match_id for tm in mc.target_matches):
+                master_campaign = mc
+                break
+        else:
+            fallback_master = mc
+
+    if not master_campaign:
+        master_campaign = fallback_master
+
     if not master_campaign:
         raise HTTPException(status_code=404, detail="Master campaign not found for this tournament")
 
@@ -340,25 +385,35 @@ async def post_autopredict(
     answers = {}
     t1, t2 = match.team1, match.team2
     for q in master_campaign.questions:
-        opts = q.options or []
+        # replace placeholders just like in GET /predictions/data
+        opts = [_replace_placeholders(o, match) for o in q.options] if q.options else []
         qtype = q.question_type
-        text = (q.question_text or "").lower()
+        text = _replace_placeholders(q.question_text, match).lower()
         val = None
 
         if set(opts) == {t1, t2}:
-            val = winner
-        elif qtype == "free_number" and "powerplay" in text:
-            if t1.lower() in text or "team1" in text or "{{team1}}" in text:
+            # This handles "Winner", "Most sixes", "Most fours", "Most dot balls" if they use the two teams as options
+            if qtype == "toggle" and "dot ball" in text:
+                val = random.choice([t1, t2]) # randomly pick for dot balls
+            elif qtype == "dropdown":
+                if "six" in text:
+                    val = random.choice([t1, t2])
+                elif "four" in text:
+                    val = random.choice([t1, t2])
+                else:
+                    val = random.choice([t1, t2])
+            else:
+                if "win" in text:
+                    val = winner  # Keep match winner consistent with the POTM selection
+                else:
+                    val = random.choice([t1, t2])
+        elif qtype == "free_number" and ("powerplay" in text or "power play" in text):
+            if t1.lower() in text or "team1" in text:
                 val = str(team1_pp)
-            elif t2.lower() in text or "team2" in text or "{{team2}}" in text:
+            elif t2.lower() in text or "team2" in text:
                 val = str(team2_pp)
         elif qtype == "free_text" and ("player" in text or "potm" in text or "man of" in text):
             val = potm
-        elif qtype == "dropdown":
-            if "six" in text:
-                val = more_sixes
-            elif "four" in text:
-                val = more_fours
 
         if val is not None:
             answers[q.id] = val
@@ -376,6 +431,8 @@ async def post_autopredict(
     db.add(new_resp)
     await db.commit()
     backend_cache.invalidate(f"user_pred_status:{current_user.id}")
+    backend_cache.invalidate("leaderboard_*")
+    backend_cache.invalidate("analysis_*")
 
     return {**answers, "use_powerup": "No"}
 
@@ -403,26 +460,68 @@ async def submit_prediction(
     # Check powerup limit
     use_powerup = payload.use_powerup or False
     if use_powerup:
-        # Get tournament mapping for the match's tournament
-        mapping = await _get_tournament_user_mapping(db, match.tournament_id, current_user.id)
-        
-        # Count existing responses where powerup is True (excluding current match) in this tournament
-        existing_powerup_res = await db.execute(
-            select(CampaignResponse)
-            .join(Campaign, CampaignResponse.campaign_id == Campaign.id)
+        from backend.models import CampaignTargetMatch
+        master_result = await db.execute(
+            select(Campaign)
+            .options(selectinload(Campaign.target_matches))
             .where(
-                CampaignResponse.user_id == current_user.id,
-                CampaignResponse.use_powerup == True,
-                CampaignResponse.match_id != match_id,
                 Campaign.tournament_id == match.tournament_id,
+                Campaign.is_master == True,
+                Campaign.type == "match",
             )
         )
-        powerups_used = len(existing_powerup_res.scalars().all())
-        if powerups_used >= mapping.base_powerups:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="powerup_limit_reached",
+        all_masters = master_result.scalars().all()
+        master_campaign = None
+        fallback_master = None
+        for mc in all_masters:
+            if mc.target_matches:
+                if any(tm.id == match_id for tm in mc.target_matches):
+                    master_campaign = mc
+                    break
+            else:
+                fallback_master = mc
+
+        if not master_campaign:
+            master_campaign = fallback_master
+
+        if master_campaign and master_campaign.max_powerups is not None:
+            existing_powerup_res = await db.execute(
+                select(CampaignResponse)
+                .where(
+                    CampaignResponse.user_id == current_user.id,
+                    CampaignResponse.use_powerup == True,
+                    CampaignResponse.match_id != match_id,
+                    CampaignResponse.campaign_id == master_campaign.id,
+                )
             )
+            powerups_used = len(existing_powerup_res.scalars().all())
+            if powerups_used >= master_campaign.max_powerups:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="powerup_limit_reached",
+                )
+        else:
+            # Get tournament mapping for the match's tournament
+            mapping = await _get_tournament_user_mapping(db, match.tournament_id, current_user.id)
+            
+            # Count existing responses where powerup is True (excluding current match) in this tournament
+            existing_powerup_res = await db.execute(
+                select(CampaignResponse)
+                .join(Campaign, CampaignResponse.campaign_id == Campaign.id)
+                .where(
+                    CampaignResponse.user_id == current_user.id,
+                    CampaignResponse.use_powerup == True,
+                    CampaignResponse.match_id != match_id,
+                    Campaign.tournament_id == match.tournament_id,
+                    Campaign.max_powerups == None
+                )
+            )
+            powerups_used = len(existing_powerup_res.scalars().all())
+            if powerups_used >= mapping.base_powerups:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="powerup_limit_reached",
+                )
 
     # Parse answers into {campaign_id: {question_id: value}}
     campaign_answers_map: Dict[str, Dict[str, Any]] = {}
@@ -495,6 +594,8 @@ async def submit_prediction(
     await db.commit()
 
     backend_cache.invalidate(f"user_pred_status:{current_user.id}")
+    backend_cache.invalidate("leaderboard_*")
+    backend_cache.invalidate("analysis_*")
     return {"message": "Predictions submitted successfully"}
 
 

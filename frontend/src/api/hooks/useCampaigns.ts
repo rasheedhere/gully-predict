@@ -42,11 +42,12 @@ export interface Campaign {
   status: CampaignStatus;
   starts_at: string | null;
   ends_at: string | null;
+  max_powerups: number | null;
   non_participation_penalty: number;
   created_at: string;
   updated_at: string;
   league_id: string | null;
-  match_id: string | null;
+  target_match_ids: string[];
   tournament_id: string | null;
   questions: CampaignQuestion[];
   my_response?: CampaignResponseSummary;
@@ -72,22 +73,26 @@ export interface CampaignCreate {
   is_master?: boolean;
   starts_at?: string | null;
   ends_at?: string | null;
+  max_powerups?: number | null;
   non_participation_penalty?: number;
   league_id?: string | null;
-  match_id?: string | null;
+  target_match_ids?: string[];
   tournament_id?: string | null;
   questions: QuestionCreate[];
 }
 
 // ── User hooks ───────────────────────────────────────────────────────────────
 
-export function useCampaigns() {
+export function useCampaigns(tournamentId?: string) {
   return useQuery({
-    queryKey: ['campaigns'],
+    queryKey: ['campaigns', tournamentId],
     queryFn: async () => {
-      const response = await apiClient.get<Campaign[]>('/campaigns');
+      const response = await apiClient.get<Campaign[]>('/campaigns', {
+        params: { tournament_id: tournamentId }
+      });
       return response.data;
     },
+    enabled: !!tournamentId,
   });
 }
 
@@ -113,6 +118,17 @@ export function useSubmitCampaignResponse(campaignId: string) {
       queryClient.invalidateQueries({ queryKey: ['campaigns', campaignId] });
       queryClient.invalidateQueries({ queryKey: ['campaigns'] });
     },
+  });
+}
+
+export function useCampaignResponses(campaignId: string, isClosed: boolean) {
+  return useQuery({
+    queryKey: ['campaigns', campaignId, 'responses'],
+    queryFn: async () => {
+      const response = await apiClient.get<any[]>(`/campaigns/${campaignId}/responses/all`);
+      return response.data;
+    },
+    enabled: !!campaignId && isClosed,
   });
 }
 

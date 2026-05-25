@@ -1,10 +1,12 @@
 import { useState } from 'react';
 import { useAnalysis, useLeaderboard } from '../api/hooks/useMatches';
 import { Trophy, TrendingUp, Medal, Calendar, BarChart3, Star, Zap, Crown, Target, ShieldAlert, ShieldCheck, Info, RotateCcw, UserPlus } from 'lucide-react';
+import { useTournamentStore } from '../store/tournament';
 
 export default function Analysis() {
-  const { data, isLoading: isAnalysisLoading } = useAnalysis();
-  const { data: leaderboard, isLoading: isLBLoading } = useLeaderboard();
+  const { activeTournamentId } = useTournamentStore();
+  const { data, isLoading: isAnalysisLoading } = useAnalysis(activeTournamentId || undefined);
+  const { data: leaderboard, isLoading: isLBLoading } = useLeaderboard(activeTournamentId ? `${activeTournamentId}-global` : undefined);
   const [trendingTab, setTrendingTab] = useState<'weekly' | 'today'>('today');
   const [accuracySort, setAccuracySort] = useState<'accuracy' | 'percentile'>('accuracy');
 
@@ -430,7 +432,7 @@ export default function Analysis() {
 
                       return (
                         <div key={user.username} className="relative flex flex-col items-center group w-24 flex-shrink-0">
-                          <div className="h-[400px] w-full flex flex-col justify-end items-center mb-10">
+                          <div className="h-[400px] w-full flex flex-col justify-end items-center mb-16">
                             <div className="flex flex-col items-center w-full transition-all duration-1000 ease-out" style={{ height: `${((matchPoints + user.base_points) / maxPoints) * 100}%` }}>
                               <div className="flex flex-col items-center mb-4 whitespace-nowrap animate-in fade-in slide-in-from-bottom-4 duration-1000">
                                 {matchWins > 0 && (
@@ -446,10 +448,10 @@ export default function Analysis() {
                                 </div>
                               </div>
                               <div className="w-14 flex flex-col justify-end flex-1 rounded-t-sm overflow-hidden shadow-2xl group-hover:shadow-ipl-gold/20 transition-all border-x border-t border-white/5">
-                                <div className="bg-ipl-gold relative group-hover:brightness-110 transition-all cursor-help" style={{ height: `${(matchPoints / (matchPoints + user.base_points)) * 100}%` }}>
+                                <div className="bg-ipl-gold relative group-hover:brightness-110 transition-all cursor-help" style={{ height: `${matchPoints + user.base_points > 0 ? (matchPoints / (matchPoints + user.base_points)) * 100 : 0}%` }}>
                                   <span className="absolute -left-16 top-2 text-[10px] font-mono text-ipl-gold opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap bg-black/90 border border-white/10 px-2 py-1 rounded pointer-events-none z-40">Match: {matchPoints} pts</span>
                                 </div>
-                                <div className="bg-white/10 relative group-hover:bg-white/20 transition-all cursor-help" style={{ height: `${(user.base_points / (matchPoints + user.base_points)) * 100}%` }}>
+                                <div className="bg-white/10 relative group-hover:bg-white/20 transition-all cursor-help" style={{ height: `${matchPoints + user.base_points > 0 ? (user.base_points / (matchPoints + user.base_points)) * 100 : 0}%` }}>
                                   <span className="absolute -left-16 bottom-2 text-[10px] font-mono text-gray-400 opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap bg-black/90 border border-white/10 px-2 py-1 rounded pointer-events-none z-40">Base: {user.base_points} pts</span>
                                 </div>
                               </div>
@@ -457,7 +459,7 @@ export default function Analysis() {
                           </div>
                           <div className="flex flex-col items-center w-full">
                             <div className="relative">
-                              {isTopWinner && <div className="absolute -top-12 inset-x-0 flex justify-center z-30 animate-bounce"><Crown className="w-6 h-6 text-ipl-gold fill-ipl-gold drop-shadow-[0_0_15px_rgba(255,215,0,0.7)]" /></div>}
+                              {isTopWinner && <div className="absolute -top-10 inset-x-0 flex justify-center z-30 animate-bounce"><Crown className="w-6 h-6 text-ipl-gold fill-ipl-gold drop-shadow-[0_0_15px_rgba(255,215,0,0.7)]" /></div>}
                               <div className={`w-16 h-16 rounded-full border-2 group-hover:border-ipl-gold transition-all overflow-hidden z-20 bg-ipl-surface shadow-2xl scale-125 ${matchWins > 0 ? 'border-ipl-gold shadow-[0_0_20px_rgba(255,215,0,0.4)]' : 'border-white/10'}`}>
                                 <img src={user.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${user.username}`} alt="" className="w-full h-full object-cover" />
                               </div>
@@ -736,7 +738,7 @@ export default function Analysis() {
                       </div>
                       <div className="text-right">
                         <div className="flex items-baseline justify-end gap-1">
-                          <span className="text-2xl font-display text-ipl-gold">{stat.base_powerups - stat.used_matches.length}</span>
+                          <span className="text-2xl font-display text-ipl-gold">{stat.base_powerups - stat.used_matches.filter((m: any) => !m.is_campaign_scoped).length}</span>
                           <span className="text-[9px] text-gray-600 uppercase font-bold tracking-widest">Rem</span>
                         </div>
                       </div>
@@ -760,7 +762,7 @@ export default function Analysis() {
                       {Array.from({ length: stat.base_powerups }).map((_, i) => (
                         <div
                           key={i}
-                          className={`flex-1 rounded-full transition-all duration-500 ${i < stat.used_matches.length
+                          className={`flex-1 rounded-full transition-all duration-500 ${i < stat.used_matches.filter((m: any) => !m.is_campaign_scoped).length
                             ? 'bg-ipl-gold shadow-[0_0_8px_rgba(255,215,0,0.5)]'
                             : 'bg-white/5'
                             }`}
@@ -806,6 +808,7 @@ export default function Analysis() {
                               >
                                 M{m.match_number}: {m.teams}
                                 {m.match_status === 'completed' && <span className="ml-1 opacity-50">({m.points})</span>}
+                                {m.is_campaign_scoped && <span className="ml-1 px-1 bg-white/10 rounded-sm text-[6px] tracking-widest text-ipl-gold border border-ipl-gold/30" title="Campaign-scoped Powerup">★</span>}
                               </div>
                             ))
                           ) : (

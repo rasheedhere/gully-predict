@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, CheckCircle, Lock, Hash, Type, ToggleLeft, ChevronDown, ListChecks, Info } from 'lucide-react';
 import toast from 'react-hot-toast';
-import { useCampaign, useSubmitCampaignResponse, type CampaignQuestion, type ScoringRules } from '../api/hooks/useCampaigns';
+import { useCampaign, useSubmitCampaignResponse, useCampaignResponses, type CampaignQuestion, type ScoringRules } from '../api/hooks/useCampaigns';
 import { useAuthStore } from '../store/auth';
 import { CampaignCountdown } from '../components/CampaignCountdown';
 
@@ -197,6 +197,12 @@ export default function CampaignPage() {
   const { mutate: submit, isPending: isSubmitting } = useSubmitCampaignResponse(id!);
 
   const [answers, setAnswers] = useState<Record<string, any>>({});
+  
+  const isClosed = campaign?.status === 'closed' || (campaign?.ends_at ? new Date(campaign.ends_at) <= new Date() : false);
+  const { data: responsesData, isLoading: isLoadingResponses } = useCampaignResponses(id!, isClosed);
+  const [activeTab, setActiveTab] = useState<'response' | 'predictions'>('response');
+  const [viewMode, setViewMode] = useState<'player' | 'question'>('player');
+  const [expandedUser, setExpandedUser] = useState<string | null>(null);
 
   useEffect(() => {
     if (campaign?.my_response) {
@@ -224,7 +230,6 @@ export default function CampaignPage() {
   }
 
   const isSubmitted = !!campaign.my_response;
-  const isClosed = campaign.status === 'closed';
   const isActive = campaign.status === 'active';
   const disabled = isClosed || !isActive || !!user?.is_guest;
 
@@ -301,6 +306,29 @@ export default function CampaignPage() {
           ) : null}
         </div>
 
+        {isClosed && (
+          <div className="flex border-b border-white/10 mt-6">
+            <button
+              type="button"
+              onClick={() => setActiveTab('response')}
+              className={`pb-3 px-4 font-display text-xs uppercase tracking-widest transition-colors ${
+                activeTab === 'response' ? 'text-ipl-gold border-b-2 border-ipl-gold' : 'text-gray-500 hover:text-gray-300'
+              }`}
+            >
+              Your Response
+            </button>
+            <button
+              type="button"
+              onClick={() => setActiveTab('predictions')}
+              className={`pb-3 px-4 font-display text-xs uppercase tracking-widest transition-colors ${
+                activeTab === 'predictions' ? 'text-ipl-gold border-b-2 border-ipl-gold' : 'text-gray-500 hover:text-gray-300'
+              }`}
+            >
+              Reveal / Predictions
+            </button>
+          </div>
+        )}
+
         {isSubmitted && (
           <div className="mt-4 glass-panel border-l-4 border-l-ipl-gold p-4 flex items-center gap-3">
             <CheckCircle className="w-5 h-5 text-ipl-gold shrink-0" />
@@ -336,8 +364,9 @@ export default function CampaignPage() {
         )}
       </header>
 
-      {/* Questions */}
-      <form onSubmit={handleSubmit} className="space-y-6">
+      {/* Questions or Predictions Tab */}
+      {activeTab === 'response' ? (
+        <form onSubmit={handleSubmit} className="space-y-6">
         {campaign.questions.map((q, idx) => {
           const myAnswer = getAnswer(q.id);
           const myPoints = isSubmitted && campaign.my_response
@@ -402,6 +431,203 @@ export default function CampaignPage() {
           </button>
         )}
       </form>
+      ) : (
+        <div className="space-y-8 animate-in fade-in duration-500">
+          <div className="flex justify-between items-center mb-6">
+            <h2 className="text-xl font-display text-white">Community Predictions</h2>
+            <div className="flex bg-white/5 rounded p-1 border border-white/10">
+              <button
+                type="button"
+                onClick={() => setViewMode('player')}
+                className={`px-3 py-1.5 rounded transition-all font-display text-[10px] uppercase tracking-widest ${
+                  viewMode === 'player' ? 'bg-white/10 text-white font-bold' : 'text-gray-500 hover:text-gray-300'
+                }`}
+              >
+                By Player
+              </button>
+              <button
+                type="button"
+                onClick={() => setViewMode('question')}
+                className={`px-3 py-1.5 rounded transition-all font-display text-[10px] uppercase tracking-widest ${
+                  viewMode === 'question' ? 'bg-white/10 text-white font-bold' : 'text-gray-500 hover:text-gray-300'
+                }`}
+              >
+                By Question
+              </button>
+            </div>
+          </div>
+
+          {isLoadingResponses ? (
+            <div className="text-center py-12 text-gray-500 animate-pulse font-display text-sm tracking-widest uppercase">
+              Loading predictions...
+            </div>
+          ) : !responsesData || responsesData.length === 0 ? (
+            <div className="glass-panel p-8 text-center border-dashed border-2 border-white/5 opacity-50">
+              <p className="text-gray-500 font-display text-xs uppercase tracking-[0.2em]">
+                No predictions submitted yet
+              </p>
+            </div>
+          ) : (
+            responsesData.map((section: any) => {
+              const allPredictions = section.predictions;
+              if (!allPredictions || allPredictions.length === 0) return null;
+
+              return (
+                <div key={section.league.id} className="space-y-6">
+                  <div className="flex items-center gap-3 border-l-4 border-ipl-gold pl-4">
+                    <h3 className="text-lg font-display text-white tracking-widest uppercase italic">
+                      {section.league.name === 'IPL Global' ? (
+                        <>IPL Global <span className="text-ipl-gold not-italic">Reveal</span></>
+                      ) : (
+                        <><span className="text-ipl-gold not-italic">League:</span> {section.league.name}</>
+                      )}
+                    </h3>
+                  </div>
+
+                  {viewMode === 'question' ? (
+                    <div className="space-y-6">
+                      {campaign.questions.map((q: any, qIdx: number) => {
+                        return (
+                          <div key={q.id} className="glass-panel p-6 border-t-2 border-t-white/10 space-y-4">
+                            <div>
+                              <div className="flex items-center gap-2 text-gray-500 text-[10px] font-display uppercase tracking-widest mb-1">
+                                {QUESTION_ICONS[q.question_type as keyof typeof QUESTION_ICONS] || <Type className="w-4 h-4" />}
+                                <span>Question {qIdx + 1} · {q.question_type.replace('_', ' ')}</span>
+                              </div>
+                              <p className="text-white font-display text-base">{q.question_text}</p>
+                              
+                              {q.correct_answer !== null && q.correct_answer !== undefined && (
+                                <div className="mt-2 inline-flex items-center gap-1.5 bg-green-500/10 border border-green-500/20 px-2.5 py-1 rounded text-xs text-green-400 font-display">
+                                  <CheckCircle className="w-3.5 h-3.5" />
+                                  <span>Correct Answer: <strong className="font-bold">{String(q.correct_answer)}</strong></span>
+                                </div>
+                              )}
+                            </div>
+
+                            <div className="border-t border-white/5 pt-4 space-y-2">
+                              <h4 className="text-[10px] text-gray-500 font-display uppercase tracking-wider mb-2">Player Predictions</h4>
+                              <div className="grid gap-2 md:grid-cols-2">
+                                {allPredictions.map((resp: any) => {
+                                  const userAnsVal = resp.answers[q.id];
+                                  const ptsAwarded = resp.points_breakdown?.rules?.find((r: any) => r.key === q.key)?.points ?? 0;
+
+                                  return (
+                                    <div key={resp.prediction_id} className="flex items-center justify-between p-3 rounded bg-white/5 border border-white/5 hover:border-white/10 transition-colors">
+                                      <div className="flex items-center gap-3 min-w-0">
+                                        <div className="w-6 h-6 rounded-full border border-white/10 overflow-hidden shrink-0">
+                                          <img
+                                            src={resp.user.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${resp.user.name}`}
+                                            alt=""
+                                          />
+                                        </div>
+                                        <div className="min-w-0">
+                                          <span className="text-xs font-display text-gray-300 block truncate leading-tight">
+                                            {resp.user.name}
+                                          </span>
+                                          <span className="text-white font-bold text-sm block truncate mt-0.5">
+                                            {userAnsVal !== undefined && userAnsVal !== null
+                                              ? (Array.isArray(userAnsVal) ? userAnsVal.join(', ') : String(userAnsVal))
+                                              : <span className="text-gray-600 italic font-normal text-xs">Unanswered</span>}
+                                          </span>
+                                        </div>
+                                      </div>
+                                      
+                                      {ptsAwarded !== undefined && ptsAwarded !== null && ptsAwarded !== 0 && (
+                                        <div className={`shrink-0 text-xs font-display font-bold px-2 py-0.5 rounded ${
+                                          ptsAwarded > 0 ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400'
+                                        }`}>
+                                          {ptsAwarded > 0 ? '+' : ''}{ptsAwarded}
+                                        </div>
+                                      )}
+                                    </div>
+                                  );
+                                })}
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  ) : (
+                    <div className="space-y-4">
+                      {allPredictions.map((resp: any) => {
+                        const isExpanded = expandedUser === resp.user.id;
+                        return (
+                          <div key={resp.prediction_id} className="glass-panel overflow-hidden border border-white/10">
+                            <button
+                              type="button"
+                              onClick={() => setExpandedUser(isExpanded ? null : resp.user.id)}
+                              className="w-full flex items-center justify-between p-4 hover:bg-white/5 transition-colors"
+                            >
+                              <div className="flex items-center gap-4">
+                                <div className="w-10 h-10 rounded-full border border-white/10 overflow-hidden shrink-0">
+                                  <img
+                                    src={resp.user.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${resp.user.name}`}
+                                    alt=""
+                                    className="w-full h-full object-cover"
+                                  />
+                                </div>
+                                <div className="text-left">
+                                  <div className="text-base font-display text-white">{resp.user.name}</div>
+                                  {resp.points_awarded !== null && resp.points_awarded !== undefined && (
+                                    <div className="text-xs text-ipl-gold font-display tracking-widest uppercase mt-0.5">
+                                      Total: {resp.points_awarded} pts
+                                    </div>
+                                  )}
+                                </div>
+                              </div>
+                              <ChevronDown className={`w-5 h-5 text-gray-500 transition-transform ${isExpanded ? 'rotate-180' : ''}`} />
+                            </button>
+
+                            {isExpanded && (
+                              <div className="p-4 border-t border-white/5 bg-black/20 space-y-4">
+                                {campaign.questions.map((q: any) => {
+                                  const userAnsVal = resp.answers[q.id];
+                                  const ptsAwarded = resp.points_breakdown?.rules?.find((r: any) => r.key === q.key)?.points ?? 0;
+
+                                  return (
+                                    <div key={q.id} className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 p-3 bg-white/5 rounded">
+                                      <div className="flex-1 min-w-0">
+                                        <div className="text-[10px] text-gray-500 font-display uppercase tracking-widest mb-1">
+                                          {q.question_text}
+                                        </div>
+                                        <div className="text-sm text-white font-bold truncate">
+                                          {userAnsVal !== undefined && userAnsVal !== null
+                                            ? (Array.isArray(userAnsVal) ? userAnsVal.join(', ') : String(userAnsVal))
+                                            : <span className="text-gray-600 italic font-normal text-xs">Unanswered</span>}
+                                        </div>
+                                      </div>
+                                      
+                                      <div className="flex items-center gap-4 shrink-0 mt-2 sm:mt-0">
+                                        {q.correct_answer !== null && q.correct_answer !== undefined && (
+                                          <div className="text-[10px] text-gray-400 font-display hidden sm:block">
+                                            Correct: {String(q.correct_answer)}
+                                          </div>
+                                        )}
+                                        {ptsAwarded !== undefined && ptsAwarded !== null && ptsAwarded !== 0 && (
+                                          <div className={`text-xs font-display font-bold px-2 py-0.5 rounded ${
+                                            ptsAwarded > 0 ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400'
+                                          }`}>
+                                            {ptsAwarded > 0 ? '+' : ''}{ptsAwarded}
+                                          </div>
+                                        )}
+                                      </div>
+                                    </div>
+                                  );
+                                })}
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              );
+            })
+          )}
+        </div>
+      )}
     </div>
   );
 }

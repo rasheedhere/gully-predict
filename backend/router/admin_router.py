@@ -109,9 +109,9 @@ async def trigger_match_scoring(match_id: str, payload: MatchResultUpdate, db: A
     await calculate_match_scores(match_id, db)
     
     # Invalidate Leaderboards after scoring update
-    backend_cache.invalidate("global_leaderboard")
+    backend_cache.invalidate("leaderboard_*")
+    backend_cache.invalidate("analysis_*")
     backend_cache.invalidate("match_podiums")
-    backend_cache.invalidate("analysis")
     backend_cache.invalidate(f"match_leaderboard_{match_id}")
     
     return {"message": "Results saved and scoring triggered successfully"}
@@ -158,8 +158,8 @@ async def update_user_base_stats(user_id: str, payload: dict, db: AsyncSession =
     await db.commit()
     
     # Invalidate Leaderboards
-    backend_cache.invalidate("global_leaderboard")
-    backend_cache.invalidate("analysis")
+    backend_cache.invalidate("leaderboard_*")
+    backend_cache.invalidate("analysis_*")
     
     return {
         "message": "User stats updated", 

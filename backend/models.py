@@ -31,6 +31,7 @@ class User(Base):
     is_guest: Mapped[bool] = mapped_column(Boolean, server_default='false', default=False)
     is_league_admin: Mapped[bool] = mapped_column(Boolean, default=False)
     is_telegram_admin: Mapped[bool] = mapped_column(Boolean, default=False)
+    is_dev: Mapped[bool] = mapped_column(Boolean, server_default='false', default=False)
     telegram_username: Mapped[Optional[str]] = mapped_column(String, unique=True, index=True, nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(UTC))
 
@@ -92,6 +93,9 @@ class Match(Base):
     reporter: Mapped[Optional["User"]] = relationship("User", foreign_keys=[reported_by])
     tournament: Mapped[Optional["Tournament"]] = relationship("Tournament", back_populates="matches")
     results: Mapped[list["CampaignMatchResult"]] = relationship("CampaignMatchResult", back_populates="match", cascade="all, delete-orphan")
+    targeted_by_campaigns: Mapped[list["Campaign"]] = relationship(
+        "Campaign", secondary="campaign_target_matches", back_populates="target_matches"
+    )
 
 
 # ── Campaign System ──────────────────────────────────────────────────────────
@@ -144,10 +148,10 @@ class Campaign(Base):
     created_by: Mapped[str] = mapped_column(String, ForeignKey("users.id"))
     starts_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
     ends_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
+    max_powerups: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
     non_participation_penalty: Mapped[int] = mapped_column(Integer, default=0)
     tournament_id: Mapped[Optional[str]] = mapped_column(String, ForeignKey("tournaments.id"), nullable=True)
     league_id: Mapped[Optional[str]] = mapped_column(String, ForeignKey("leagues.id"), nullable=True)
-    match_id: Mapped[Optional[str]] = mapped_column(String, ForeignKey("matches.id"), nullable=True)
     parent_campaign_id: Mapped[Optional[str]] = mapped_column(String, ForeignKey("campaigns.id"), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(UTC))
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(UTC), onupdate=lambda: datetime.now(UTC))
@@ -158,6 +162,9 @@ class Campaign(Base):
     )
     responses: Mapped[list["CampaignResponse"]] = relationship(
         "CampaignResponse", back_populates="campaign", cascade="all, delete-orphan"
+    )
+    target_matches: Mapped[list["Match"]] = relationship(
+        "Match", secondary="campaign_target_matches", back_populates="targeted_by_campaigns"
     )
 
 class CampaignQuestion(Base):
@@ -224,6 +231,11 @@ class LeagueCampaignMapping(Base):
     __tablename__ = "league_campaign_mappings"
     league_id: Mapped[str] = mapped_column(String, ForeignKey("leagues.id"), primary_key=True)
     campaign_id: Mapped[str] = mapped_column(String, ForeignKey("campaigns.id"), primary_key=True)
+
+class CampaignTargetMatch(Base):
+    __tablename__ = "campaign_target_matches"
+    campaign_id: Mapped[str] = mapped_column(String, ForeignKey("campaigns.id", ondelete="CASCADE"), primary_key=True)
+    match_id: Mapped[str] = mapped_column(String, ForeignKey("matches.id", ondelete="CASCADE"), primary_key=True)
 
 class League(Base):
     __tablename__ = "leagues"

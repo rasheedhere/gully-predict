@@ -119,13 +119,16 @@ export function useMyLeagues() {
   });
 }
 
-export function useAnalysis() {
+export function useAnalysis(tournamentId?: string) {
   return useQuery({
-    queryKey: ['analysis'],
+    queryKey: ['analysis', tournamentId],
     queryFn: async () => {
-      const response = await apiClient.get(`/leaderboard/analysis`);
+      const response = await apiClient.get(`/leaderboard/analysis`, {
+        params: { tournament_id: tournamentId }
+      });
       return response.data;
     },
+    enabled: !!tournamentId,
   });
 }
 

@@ -7,6 +7,9 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { apiClient } from '../api/client';
 import ProfileModal from './ProfileModal';
 import { getUserDisplayName } from '../utils/userUtils';
+import { useTournaments } from '../api/hooks/useTournaments';
+import { useTournamentStore } from '../store/tournament';
+import { ChevronDown } from 'lucide-react';
 
 export default function Layout() {
   const { isAuthenticated, user, logout: storeLogout, setUser, token } = useAuthStore();
@@ -22,15 +25,11 @@ export default function Layout() {
     localStorage.removeItem('redirect_after_login');
   };
 
-  // Redirect to leagues if not in any league (for regular users)
-  const isLeaguesPage = location.pathname === '/leagues';
-  const shouldRedirectToLeagues =
-    !leaguesLoading &&
-    leagues &&
-    leagues.length === 0 &&
-    !user?.is_admin &&
-    !user?.is_guest &&
-    !isLeaguesPage;
+  const { activeTournamentId, setActiveTournamentId } = useTournamentStore();
+  const { data: tournaments } = useTournaments();
+
+  // Redirect to hub if trying to access a tournament-specific page without selecting one
+  const isRestrictedRoute = ['/matchcenter', '/leaderboard', '/analysis', '/campaigns', '/leagues'].some(path => location.pathname.startsWith(path));
 
   // Keep profile in sync
   const { data: profile } = useQuery({
@@ -53,8 +52,8 @@ export default function Layout() {
     return <Navigate to="/login" state={{ from: location }} replace />;
   }
 
-  if (shouldRedirectToLeagues) {
-    return <Navigate to="/leagues" replace />;
+  if (isRestrictedRoute && !activeTournamentId) {
+    return <Navigate to="/" replace />;
   }
 
   const clMenu = () => setIsMenuOpen(false);
@@ -69,6 +68,25 @@ export default function Layout() {
                 <Trophy className="w-6 h-6" />
                 Gully Predict
               </Link>
+
+              {activeTournamentId && (
+                <div className="hidden md:flex relative group">
+                  <select 
+                    value={activeTournamentId}
+                    onChange={(e) => setActiveTournamentId(e.target.value)}
+                    className="appearance-none bg-white/5 border border-white/10 rounded-lg pl-3 pr-8 py-1.5 text-xs font-display text-white focus:outline-none focus:border-ipl-gold focus:ring-1 focus:ring-ipl-gold cursor-pointer transition-colors hover:bg-white/10"
+                  >
+                    {tournaments?.map(t => (
+                      <option key={t.id} value={t.id} className="bg-ipl-surface text-white">
+                        {t.name}
+                      </option>
+                    ))}
+                  </select>
+                  <div className="absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none text-gray-400 group-hover:text-white transition-colors">
+                    <ChevronDown className="w-3 h-3" />
+                  </div>
+                </div>
+              )}
 
               <div className="hidden md:flex space-x-4">
                 <Link to="/matchcenter" className="text-gray-300 hover:text-white flex items-center gap-2 px-3 py-2 text-sm font-medium transition-colors">

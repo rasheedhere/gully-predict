@@ -13,6 +13,7 @@ import LeagueDetails from './pages/LeagueDetails';
 import LeagueAdmin from './pages/LeagueAdmin';
 import Activity from './pages/Activity';
 import Layout from './components/Layout';
+import Hub from './pages/Hub';
 
 import AuthCallback from './pages/AuthCallback';
 
@@ -55,7 +56,7 @@ function App() {
         
         {/* Protected Routes Wrapper (mocked for now) */}
         <Route path="/" element={<Layout />}>
-          <Route index element={<Navigate to="/matchcenter" replace />} />
+          <Route index element={<Hub />} />
           <Route path="matchcenter" element={<MatchCenter />} />
           <Route path="match/:id" element={<MatchPage />} />
           <Route path="leaderboard" element={<Leaderboard />} />

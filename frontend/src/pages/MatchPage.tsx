@@ -4,7 +4,7 @@ import { useForm } from 'react-hook-form';
 import { useQueryClient } from '@tanstack/react-query';
 import { useMatch, useSubmitPrediction, useMyPredictions, useAllMatchPredictions } from '../api/hooks/useMatches';
 import { useUpdateMatchResults, useTriggerAIPredictions } from '../api/hooks/useAdmin';
-import { Trophy, Target, CheckCircle2, Edit2, Check, X, Sparkles, Settings, AlertTriangle, ShieldAlert, Bot, MapPin } from 'lucide-react';
+import { Trophy, Target, CheckCircle2, Edit2, Check, X, Sparkles, Settings, AlertTriangle, ShieldAlert, Bot, MapPin, ChevronDown, ChevronUp } from 'lucide-react';
 import { useAuthStore } from '../store/auth';
 import { apiClient } from '../api/client';
 import toast from 'react-hot-toast';
@@ -20,6 +20,7 @@ export default function MatchPage() {
   const [editValue, setEditValue] = useState('');
   const [hasAutoPredicted, setHasAutoPredicted] = useState(false);
   const [showAutoPredictConfirm, setShowAutoPredictConfirm] = useState(false);
+  const [expandedCardIds, setExpandedCardIds] = useState<Set<string>>(new Set());
   const { register, handleSubmit, reset, setValue, formState: { errors } } = useForm();
 
   const { data, isLoading, error } = useMatch(id || '');
@@ -331,49 +332,57 @@ export default function MatchPage() {
   return (
     <div className="space-y-8 max-w-[1600px] mx-auto w-full px-2 md:px-6 pb-20">
       <div className="glass-panel p-8 text-center border-b-[4px] border-ipl-gold relative overflow-hidden">
-        <div className={`absolute top-0 right-0 ${isLocked ? 'bg-ipl-live' : 'bg-ipl-gold'} text-ipl-navy font-display text-xs tracking-widest px-3 py-1 font-bold`}>
-          {isLocked ? 'PREDICTIONS CLOSED' : 'PREDICTIONS OPEN'}
+        <div className={`absolute top-4 right-4 rounded-full border backdrop-blur-md font-display text-[10px] tracking-widest px-4 py-1.5 font-bold uppercase shadow-lg transition-all ${isLocked 
+          ? 'bg-ipl-live/10 border-ipl-live/30 text-ipl-live shadow-[0_0_15px_rgba(232,64,64,0.15)]' 
+          : 'bg-ipl-gold/10 border-ipl-gold/30 text-ipl-gold shadow-[0_0_15px_rgba(255,215,0,0.15)]'}`}>
+          {isLocked ? 'Predictions Closed' : 'Predictions Open'}
         </div>
-        <div className="absolute top-0 left-0 bg-white/10 text-white font-display text-[10px] tracking-widest px-3 py-1 uppercase">
-          Powerups Remaining: {powerupsLeft}/{totalPowerups}
+        <div className="absolute top-4 left-4 rounded-full border border-white/10 bg-white/5 backdrop-blur-md text-gray-300 font-display text-[10px] tracking-widest px-4 py-1.5 uppercase shadow-lg">
+          Powerups: <span className="text-white font-bold">{powerupsLeft}/{totalPowerups}</span>
         </div>
         <p className="text-gray-400 mt-6 font-display uppercase tracking-[0.3em] font-bold text-xs ring-offset-2">
           Match {matchNumber}
         </p>
-        <div className="flex flex-col md:flex-row items-center justify-center gap-8 md:gap-16 mt-8">
-          <div className="flex flex-col items-center gap-4">
+        <div className="flex items-start justify-center gap-4 md:gap-16 mt-8">
+          <div className="flex flex-col items-center gap-3 flex-1 min-w-0">
             <div 
-              className="w-24 h-24 md:w-32 md:h-32 rounded-3xl flex items-center justify-center border-2 shadow-2xl overflow-hidden p-3 bg-black/40 relative group"
+              className="w-20 h-20 md:w-32 md:h-32 rounded-2xl md:rounded-3xl flex items-center justify-center border-2 shadow-2xl overflow-hidden p-2 md:p-3 bg-black/40 relative group shrink-0"
               style={{ borderColor: `${getTeamColor(match.team1)}50`, boxShadow: `0 0 40px ${getTeamColor(match.team1)}20` }}
             >
               <div className="absolute inset-0 bg-gradient-to-br from-white/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
               {getTeamLogo(match.team1) ? (
                 <img src={getTeamLogo(match.team1)!} alt={match.team1} className="w-full h-full object-contain drop-shadow-[0_0_15px_rgba(255,255,255,0.4)]" />
               ) : (
-                <span className="text-4xl font-display text-white">{getTeamShortName(match.team1)}</span>
+                <span className="text-2xl md:text-4xl font-display text-white">{getTeamShortName(match.team1)}</span>
               )}
             </div>
-            <span className="text-2xl md:text-4xl font-display font-bold leading-tight" style={{ color: getTeamColor(match.team1) }}>{match.team1}</span>
+            <span className="text-lg md:text-4xl font-display font-bold leading-tight text-center break-words w-full" style={{ color: getTeamColor(match.team1) }}>
+              <span className="md:hidden">{getTeamShortName(match.team1)}</span>
+              <span className="hidden md:inline">{match.team1}</span>
+            </span>
           </div>
 
-          <div className="flex flex-col items-center">
-            <span className="text-gray-600 font-display text-2xl md:text-4xl italic tracking-widest opacity-40">VS</span>
-            <div className="w-[2px] h-16 bg-gradient-to-b from-transparent via-ipl-gold/20 to-transparent mt-4" />
+          <div className="flex flex-col items-center mt-6 md:mt-10 shrink-0">
+            <span className="text-gray-600 font-display text-lg md:text-4xl italic tracking-widest opacity-40">VS</span>
+            <div className="w-[1px] md:w-[2px] h-8 md:h-16 bg-gradient-to-b from-transparent via-ipl-gold/20 to-transparent mt-2 md:mt-4" />
           </div>
 
-          <div className="flex flex-col items-center gap-4">
+          <div className="flex flex-col items-center gap-3 flex-1 min-w-0">
             <div 
-              className="w-24 h-24 md:w-32 md:h-32 rounded-3xl flex items-center justify-center border-2 shadow-2xl overflow-hidden p-3 bg-black/40 relative group"
+              className="w-20 h-20 md:w-32 md:h-32 rounded-2xl md:rounded-3xl flex items-center justify-center border-2 shadow-2xl overflow-hidden p-2 md:p-3 bg-black/40 relative group shrink-0"
               style={{ borderColor: `${getTeamColor(match.team2)}50`, boxShadow: `0 0 40px ${getTeamColor(match.team2)}20` }}
             >
               <div className="absolute inset-0 bg-gradient-to-br from-white/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
               {getTeamLogo(match.team2) ? (
                 <img src={getTeamLogo(match.team2)!} alt={match.team2} className="w-full h-full object-contain drop-shadow-[0_0_15px_rgba(255,255,255,0.4)]" />
               ) : (
-                <span className="text-4xl font-display text-white">{getTeamShortName(match.team2)}</span>
+                <span className="text-2xl md:text-4xl font-display text-white">{getTeamShortName(match.team2)}</span>
               )}
             </div>
-            <span className="text-2xl md:text-4xl font-display font-bold leading-tight" style={{ color: getTeamColor(match.team2) }}>{match.team2}</span>
+            <span className="text-lg md:text-4xl font-display font-bold leading-tight text-center break-words w-full" style={{ color: getTeamColor(match.team2) }}>
+              <span className="md:hidden">{getTeamShortName(match.team2)}</span>
+              <span className="hidden md:inline">{match.team2}</span>
+            </span>
           </div>
         </div>
 
@@ -392,9 +401,9 @@ export default function MatchPage() {
             <h2 className="text-2xl font-display text-white italic tracking-tighter">OFFICIAL MATCH RESULTS</h2>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-3 md:gap-6">
             <div
-              className="bg-white/5 p-6 border relative overflow-hidden group transition-all"
+              className="bg-white/5 p-4 md:p-6 border relative overflow-hidden group transition-all col-span-2 md:col-span-1"
               style={{
                 borderColor: match?.results?.[winnerQId] ? `${getTeamColor(match.results[winnerQId])}40` : 'rgba(255,255,255,0.1)',
                 boxShadow: match?.results?.[winnerQId] ? `0 0 20px ${getTeamColor(match.results[winnerQId])}15` : 'none'
@@ -427,12 +436,12 @@ export default function MatchPage() {
               const valStyle = isTeamMatch ? { color: getTeamColor(val) } : { color: 'white' };
 
               return (
-                <div key={k} className="bg-white/5 p-6 border border-white/10 relative overflow-hidden group flex flex-col justify-center items-center">
+                <div key={k} className="bg-white/5 p-4 md:p-6 border border-white/10 relative overflow-hidden group flex flex-col justify-center items-center">
                   <div className="absolute -right-4 -bottom-4 opacity-5 group-hover:opacity-10 transition-opacity">
                     <Target className="w-24 h-24 text-ipl-gold" />
                   </div>
-                  <label className="block text-[10px] font-display text-ipl-gold uppercase tracking-[0.2em] mb-2 text-center">{label}</label>
-                  <div className="text-2xl font-display tracking-wide uppercase text-center" style={valStyle}>
+                  <label className="block text-[8px] md:text-[10px] font-display text-ipl-gold uppercase tracking-[0.2em] mb-2 text-center">{label}</label>
+                  <div className="text-xl md:text-2xl font-display tracking-wide uppercase text-center" style={valStyle}>
                     {val}
                   </div>
                 </div>
@@ -627,152 +636,180 @@ export default function MatchPage() {
                         const isMyRow = pred.user?.id === currentUser?.id;
                         const winnerAns = winnerQId ? pred.answers[winnerQId] : '🔒';
                         const teamWinnerShort = winnerAns === '🔒' ? '🔒' : getTeamShortName(winnerAns);
+                        const isExpanded = expandedCardIds.has(pred.prediction_id);
+
+                        const toggleExpand = () => {
+                          setExpandedCardIds(prev => {
+                            const newSet = new Set(prev);
+                            if (newSet.has(pred.prediction_id)) newSet.delete(pred.prediction_id);
+                            else newSet.add(pred.prediction_id);
+                            return newSet;
+                          });
+                        };
 
                         return (
-                          <div key={idx} className={`flex items-center justify-between rounded-lg border transition-all ${isDesktop ? 'md:p-3.5 md:gap-4' : 'p-2 gap-2'} ${isMyRow ? 'bg-ipl-gold/10 border-ipl-gold/50 shadow-[0_0_15px_rgba(244,196,48,0.15)]' : 'bg-white/5 border-white/10'}`}>
-                            <div className="flex items-center gap-2 md:gap-3">
-                              <div className="relative shrink-0">
-                                <img src={pred.user.avatar_url || 'https://via.placeholder.com/32'} className={`${isDesktop ? 'md:w-9 md:h-9' : 'w-7 h-7'} rounded-full border object-cover ${isMyRow ? 'border-ipl-gold' : 'border-white/10'}`} alt={pred.user.name} />
-                                {isMyRow && (
-                                  <div className={`absolute -top-1 -right-1 bg-ipl-gold rounded-full border border-ipl-navy flex items-center justify-center ${isDesktop ? 'md:w-3.5 md:h-3.5' : 'w-2.5 h-2.5'}`}>
-                                    <Check className={`${isDesktop ? 'md:w-2 md:h-2' : 'w-1.5 h-1.5'} text-black`} />
-                                  </div>
-                                )}
-                              </div>
-                              <div className="flex flex-col">
-                                <div className="flex items-center gap-1 md:gap-2">
-                                  <span className={`${isDesktop ? 'md:text-[13px] md:font-black' : 'text-xs font-bold'} tracking-tight leading-none ${isMyRow ? 'text-ipl-gold' : 'text-white'}`}>
-                                    {getUserDisplayName(pred.user)}
-                                  </span>
-                                  {match.status === 'completed' && pred.points_awarded !== undefined && pred.points_awarded !== null && (
-                                    <div className="group-score relative">
-                                      <span className={`px-1.5 py-0.5 rounded text-[9px] md:text-[10px] font-bold font-mono cursor-help transition-all group-hover-score:bg-white/20 ${pred.points_awarded > 0 ? 'bg-green-500/20 text-green-400 border border-green-500/30' : pred.points_awarded < 0 ? 'bg-red-500/20 text-red-400 border border-red-500/30' : 'bg-white/10 text-gray-400 border border-white/20'}`}>
-                                        {pred.points_awarded > 0 ? '+' : ''}{pred.points_awarded} PTS
-                                      </span>
+                          <div key={idx} className={`flex flex-col rounded-lg border transition-all ${isMyRow ? 'bg-ipl-gold/10 border-ipl-gold/50 shadow-[0_0_15px_rgba(244,196,48,0.15)]' : 'bg-white/5 border-white/10'}`}>
+                            {/* Card Header (Always Visible) */}
+                            <div 
+                              className={`flex items-center justify-between cursor-pointer ${isDesktop ? 'md:p-3.5 md:gap-4' : 'p-2 gap-2'}`}
+                              onClick={toggleExpand}
+                            >
+                              <div className="flex items-center gap-2 md:gap-3">
+                                <div className="relative shrink-0">
+                                  <img src={pred.user.avatar_url || 'https://via.placeholder.com/32'} className={`${isDesktop ? 'md:w-9 md:h-9' : 'w-7 h-7'} rounded-full border object-cover ${isMyRow ? 'border-ipl-gold' : 'border-white/10'}`} alt={pred.user.name} />
+                                  {isMyRow && (
+                                    <div className={`absolute -top-1 -right-1 bg-ipl-gold rounded-full border border-ipl-navy flex items-center justify-center ${isDesktop ? 'md:w-3.5 md:h-3.5' : 'w-2.5 h-2.5'}`}>
+                                      <Check className={`${isDesktop ? 'md:w-2 md:h-2' : 'w-1.5 h-1.5'} text-black`} />
+                                    </div>
+                                  )}
+                                </div>
+                                <div className="flex flex-col">
+                                  <div className="flex items-center gap-1 md:gap-2">
+                                    <span className={`${isDesktop ? 'md:text-[13px] md:font-black' : 'text-xs font-bold'} tracking-tight leading-none ${isMyRow ? 'text-ipl-gold' : 'text-white'}`}>
+                                      {getUserDisplayName(pred.user)}
+                                    </span>
+                                    {match.status === 'completed' && pred.points_awarded !== undefined && pred.points_awarded !== null && (
+                                      <div className="group-score relative">
+                                        <span className={`px-1.5 py-0.5 rounded text-[9px] md:text-[10px] font-bold font-mono cursor-help transition-all group-hover-score:bg-white/20 ${pred.points_awarded > 0 ? 'bg-green-500/20 text-green-400 border border-green-500/30' : pred.points_awarded < 0 ? 'bg-red-500/20 text-red-400 border border-red-500/30' : 'bg-white/10 text-gray-400 border border-white/20'}`}>
+                                          {pred.points_awarded > 0 ? '+' : ''}{pred.points_awarded} PTS
+                                        </span>
 
-                                      {/* Breakdown Tooltip */}
-                                      {pred.points_breakdown?.rules && (
-                                        <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-52 bg-[#0f172a] border border-white/10 rounded-lg shadow-2xl p-3 opacity-0 group-hover-score:opacity-100 pointer-events-none transition-all z-50">
-                                          <div className="space-y-1.5">
-                                            {/* Boostable Core Rules */}
-                                            {pred.points_breakdown.rules.filter((r: any) => !['More Sixes', 'More Fours'].includes(r.category)).map((rule: any, ri: number) => (
-                                              <div key={ri} className="flex justify-between items-center text-[8px] uppercase tracking-wider">
-                                                <div className="flex items-center gap-1 min-w-0">
-                                                  {rule.was_boosted && <span className="text-ipl-gold shrink-0">⚡</span>}
-                                                  <span className="text-gray-500 truncate">{rule.category}</span>
+                                        {/* Breakdown Tooltip */}
+                                        {pred.points_breakdown?.rules && (
+                                          <div className="absolute bottom-full left-0 mb-2 w-52 bg-[#0f172a] border border-white/10 rounded-lg shadow-2xl p-3 opacity-0 group-hover-score:opacity-100 pointer-events-none transition-all z-50">
+                                            <div className="space-y-1.5">
+                                              {/* Boostable Core Rules */}
+                                              {pred.points_breakdown.rules.filter((r: any) => !['More Sixes', 'More Fours'].includes(r.category)).map((rule: any, ri: number) => (
+                                                <div key={ri} className="flex justify-between items-center text-[8px] uppercase tracking-wider">
+                                                  <div className="flex items-center gap-1 min-w-0">
+                                                    {rule.was_boosted && <span className="text-ipl-gold shrink-0">⚡</span>}
+                                                    <span className="text-gray-500 truncate">{rule.category}</span>
+                                                  </div>
+                                                  <span className={rule.points > 0 ? 'text-green-400' : rule.points < 0 ? 'text-gray-400' : 'text-gray-400'}>
+                                                    {rule.points > 0 ? '+' : ''}{rule.points}
+                                                  </span>
                                                 </div>
-                                                <span className={rule.points > 0 ? 'text-green-400' : rule.points < 0 ? 'text-red-400' : 'text-gray-400'}>
-                                                  {rule.points > 0 ? '+' : ''}{rule.points}
-                                                </span>
-                                              </div>
-                                            ))}
+                                              ))}
 
-                                            {/* Multiplier Indicator */}
-                                            {pred.points_breakdown.powerup?.used && (
-                                              <div className="py-1 my-1 border-y border-white/5 flex justify-between items-center text-[8px] uppercase tracking-widest font-bold text-ipl-gold">
-                                                <span className="flex items-center gap-1">⚡ 2X Booster Applied</span>
-                                                <span className="bg-ipl-gold text-black px-1 rounded-sm">x2</span>
-                                              </div>
-                                            )}
+                                              {/* Multiplier Indicator */}
+                                              {pred.points_breakdown.powerup?.used && (
+                                                <div className="py-1 my-1 border-y border-white/5 flex justify-between items-center text-[8px] uppercase tracking-widest font-bold text-ipl-gold">
+                                                  <span className="flex items-center gap-1">⚡ 2X Booster Applied</span>
+                                                  <span className="bg-ipl-gold text-black px-1 rounded-sm">x2</span>
+                                                </div>
+                                              )}
+                                            </div>
+                                            <div className="absolute -bottom-1 left-4 w-2 h-2 bg-[#0f172a] border-r border-b border-white/10 rotate-45" />
                                           </div>
-                                          <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-2 h-2 bg-[#0f172a] border-r border-b border-white/10 rotate-45" />
-                                        </div>
-                                      )}
+                                        )}
+                                      </div>
+                                    )}
+                                    {pred.is_auto_predicted && (
+                                      <Sparkles className={`${isDesktop ? 'md:w-3 md:h-3' : 'w-2 h-2'} text-[#7B2FF7]`} />
+                                    )}
+                                  </div>
+                                </div>
+                              </div>
+                              <div className="flex flex-col items-end gap-1">
+                                <div className="flex items-center gap-1.5 md:gap-2">
+                                  {pred.answers.use_powerup === 'Yes' && (
+                                    <div className={`flex items-center bg-ipl-live/10 border border-ipl-live/20 rounded leading-none ${isDesktop ? 'md:px-1.5 md:py-1' : 'px-1 py-0.5'}`}>
+                                      <span className={`${isDesktop ? 'md:text-[9px]' : 'text-[8px]'} font-bold text-ipl-live tracking-tighter uppercase`}>⚡</span>
                                     </div>
                                   )}
-                                  {pred.is_auto_predicted && (
-                                    <Sparkles className={`${isDesktop ? 'md:w-3 md:h-3' : 'w-2 h-2'} text-[#7B2FF7]`} />
-                                  )}
-                                </div>
-                                <div className={`${isDesktop ? 'md:flex md:items-center md:gap-2 md:mt-2' : 'flex items-center gap-1.5 mt-1'} leading-none`}>
-                                  {(!winnerQId || pred.answers[winnerQId] === '🔒') ? (
-                                    <span className="text-[8px] text-gray-500 font-mono tracking-tight opacity-60 italic">🔒 HIDDEN</span>
+                                  <span
+                                    className={`font-bold rounded leading-none uppercase tracking-widest border ${isDesktop ? 'md:text-[10px] md:px-2 md:py-1' : 'text-[9px] px-1.5 py-0.5'} ${winnerAns === '🔒' ? 'bg-white/5 border-white/10 text-gray-500' : ''}`}
+                                    style={winnerAns !== '🔒' ? {
+                                      backgroundColor: `${getTeamColor(winnerAns)}15`,
+                                      borderColor: `${getTeamColor(winnerAns)}40`,
+                                      color: getTeamColor(winnerAns)
+                                    } : {}}
+                                  >
+                                    {isDesktop && winnerAns !== '🔒' ? getTeamShortName(winnerAns) : teamWinnerShort}
+                                  </span>
+                                  {isExpanded ? (
+                                    <ChevronUp className="w-3 h-3 md:w-4 md:h-4 text-gray-500" />
                                   ) : (
-                                    <div className="flex flex-wrap gap-1.5">
-                                      {Object.keys(pred.answers || {}).filter(k => ![winnerQId, 'use_powerup'].includes(k)).map(k => {
-                                        const q = questionMap?.[k];
-                                        let label = q?.question_text || '';
-                                        if (q?.source_name && q.source_name !== 'IPL Global') {
-                                          label = `${q.source_name}: ${label}`;
-                                        }
-
-                                        // Color code if it matches a team name
-                                        const isTeamMatch = getTeamColor(pred.answers[k]) !== '#666666';
-                                        const valStyle = isTeamMatch ? { color: getTeamColor(pred.answers[k]) } : {};
-                                        const displayVal = isTeamMatch ? getTeamShortName(pred.answers[k]) : pred.answers[k];
-
-                                        return (
-                                          <div key={k} className={`flex items-center bg-white/5 border border-white/10 rounded px-2 py-1 leading-none ${isDesktop ? 'md:bg-black/40' : ''}`}>
-                                            {label && (
-                                              <span className="text-[8px] text-gray-400 mr-1.5 font-bold uppercase whitespace-normal break-words max-w-[150px]">
-                                                {label}
-                                              </span>
-                                            )}
-                                            <span className={`${isDesktop ? 'md:text-[10px]' : 'text-[9px]'} text-white font-mono font-bold whitespace-nowrap`} style={valStyle}>
-                                              {displayVal}
-                                            </span>
-                                          </div>
-                                        );
-                                      })}
-                                    </div>
+                                    <ChevronDown className="w-3 h-3 md:w-4 md:h-4 text-gray-500" />
                                   )}
                                 </div>
                               </div>
                             </div>
-                            <div className="flex flex-col items-end gap-1">
-                              <div className="flex items-center gap-1.5 md:gap-2">
-                                {pred.answers.use_powerup === 'Yes' && (
-                                  <div className={`flex items-center bg-ipl-live/10 border border-ipl-live/20 rounded leading-none ${isDesktop ? 'md:px-1.5 md:py-1' : 'px-1 py-0.5'}`}>
-                                    <span className={`${isDesktop ? 'md:text-[9px]' : 'text-[8px]'} font-bold text-ipl-live tracking-tighter uppercase`}>⚡ 2X Booster</span>
-                                  </div>
-                                )}
-                                <span
-                                  className={`font-bold rounded leading-none uppercase tracking-widest border ${isDesktop ? 'md:text-[10px] md:px-2 md:py-1' : 'text-[9px] px-1.5 py-0.5'} ${winnerAns === '🔒' ? 'bg-white/5 border-white/10 text-gray-500' : ''}`}
-                                  style={winnerAns !== '🔒' ? {
-                                    backgroundColor: `${getTeamColor(winnerAns)}15`,
-                                    borderColor: `${getTeamColor(winnerAns)}40`,
-                                    color: getTeamColor(winnerAns)
-                                  } : {}}
-                                >
-                                  {isDesktop && winnerAns !== '🔒' ? getTeamShortName(winnerAns) : teamWinnerShort}
-                                </span>
-                              </div>
 
-                              <div className="flex items-center justify-end">
-                                {editingId === pred.prediction_id ? (
-                                  <div className="flex items-center gap-1 justify-end">
-                                    <input
-                                      value={editValue}
-                                      onChange={(e) => setEditValue(e.target.value)}
-                                      className="bg-black/60 border border-white/20 text-white p-0.5 text-[8px] md:text-[10px] w-16 md:w-24 focus:border-ipl-gold focus:outline-none font-mono"
-                                      autoFocus
-                                    />
-                                    <button onClick={() => handleAdminUpdate(pred.prediction_id)} className="text-green-500 hover:bg-white/10 rounded p-0.5">
-                                      <Check className="w-2.5 h-2.5 md:w-3.5 md:h-3.5" />
-                                    </button>
-                                    <button onClick={() => setEditingId(null)} className="text-red-500 hover:bg-white/10 rounded p-0.5">
-                                      <X className="w-2.5 h-2.5 md:w-3.5 md:h-3.5" />
-                                    </button>
-                                  </div>
-                                ) : (
-                                  <>
-                                    {/* Edit block removed since we are now fully dynamic. We can still let admins edit, but they might need to go to Admin panel for specific questions. */
-                                      currentUser?.is_admin && pred.prediction_id && (
-                                        <button
-                                          onClick={() => {
-                                            // As a fallback, we could edit the first free_text answer if we want, but since it's dynamic, we might just edit the prediction's 'extra_answers' directly from the Admin panel instead.
-                                            console.log("Admin edit requested for", pred.prediction_id);
-                                          }}
-                                          className="text-gray-600 hover:text-ipl-gold transition-colors ml-1.5"
-                                          title="Edit prediction (Go to Admin Panel)"
-                                        >
-                                          <Edit2 className={`${isDesktop ? 'md:w-3.5 md:h-3.5' : 'w-2.5 h-2.5'}`} />
+                            {/* Accordion Content (Answers) */}
+                            {isExpanded && (
+                              <div className={`border-t border-white/5 ${isDesktop ? 'p-3.5 pt-2' : 'p-2 pt-1'}`}>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                                  {(!winnerQId || pred.answers[winnerQId] === '🔒') ? (
+                                    <span className="text-[10px] text-gray-500 font-display tracking-widest uppercase opacity-60 italic p-2">🔒 Predictions are hidden until match locks</span>
+                                  ) : (
+                                    Object.keys(pred.answers || {}).filter(k => ![winnerQId, 'use_powerup'].includes(k)).map(k => {
+                                      const q = questionMap?.[k];
+                                      let label = q?.question_text || '';
+                                      if (q?.source_name && q.source_name !== 'IPL Global') {
+                                        label = `${q.source_name}: ${label}`;
+                                      }
+
+                                      // Color code if it matches a team name
+                                      const isTeamMatch = getTeamColor(pred.answers[k]) !== '#666666';
+                                      const valStyle = isTeamMatch ? { color: getTeamColor(pred.answers[k]) } : {};
+                                      const displayVal = isTeamMatch ? getTeamShortName(pred.answers[k]) : pred.answers[k];
+
+                                      return (
+                                        <div key={k} className="flex flex-col justify-center bg-black/20 p-2.5 rounded-md border border-white/5">
+                                          {label && (
+                                            <span className="text-[9px] text-gray-500 font-display uppercase tracking-widest mb-1 leading-tight">
+                                              {label}
+                                            </span>
+                                          )}
+                                          <span className="text-sm md:text-base text-white font-display font-bold tracking-wide" style={valStyle}>
+                                            {displayVal || '-'}
+                                          </span>
+                                        </div>
+                                      );
+                                    })
+                                  )}
+                                </div>
+                                
+                                {currentUser?.is_admin && (
+                                  <div className="flex items-center justify-end mt-3 border-t border-white/5 pt-2">
+                                    {editingId === pred.prediction_id ? (
+                                      <div className="flex items-center gap-1 justify-end">
+                                        <input
+                                          value={editValue}
+                                          onChange={(e) => setEditValue(e.target.value)}
+                                          className="bg-black/60 border border-white/20 text-white p-0.5 text-[8px] md:text-[10px] w-16 md:w-24 focus:border-ipl-gold focus:outline-none font-mono"
+                                          autoFocus
+                                        />
+                                        <button onClick={() => handleAdminUpdate(pred.prediction_id)} className="text-green-500 hover:bg-white/10 rounded p-0.5">
+                                          <Check className="w-2.5 h-2.5 md:w-3.5 md:h-3.5" />
                                         </button>
-                                      )}
-                                  </>
+                                        <button onClick={() => setEditingId(null)} className="text-red-500 hover:bg-white/10 rounded p-0.5">
+                                          <X className="w-2.5 h-2.5 md:w-3.5 md:h-3.5" />
+                                        </button>
+                                      </div>
+                                    ) : (
+                                      <>
+                                        {/* Edit block removed since we are now fully dynamic. We can still let admins edit, but they might need to go to Admin panel for specific questions. */}
+                                        {pred.prediction_id && (
+                                          <button
+                                            onClick={() => {
+                                              // As a fallback, we could edit the first free_text answer if we want, but since it's dynamic, we might just edit the prediction's 'extra_answers' directly from the Admin panel instead.
+                                              console.log("Admin edit requested for", pred.prediction_id);
+                                            }}
+                                            className="text-gray-600 hover:text-ipl-gold transition-colors ml-1.5 flex items-center gap-1"
+                                            title="Edit prediction (Go to Admin Panel)"
+                                          >
+                                            <Edit2 className={`${isDesktop ? 'md:w-3.5 md:h-3.5' : 'w-2.5 h-2.5'}`} />
+                                            <span className="text-[8px] uppercase tracking-widest">Admin Edit</span>
+                                          </button>
+                                        )}
+                                      </>
+                                    )}
+                                  </div>
                                 )}
                               </div>
-                            </div>
+                            )}
                           </div>
                         );
                       };

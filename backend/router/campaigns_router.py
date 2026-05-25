@@ -6,6 +6,7 @@ from pydantic import BaseModel
 from typing import Any, Optional
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
+from sqlalchemy import delete
 from sqlalchemy.orm import selectinload
 from backend.database import get_db
 from backend.models import (
@@ -49,9 +50,10 @@ class CampaignCreate(BaseModel):
     is_master: bool = False
     starts_at: Optional[datetime] = None
     ends_at: Optional[datetime] = None
+    max_powerups: Optional[int] = None
     non_participation_penalty: int = 0
     league_id: Optional[str] = None
-    match_id: Optional[str] = None
+    target_match_ids: Optional[list[str]] = None
     tournament_id: Optional[str] = None
     questions: list[QuestionCreate] = []
 
@@ -61,9 +63,10 @@ class CampaignUpdate(BaseModel):
     description: Optional[str] = None
     starts_at: Optional[datetime] = None
     ends_at: Optional[datetime] = None
+    max_powerups: Optional[int] = None
     non_participation_penalty: Optional[int] = None
     league_id: Optional[str] = None
-    match_id: Optional[str] = None
+    target_match_ids: Optional[list[str]] = None
     tournament_id: Optional[str] = None
     questions: Optional[list[QuestionCreate]] = None
 
@@ -120,16 +123,35 @@ def _serialize_campaign(campaign: Campaign, my_response: CampaignResponse | None
         "status": campaign.status,
         "starts_at": campaign.starts_at,
         "ends_at": campaign.ends_at,
+        "max_powerups": campaign.max_powerups,
         "non_participation_penalty": campaign.non_participation_penalty,
         "league_id": campaign.league_id,
-        "match_id": campaign.match_id,
+        "target_match_ids": [tm.id for tm in campaign.target_matches] if hasattr(campaign, 'target_matches') and campaign.target_matches else [],
         "tournament_id": campaign.tournament_id,
         "created_at": campaign.created_at,
         "updated_at": campaign.updated_at,
         "questions": questions,
     }
     if my_response is not None:
-        answers_map = {a.question_id: {"answer_value": a.answer_value, "points_awarded": a.points_awarded} for a in my_response.answers}
+        points_map = {}
+        if my_response.points_breakdown and "rules" in my_response.points_breakdown:
+            for rule in my_response.points_breakdown["rules"]:
+                if rule.get("key"):
+                    points_map[rule["key"]] = rule.get("points", 0)
+                points_map[rule.get("category")] = rule.get("points", 0)
+
+        answers_map = {}
+        for q in campaign.questions:
+            ans_val = my_response.answers.get(q.id) if my_response.answers else None
+            pts = None
+            if my_response.total_points is not None:
+                pts = points_map.get(q.key) if q.key else None
+                if pts is None:
+                    pts = points_map.get(q.question_text, 0)
+            answers_map[q.id] = {
+                "answer_value": ans_val,
+                "points_awarded": pts
+            }
         result["my_response"] = {
             "id": my_response.id,
             "total_points": my_response.total_points,
@@ -137,6 +159,7 @@ def _serialize_campaign(campaign: Campaign, my_response: CampaignResponse | None
             "answers": answers_map,
         }
     return result
+
 
 
 def _serialize_campaign_admin(campaign: Campaign) -> dict:
@@ -167,7 +190,7 @@ def _serialize_campaign_admin(campaign: Campaign) -> dict:
         "ends_at": campaign.ends_at,
         "non_participation_penalty": campaign.non_participation_penalty,
         "league_id": campaign.league_id,
-        "match_id": campaign.match_id,
+        "target_match_ids": [tm.id for tm in campaign.target_matches] if hasattr(campaign, 'target_matches') and campaign.target_matches else [],
         "tournament_id": campaign.tournament_id,
         "created_at": campaign.created_at,
         "updated_at": campaign.updated_at,
@@ -205,6 +228,11 @@ async def create_campaign(
     if payload.is_master and not payload.tournament_id:
         raise HTTPException(status_code=400, detail="Master campaigns must be associated with a tournament")
 
+    if payload.max_powerups is not None:
+        target_count = len(payload.target_match_ids) if payload.target_match_ids else 0
+        if payload.max_powerups > target_count:
+            raise HTTPException(status_code=400, detail=f"Max powerups ({payload.max_powerups}) cannot exceed the number of target matches ({target_count})")
+
     campaign = Campaign(
         id=str(uuid.uuid4()),
         title=payload.title,
@@ -215,13 +243,35 @@ async def create_campaign(
         created_by=current_user.id,
         starts_at=payload.starts_at,
         ends_at=payload.ends_at,
+        max_powerups=payload.max_powerups,
         non_participation_penalty=payload.non_participation_penalty,
         league_id=payload.league_id,
-        match_id=payload.match_id,
         tournament_id=payload.tournament_id,
     )
     db.add(campaign)
     await db.flush()
+
+    if payload.target_match_ids:
+        from backend.models import CampaignTargetMatch
+        
+        # Enforce: A match can have only one match campaign per league
+        if payload.type == CampaignType.match:
+            existing_targets = await db.execute(
+                select(CampaignTargetMatch.match_id)
+                .join(Campaign, Campaign.id == CampaignTargetMatch.campaign_id)
+                .where(
+                    CampaignTargetMatch.match_id.in_(payload.target_match_ids),
+                    Campaign.type == CampaignType.match,
+                    Campaign.league_id == payload.league_id,
+                    Campaign.id != campaign.id
+                )
+            )
+            conflict_matches = existing_targets.scalars().all()
+            if conflict_matches:
+                raise HTTPException(status_code=400, detail=f"The following matches already have a match campaign associated with them in this league: {conflict_matches}")
+
+        for m_id in payload.target_match_ids:
+            db.add(CampaignTargetMatch(campaign_id=campaign.id, match_id=m_id))
 
     # In a master campaign, every question is mandatory by definition
     force_mandatory = payload.is_master
@@ -255,13 +305,22 @@ async def update_campaign(
 ):
     result = await db.execute(
         select(Campaign).where(Campaign.id == campaign_id)
-        .options(selectinload(Campaign.questions))
+        .options(selectinload(Campaign.questions), selectinload(Campaign.target_matches))
     )
     campaign = result.scalars().first()
     if not campaign:
         raise HTTPException(status_code=404, detail="Campaign not found")
 
     fields_set = payload.model_fields_set
+
+    # Validate max_powerups vs target matches
+    new_max_powerups = payload.max_powerups if "max_powerups" in fields_set else campaign.max_powerups
+    new_target_ids = payload.target_match_ids if "target_match_ids" in fields_set and payload.target_match_ids is not None else [tm.id for tm in campaign.target_matches]
+    if new_max_powerups is not None:
+        target_count = len(new_target_ids) if new_target_ids else 0
+        if new_max_powerups > target_count:
+            raise HTTPException(status_code=400, detail=f"Max powerups ({new_max_powerups}) cannot exceed the number of target matches ({target_count})")
+
     if "title" in fields_set and payload.title is not None:
         campaign.title = payload.title
     if "description" in fields_set:
@@ -272,12 +331,35 @@ async def update_campaign(
         campaign.ends_at = payload.ends_at
     if "non_participation_penalty" in fields_set and payload.non_participation_penalty is not None:
         campaign.non_participation_penalty = payload.non_participation_penalty
+    if "max_powerups" in fields_set:
+        campaign.max_powerups = payload.max_powerups
     if "league_id" in fields_set:
         campaign.league_id = payload.league_id
-    if "match_id" in fields_set:
-        campaign.match_id = payload.match_id
     if "tournament_id" in fields_set:
         campaign.tournament_id = payload.tournament_id
+
+    if "target_match_ids" in fields_set and payload.target_match_ids is not None:
+        from backend.models import CampaignTargetMatch
+        
+        # Enforce: A match can have only one match campaign per league
+        if campaign.type == CampaignType.match:
+            existing_targets = await db.execute(
+                select(CampaignTargetMatch.match_id)
+                .join(Campaign, Campaign.id == CampaignTargetMatch.campaign_id)
+                .where(
+                    CampaignTargetMatch.match_id.in_(payload.target_match_ids),
+                    Campaign.type == CampaignType.match,
+                    Campaign.league_id == campaign.league_id,
+                    Campaign.id != campaign.id
+                )
+            )
+            conflict_matches = existing_targets.scalars().all()
+            if conflict_matches:
+                raise HTTPException(status_code=400, detail=f"The following matches already have a match campaign associated with them in this league: {conflict_matches}")
+
+        await db.execute(delete(CampaignTargetMatch).where(CampaignTargetMatch.campaign_id == campaign.id))
+        for m_id in payload.target_match_ids:
+            db.add(CampaignTargetMatch(campaign_id=campaign.id, match_id=m_id))
 
     if payload.questions is not None:
         for q in payload.questions:
@@ -445,7 +527,7 @@ async def admin_list_campaigns(
     current_user: User = Depends(get_current_user),
 ):
     result = await db.execute(
-        select(Campaign).options(selectinload(Campaign.questions))
+        select(Campaign).options(selectinload(Campaign.questions), selectinload(Campaign.target_matches))
         .order_by(Campaign.created_at.desc())
     )
     campaigns = result.scalars().all()
@@ -468,7 +550,7 @@ async def admin_get_campaign(
 ):
     result = await db.execute(
         select(Campaign).where(Campaign.id == campaign_id)
-        .options(selectinload(Campaign.questions))
+        .options(selectinload(Campaign.questions), selectinload(Campaign.target_matches))
     )
     campaign = result.scalars().first()
     if not campaign:
@@ -489,7 +571,9 @@ async def admin_get_campaign_responses(
     current_user: User = Depends(get_current_user),
 ):
     # Verify permission first
-    result = await db.execute(select(Campaign).where(Campaign.id == campaign_id))
+    result = await db.execute(
+        select(Campaign).where(Campaign.id == campaign_id).options(selectinload(Campaign.questions))
+    )
     campaign = result.scalars().first()
     if not campaign:
         raise HTTPException(status_code=404, detail="Campaign not found")
@@ -500,26 +584,39 @@ async def admin_get_campaign_responses(
         select(CampaignResponse, User.name, User.email)
         .join(User, CampaignResponse.user_id == User.id)
         .where(CampaignResponse.campaign_id == campaign_id)
-        .options(selectinload(CampaignResponse.answers))
         .order_by(CampaignResponse.total_points.desc().nullslast(), CampaignResponse.submitted_at)
     )
     rows = result.all()
     results = []
     for response, name, email in rows:
+        points_map = {}
+        if response.points_breakdown and "rules" in response.points_breakdown:
+            for rule in response.points_breakdown["rules"]:
+                if rule.get("key"):
+                    points_map[rule["key"]] = rule.get("points", 0)
+                points_map[rule.get("category")] = rule.get("points", 0)
+
+        answers_list = []
+        for q in campaign.questions:
+            ans_val = response.answers.get(q.id) if response.answers else None
+            pts = None
+            if response.total_points is not None:
+                pts = points_map.get(q.key) if q.key else None
+                if pts is None:
+                    pts = points_map.get(q.question_text, 0)
+            answers_list.append({
+                "question_id": q.id,
+                "answer_value": ans_val,
+                "points_awarded": pts,
+            })
+
         results.append({
             "id": response.id,
             "user_name": name,
             "user_email": email,
             "total_points": response.total_points,
             "submitted_at": response.submitted_at,
-            "answers": [
-                {
-                    "question_id": a.question_id,
-                    "answer_value": a.answer_value,
-                    "points_awarded": a.points_awarded,
-                }
-                for a in response.answers
-            ]
+            "answers": answers_list
         })
     return results
 
@@ -541,7 +638,7 @@ async def list_campaigns(
     stmt = select(Campaign).where(Campaign.status != CampaignStatus.draft)
     
     result = await db.execute(
-        stmt.options(selectinload(Campaign.questions))
+        stmt.options(selectinload(Campaign.questions), selectinload(Campaign.target_matches))
         .order_by(Campaign.ends_at.desc().nullslast(), Campaign.created_at.desc())
     )
     campaigns = result.scalars().all()
@@ -557,7 +654,6 @@ async def list_campaigns(
     resp_result = await db.execute(
         select(CampaignResponse)
         .where(CampaignResponse.campaign_id.in_(campaign_ids), CampaignResponse.user_id == current_user.id)
-        .options(selectinload(CampaignResponse.answers))
     )
     responses_map = {r.campaign_id: r for r in resp_result.scalars().all()}
     
@@ -572,7 +668,7 @@ async def get_campaign(
 ):
     result = await db.execute(
         select(Campaign).where(Campaign.id == campaign_id)
-        .options(selectinload(Campaign.questions))
+        .options(selectinload(Campaign.questions), selectinload(Campaign.target_matches))
     )
     campaign = result.scalars().first()
     if not campaign:
@@ -587,6 +683,96 @@ async def get_campaign(
     )
     my_response = resp_result.scalars().first()
     return _serialize_campaign(campaign, my_response)
+
+
+@router.get("/{campaign_id}/responses/all")
+async def get_all_community_predictions(
+    campaign_id: str,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    result = await db.execute(select(Campaign).where(Campaign.id == campaign_id))
+    campaign = result.scalars().first()
+    if not campaign:
+        raise HTTPException(status_code=404, detail="Campaign not found")
+
+    from datetime import datetime, UTC as _UTC
+    now = datetime.now(_UTC)
+    is_closed = campaign.status == CampaignStatus.closed or (campaign.ends_at and now > campaign.ends_at)
+    if not is_closed:
+        raise HTTPException(status_code=403, detail="Predictions can only be viewed after the campaign is closed")
+
+    # Load all CampaignResponses for this campaign
+    cr_result = await db.execute(
+        select(CampaignResponse)
+        .where(CampaignResponse.campaign_id == campaign_id)
+    )
+    all_crs = cr_result.scalars().all()
+
+    user_answers = {}
+    user_meta = {}
+
+    for cr in all_crs:
+        uid = cr.user_id
+        user_answers[uid] = cr.answers or {}
+        user_meta[uid] = {
+            "is_auto_predicted": cr.is_auto_predicted,
+            "points_awarded": cr.total_points,
+            "points_breakdown": cr.points_breakdown,
+            "response_id": cr.id,
+        }
+
+    all_user_ids = list(user_meta.keys())
+    users_res = await db.execute(
+        select(User).where(User.id.in_(all_user_ids), User.is_guest == False)
+    )
+    users_map = {u.id: u for u in users_res.scalars().all()}
+
+    def format_prediction(uid: str):
+        user = users_map.get(uid)
+        if not user:
+            return None
+        meta = user_meta.get(uid, {})
+        answers = user_answers.get(uid, {})
+        return {
+            "prediction_id": meta.get("response_id"),
+            "user": {"id": user.id, "name": user.name, "avatar_url": user.avatar_url},
+            "answers": answers,
+            "is_auto_predicted": meta.get("is_auto_predicted", False),
+            "points_awarded": meta.get("points_awarded"),
+            "points_breakdown": meta.get("points_breakdown"),
+        }
+
+    from backend.models import League, LeagueUserMapping
+    user_leagues_res = await db.execute(
+        select(League).join(LeagueUserMapping)
+        .where(LeagueUserMapping.user_id == current_user.id)
+    )
+    user_leagues = user_leagues_res.scalars().all()
+
+    response_data = []
+
+    if user_leagues:
+        for league in user_leagues:
+            members_res = await db.execute(
+                select(User.id).join(LeagueUserMapping)
+                .where(LeagueUserMapping.league_id == league.id)
+            )
+            member_ids = set(members_res.scalars().all())
+            preds = [p for uid in member_ids if (p := format_prediction(uid)) is not None]
+            response_data.append({
+                "league": {"id": league.id, "name": league.name},
+                "predictions": preds,
+            })
+    else:
+        # Fallback to global
+        preds = [p for uid in all_user_ids if (p := format_prediction(uid)) is not None]
+        response_data.append({
+            "league": {"id": "global", "name": "IPL Global"},
+            "predictions": preds,
+        })
+
+    return response_data
 
 
 @router.post("/{campaign_id}/respond", status_code=status.HTTP_201_CREATED)
