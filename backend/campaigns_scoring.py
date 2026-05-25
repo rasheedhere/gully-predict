@@ -235,3 +235,6 @@ async def calculate_campaign_scores(campaign_id: str, db: AsyncSession, match_id
                     ))
 
     await db.commit()
+    from backend.utils.cache import backend_cache
+    backend_cache.invalidate("leaderboard_*")
+    backend_cache.invalidate("analysis_*")
