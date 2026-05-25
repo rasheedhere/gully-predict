@@ -216,7 +216,7 @@ export function useTriggerCampaignScoring(campaignId: string) {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async () => {
-      const response = await apiClient.post(`/campaigns/${campaignId}/score`);
+      const response = await apiClient.post(`/campaigns/${campaignId}/calculate-scores`);
       return response.data;
     },
     onSuccess: () => {

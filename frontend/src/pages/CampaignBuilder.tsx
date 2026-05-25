@@ -863,7 +863,7 @@ export function AdminCampaignList({ leagueId }: { leagueId?: string }) {
 
   const triggerScore = async (id: string) => {
     try {
-      await apiClient.post(`/campaigns/${id}/score`);
+      await apiClient.post(`/campaigns/${id}/calculate-scores`);
       toast.success('Scoring triggered');
     } catch {
       toast.error('Scoring failed');

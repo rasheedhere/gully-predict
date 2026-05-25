@@ -31,3 +31,33 @@ export function useUpdateCampaignMatchResult() {
     },
   });
 }
+
+export interface GeneralCampaignResult {
+  campaign_id: string;
+  correct_answers: Record<string, any>;
+}
+
+export function useGeneralCampaignResult(campaignId: string) {
+  return useQuery({
+    queryKey: ['campaign-result-general', campaignId],
+    queryFn: async () => {
+      const response = await apiClient.get<GeneralCampaignResult>(`/campaigns/${campaignId}/result`);
+      return response.data;
+    },
+    enabled: !!campaignId,
+  });
+}
+
+export function useUpdateGeneralCampaignResult() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ campaignId, correct_answers }: { campaignId: string; correct_answers: Record<string, any> }) => {
+      const response = await apiClient.put(`/campaigns/${campaignId}/result`, { correct_answers });
+      return response.data;
+    },
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['campaign-result-general', variables.campaignId] });
+      queryClient.invalidateQueries({ queryKey: ['campaigns'] });
+    },
+  });
+}

@@ -7,8 +7,8 @@ import {
 } from 'lucide-react';
 import { useLeagueDetails, useKickMember } from '../api/hooks/useLeagues';
 import { useAdminCampaigns } from '../api/hooks/useCampaigns';
-import { useCampaignMatchResult, useUpdateCampaignMatchResult } from '../api/hooks/useCampaignResults';
-import { useMatches } from '../api/hooks/useMatches';
+import { useGeneralCampaignResult, useUpdateGeneralCampaignResult } from '../api/hooks/useCampaignResults';
+
 import { useAllUsers, useAddLeagueMember } from '../api/hooks/useAdmin';
 import { AdminCampaignList } from './CampaignBuilder';
 import toast from 'react-hot-toast';
@@ -41,8 +41,8 @@ export default function LeagueAdmin() {
               key={tab}
               onClick={() => setActiveTab(tab as any)}
               className={`px-6 py-2.5 font-display text-[10px] uppercase tracking-widest transition-all border-b-2 ${activeTab === tab
-                  ? 'text-ipl-gold border-ipl-gold bg-ipl-gold/5'
-                  : 'text-gray-500 border-transparent hover:text-white hover:bg-white/5'
+                ? 'text-ipl-gold border-ipl-gold bg-ipl-gold/5'
+                : 'text-gray-500 border-transparent hover:text-white hover:bg-white/5'
                 }`}
             >
               {tab}
@@ -63,7 +63,7 @@ function MemberManagement({ league, onUpdate }: { league: any, onUpdate: () => v
   const { mutate: kickMember } = useKickMember(league.id);
   const { mutateAsync: addMember, isPending: isAdding } = useAddLeagueMember();
   const { data: allUsers } = useAllUsers();
-  
+
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedUserId, setSelectedUserId] = useState('');
 
@@ -193,68 +193,46 @@ function MemberManagement({ league, onUpdate }: { league: any, onUpdate: () => v
 function CampaignGrading({ leagueId }: { leagueId: string }) {
   const { data: allCampaigns } = useAdminCampaigns();
   const leagueCampaigns = allCampaigns?.filter(c => c.league_id === leagueId && c.type === 'general');
-  const { data: matches } = useMatches();
 
   const [selectedCampaign, setSelectedCampaign] = useState<string>('');
-  const [selectedMatch, setSelectedMatch] = useState<string>('');
-
   const activeCampaign = leagueCampaigns?.find(c => c.id === selectedCampaign);
 
   return (
     <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
-      <div className="grid grid-cols-2 gap-4">
-        <div className="space-y-2">
-          <label className="text-[10px] text-gray-500 font-display uppercase tracking-widest">Select Campaign</label>
-          <div className="relative">
-            <select
-              value={selectedCampaign}
-              onChange={(e) => setSelectedCampaign(e.target.value)}
-              className="w-full bg-black/40 border-2 border-white/10 py-3 px-4 text-white font-display text-sm appearance-none focus:outline-none focus:border-ipl-gold transition-all"
-            >
-              <option value="">Choose Campaign...</option>
-              {leagueCampaigns?.map(c => (
-                <option key={c.id} value={c.id}>{c.title} {c.is_master ? '(Global)' : ''}</option>
-              ))}
-            </select>
-            <ChevronRight className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500 rotate-90 pointer-events-none" />
-          </div>
-        </div>
-
-        <div className="space-y-2">
-          <label className="text-[10px] text-gray-500 font-display uppercase tracking-widest">Target Match</label>
-          <div className="relative">
-            <select
-              value={selectedMatch}
-              onChange={(e) => setSelectedMatch(e.target.value)}
-              className="w-full bg-black/40 border-2 border-white/10 py-3 px-4 text-white font-display text-sm appearance-none focus:outline-none focus:border-ipl-gold transition-all"
-            >
-              <option value="">Choose Match...</option>
-              {matches?.map(m => (
-                <option key={m.id} value={m.id}>{m.team1} vs {m.team2} (M{m.id.split('-').pop()})</option>
-              ))}
-            </select>
-            <ChevronRight className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500 rotate-90 pointer-events-none" />
-          </div>
+      <div className="max-w-md space-y-2">
+        <label className="text-[10px] text-gray-500 font-display uppercase tracking-widest">Select Campaign</label>
+        <div className="relative">
+          <select
+            value={selectedCampaign}
+            onChange={(e) => setSelectedCampaign(e.target.value)}
+            className="w-full bg-black/40 border-2 border-white/10 py-3 px-4 text-white font-display text-sm appearance-none focus:outline-none focus:border-ipl-gold transition-all"
+          >
+            <option value="">Choose Campaign...</option>
+            {leagueCampaigns?.map(c => (
+              <option key={c.id} value={c.id}>{c.title} {c.is_master ? '(Global)' : ''}</option>
+            ))}
+          </select>
+          <ChevronRight className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500 rotate-90 pointer-events-none" />
         </div>
       </div>
 
-      {activeCampaign && selectedMatch ? (
-        <GradingInterface campaign={activeCampaign} matchId={selectedMatch} />
+      {activeCampaign ? (
+        <GeneralGradingInterface campaign={activeCampaign} />
       ) : (
         <div className="glass-panel p-20 text-center border-dashed border-2 border-white/5 opacity-50 flex flex-col items-center gap-4">
           <div className="p-4 bg-white/5 rounded-full">
             <Filter className="w-8 h-8 text-gray-600" />
           </div>
-          <p className="text-gray-500 font-display text-xs uppercase tracking-[0.2em]">Select a campaign and match to begin grading</p>
+          <p className="text-gray-500 font-display text-xs uppercase tracking-[0.2em]">Select a campaign to begin grading</p>
         </div>
       )}
     </div>
   );
 }
 
-function GradingInterface({ campaign, matchId }: { campaign: any, matchId: string }) {
-  const { data: results, isLoading } = useCampaignMatchResult(campaign.id, matchId);
-  const { mutate: updateResults, isPending } = useUpdateCampaignMatchResult();
+function GeneralGradingInterface({ campaign }: { campaign: any }) {
+  const { data: results, isLoading } = useGeneralCampaignResult(campaign.id);
+  const { mutate: updateResults, isPending } = useUpdateGeneralCampaignResult();
   const [correctAnswers, setCorrectAnswers] = useState<Record<string, any>>({});
 
   React.useEffect(() => {
@@ -263,12 +241,11 @@ function GradingInterface({ campaign, matchId }: { campaign: any, matchId: strin
     } else {
       setCorrectAnswers({});
     }
-  }, [results, campaign.id, matchId]);
+  }, [results, campaign.id]);
 
   const handleSave = () => {
     updateResults({
       campaignId: campaign.id,
-      matchId,
       correct_answers: correctAnswers
     }, {
       onSuccess: () => toast.success('Grading complete. Scores triggered.'),
@@ -283,7 +260,7 @@ function GradingInterface({ campaign, matchId }: { campaign: any, matchId: strin
       <div className="flex items-center justify-between mb-2">
         <div>
           <h3 className="text-xl font-display text-white italic">{campaign.title} Result Keys</h3>
-          <p className="text-[10px] text-gray-500 uppercase font-display tracking-widest mt-1">Set the correct answers for this specific match</p>
+          <p className="text-[10px] text-gray-500 uppercase font-display tracking-widest mt-1">Set the correct answers for this campaign</p>
         </div>
         <button
           onClick={handleSave}

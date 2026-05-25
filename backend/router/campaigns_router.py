@@ -520,6 +520,36 @@ async def set_campaign_result(
     return {"message": "Result saved and scoring complete"}
 
 
+@router.get("/{campaign_id}/result")
+async def get_campaign_result(
+    campaign_id: str,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Get correct answers for a general campaign."""
+    result = await db.execute(
+        select(Campaign).where(Campaign.id == campaign_id)
+    )
+    campaign = result.scalars().first()
+    if not campaign:
+        raise HTTPException(status_code=404, detail="Campaign not found")
+    if campaign.type != CampaignType.general:
+        raise HTTPException(
+            status_code=400,
+            detail="Use the match-result endpoint for match campaigns."
+        )
+    await _check_campaign_permission(db, campaign, current_user)
+
+    cr_res = await db.execute(
+        select(CampaignResult).where(CampaignResult.campaign_id == campaign_id)
+    )
+    cr = cr_res.scalars().first()
+    return {
+        "campaign_id": campaign_id,
+        "correct_answers": cr.correct_answers if cr else {}
+    }
+
+
 
 @router.get("/admin/all")
 async def admin_list_campaigns(
