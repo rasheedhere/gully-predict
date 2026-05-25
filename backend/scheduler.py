@@ -71,45 +71,86 @@ async def generate_ai_prediction(db, match: Match, ai_user: User):
     Generates a heuristic AI prediction for a match and saves it as a CampaignResponse.
     All answers are stored in CampaignResponse.answers as a flat JSON dict.
     """
+    def _replace_placeholders(text: str, match: Match) -> str:
+        if not text:
+            return text
+        return text.replace("{{Team1}}", match.team1).replace("{{Team2}}", match.team2)
+        
     t1_strength = TEAM_STRENGTHS.get(match.team1, DEFAULT_STRENGTH)
     t2_strength = TEAM_STRENGTHS.get(match.team2, DEFAULT_STRENGTH)
     t1_prob = t1_strength / (t1_strength + t2_strength)
     match_winner = match.team1 if random.random() < t1_prob else match.team2
 
-    # Powerup logic — burn only on heavy favorites
+    # Always fetch scoped mapping to track powerups properly
+    mapping_res = await db.execute(
+        select(TournamentUserMapping).where(
+            TournamentUserMapping.tournament_id == match.tournament_id,
+            TournamentUserMapping.user_id == ai_user.id
+        )
+    )
+    mapping = mapping_res.scalars().first()
+    if not mapping:
+        mapping = TournamentUserMapping(
+            tournament_id=match.tournament_id,
+            user_id=ai_user.id,
+            base_powerups=10,
+            powerups_used=0
+        )
+        db.add(mapping)
+
+    # Find the master campaign for this tournament (handles multiple targeted campaigns)
+    cam_res = await db.execute(
+        select(Campaign).options(selectinload(Campaign.questions), selectinload(Campaign.target_matches))
+        .where(Campaign.tournament_id == match.tournament_id, Campaign.is_master == True)
+    )
+    all_masters = cam_res.scalars().all()
+    master_cam = None
+    fallback_master = None
+    for mc in all_masters:
+        if mc.target_matches:
+            if any(tm.id == match.id for tm in mc.target_matches):
+                master_cam = mc
+                break
+        else:
+            fallback_master = mc
+
+    if not master_cam:
+        master_cam = fallback_master
+
+    if not master_cam:
+        return  # No campaign to predict against
+
     is_heavy_favorite = abs(t1_strength - t2_strength) >= 3
     use_powerup = False
     if is_heavy_favorite and random.random() < 0.3:
-        # Check scoped powerups
-        mapping_res = await db.execute(
-            select(TournamentUserMapping).where(
-                TournamentUserMapping.tournament_id == match.tournament_id,
-                TournamentUserMapping.user_id == ai_user.id
+        if master_cam.max_powerups is not None:
+            # Check scoped powerup limit for this specific campaign
+            pu_res = await db.execute(
+                select(CampaignResponse)
+                .where(
+                    CampaignResponse.user_id == ai_user.id,
+                    CampaignResponse.use_powerup == True,
+                    CampaignResponse.campaign_id == master_cam.id
+                )
             )
-        )
-        mapping = mapping_res.scalars().first()
-        if not mapping:
-            mapping = TournamentUserMapping(
-                tournament_id=match.tournament_id,
-                user_id=ai_user.id,
-                base_powerups=10,
-                powerups_used=0
+            used = len(pu_res.scalars().all())
+            if used < master_cam.max_powerups:
+                use_powerup = True
+        else:
+            # Check global tournament limit
+            pu_res = await db.execute(
+                select(CampaignResponse)
+                .join(Campaign, CampaignResponse.campaign_id == Campaign.id)
+                .where(
+                    CampaignResponse.user_id == ai_user.id,
+                    CampaignResponse.use_powerup == True,
+                    Campaign.tournament_id == match.tournament_id,
+                    Campaign.max_powerups == None
+                )
             )
-            db.add(mapping)
-        
-        # Count current used powerups in this tournament
-        pu_res = await db.execute(
-            select(CampaignResponse)
-            .join(Campaign, CampaignResponse.campaign_id == Campaign.id)
-            .where(
-                CampaignResponse.user_id == ai_user.id,
-                CampaignResponse.use_powerup == True,
-                Campaign.tournament_id == match.tournament_id
-            )
-        )
-        used = len(pu_res.scalars().all())
-        if used < mapping.base_powerups:
-            use_powerup = True
+            used = len(pu_res.scalars().all())
+            if used < mapping.base_powerups:
+                use_powerup = True
 
     # Team stats for powerplay/POTM predictions
     team1_stats = await _get_team_stats(db, match.team1)
@@ -129,44 +170,42 @@ async def generate_ai_prediction(db, match: Match, ai_user: User):
     more_sixes_team = (match.team1 if random.random() > 0.5 else match.team2) if match_number >= 39 else None
     more_fours_team = (match.team1 if random.random() > 0.5 else match.team2) if match_number >= 39 else None
 
-    # Find the master campaign for this tournament
-    cam_res = await db.execute(
-        select(Campaign).options(selectinload(Campaign.questions))
-        .where(Campaign.tournament_id == match.tournament_id, Campaign.is_master == True)
-    )
-    master_cam = cam_res.scalars().first()
-    if not master_cam:
-        return  # No campaign to predict against
+
 
     # Build answers dict {question_id: answer_value}
     answers = {}
+    t1, t2 = match.team1, match.team2
     for q in master_cam.questions:
-        text = (q.question_text or "").lower()
-        opts = q.options or []
+        opts = [_replace_placeholders(o, match) for o in q.options] if q.options else []
         qtype = q.question_type
-        ans_val = None
+        text = _replace_placeholders(q.question_text, match).lower()
+        val = None
 
-        # Match winner
-        if set(opts) == {match.team1, match.team2}:
-            ans_val = match_winner
-        # Powerplay (use key if available, fallback to text heuristic)
-        elif qtype == "free_number" and "powerplay" in text:
-            if match.team1.lower() in text or "team1" in text or "{{team1}}" in text:
-                ans_val = team1_pp
-            elif match.team2.lower() in text or "team2" in text or "{{team2}}" in text:
-                ans_val = team2_pp
-        # Player of the Match
+        if set(opts) == {t1, t2}:
+            if qtype == "toggle" and "dot ball" in text:
+                val = random.choice([t1, t2]) 
+            elif qtype == "dropdown":
+                if "six" in text:
+                    val = more_sixes_team or random.choice([t1, t2])
+                elif "four" in text:
+                    val = more_fours_team or random.choice([t1, t2])
+                else:
+                    val = random.choice([t1, t2])
+            else:
+                if "win" in text:
+                    val = match_winner  
+                else:
+                    val = random.choice([t1, t2])
+        elif qtype == "free_number" and ("powerplay" in text or "power play" in text):
+            if t1.lower() in text or "team1" in text:
+                val = str(team1_pp)
+            elif t2.lower() in text or "team2" in text:
+                val = str(team2_pp)
         elif qtype == "free_text" and ("player" in text or "potm" in text or "man of" in text):
-            ans_val = potm
-        # Sixes / Fours
-        elif qtype == "dropdown":
-            if "six" in text:
-                ans_val = more_sixes_team
-            elif "four" in text:
-                ans_val = more_fours_team
+            val = potm
 
-        if ans_val is not None:
-            answers[q.key if q.key else q.id] = ans_val
+        if val is not None:
+            answers[q.key if q.key else q.id] = val
 
     # Upsert CampaignResponse
     resp_res = await db.execute(
@@ -193,9 +232,9 @@ async def generate_ai_prediction(db, match: Match, ai_user: User):
         )
         db.add(response)
 
-    # Deduct powerup if used
-    if use_powerup:
-        ai_user.base_powerups = max(0, ai_user.base_powerups - 1)
+    # Deduct powerup if used (incrementing mapped usage)
+    if use_powerup and not getattr(response, "use_powerup", False):
+        mapping.powerups_used += 1
 
 
 async def auto_predict_daily_job():
@@ -211,13 +250,13 @@ async def auto_predict_daily_job():
                 return
 
             now = datetime.now(UTC)
-            tomorrow = now + timedelta(days=1)
+            future = now + timedelta(days=2)
 
             matches_res = await db.execute(
                 select(Match).where(
                     Match.status == MatchStatus.upcoming,
                     Match.start_time >= now,
-                    Match.start_time <= tomorrow,
+                    Match.start_time <= future,
                 )
             )
             upcoming = matches_res.scalars().all()
