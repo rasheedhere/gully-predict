@@ -502,6 +502,9 @@ async def trigger_campaign_scoring(
     await _check_campaign_permission(db, campaign, current_user)
 
     await calculate_campaign_scores(campaign_id, db)
+    if campaign.tournament_id:
+        from backend.scoring import update_leaderboard_cache
+        await update_leaderboard_cache(db, campaign.tournament_id)
     backend_cache.invalidate(f"campaign_{campaign_id}")
     return {"message": "Scoring complete"}
 
@@ -548,6 +551,9 @@ async def set_campaign_result(
 
     # Trigger scoring immediately
     await calculate_campaign_scores(campaign_id, db)
+    if campaign.tournament_id:
+        from backend.scoring import update_leaderboard_cache
+        await update_leaderboard_cache(db, campaign.tournament_id)
     backend_cache.invalidate(f"campaign_{campaign_id}")
     return {"message": "Result saved and scoring complete"}
 
