@@ -134,8 +134,22 @@ async def calculate_campaign_scores(campaign_id: str, db: AsyncSession, match_id
         total = 0
         breakdown_rules = []
         multiplier = 1
-        if campaign.is_master and campaign.type == CampaignType.match:
-            multiplier = 2 if response.use_powerup else 1
+        if campaign.type == CampaignType.match:
+            if campaign.is_master:
+                multiplier = 2 if response.use_powerup else 1
+            else:
+                # Check if user used a powerup on the master campaign for this match
+                master_res = await db.execute(
+                    select(CampaignResponse.use_powerup)
+                    .join(Campaign, CampaignResponse.campaign_id == Campaign.id)
+                    .where(
+                        CampaignResponse.user_id == response.user_id,
+                        CampaignResponse.match_id == m_id,
+                        Campaign.is_master == True
+                    )
+                )
+                use_pu = master_res.scalars().first()
+                multiplier = 2 if use_pu else 1
 
         for q_id, q in question_map.items():
             answer_value = answers.get(q_id)
@@ -167,10 +181,10 @@ async def calculate_campaign_scores(campaign_id: str, db: AsyncSession, match_id
             })
 
         response.total_points = total
-        if campaign.is_master and campaign.type == CampaignType.match:
+        if campaign.type == CampaignType.match:
             response.points_breakdown = {
                 "rules": breakdown_rules,
-                "powerup": {"used": response.use_powerup, "multiplier": multiplier},
+                "powerup": {"used": multiplier > 1, "multiplier": multiplier},
                 "total": total,
             }
         else:
