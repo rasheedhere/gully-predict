@@ -36,8 +36,10 @@ async def get_events(
         query = query.where(
             or_(
                 SystemEvent.user_id == current_user.id,
-                SystemEvent.league_id.in_(user_league_ids),
-                SystemEvent.league_id.is_(None)
+                (SystemEvent.event_type != "login") & or_(
+                    SystemEvent.league_id.in_(user_league_ids),
+                    SystemEvent.league_id.is_(None)
+                )
             )
         )
 
