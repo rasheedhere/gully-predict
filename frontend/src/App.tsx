@@ -14,6 +14,7 @@ import LeagueAdmin from './pages/LeagueAdmin';
 import Activity from './pages/Activity';
 import Layout from './components/Layout';
 import Hub from './pages/Hub';
+import More from './pages/More';
 import PWAInstallBanner from './components/PWAInstallBanner';
 
 import AuthCallback from './pages/AuthCallback';
@@ -76,6 +77,7 @@ function App() {
           <Route path="leagues/:id" element={<LeagueDetails />} />
           <Route path="leagues/:id/admin" element={<LeagueAdmin />} />
           <Route path="activity" element={<Activity />} />
+          <Route path="more" element={<More />} />
         </Route>
       </Routes>
     </BrowserRouter>

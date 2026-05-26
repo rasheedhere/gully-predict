@@ -46,8 +46,9 @@ export default function Admin() {
   };
 
   return (
-    <div className="space-y-8 w-full max-w-full mx-auto pb-20 relative">
-      <header className="flex justify-between items-end border-b-2 border-white/10 pb-4">
+    <div className="space-y-8 w-full max-w-full mx-auto pb-[calc(5rem+env(safe-area-inset-bottom))] relative pt-2 md:pt-0 px-4 md:px-0">
+      {/* Internal Header: Hidden on mobile since Layout.tsx renders standard sticky header */}
+      <header className="hidden md:flex justify-between items-end border-b-2 border-white/10 pb-4">
         <div>
           <h1 className="text-3xl font-display text-ipl-gold flex items-center gap-3 italic uppercase tracking-tighter">
             <ShieldCheck className="w-8 h-8" />
@@ -57,8 +58,8 @@ export default function Admin() {
         </div>
       </header>
 
-      {/* Tab Navigation */}
-      <nav className="flex gap-1 bg-white/5 p-1 rounded-xl border border-white/10 w-fit">
+      {/* Tab Navigation: Swipable on Mobile */}
+      <nav className="flex gap-1 bg-white/5 p-1 rounded-2xl border border-white/10 w-full overflow-x-auto scrollbar-hide flex-nowrap md:w-fit select-none">
         {[
           ...(user?.is_admin ? [{ id: 'tournaments', label: 'Tournaments', icon: ShieldCheck }] : []),
           { id: 'leagues', label: 'Leagues', icon: Trophy },
@@ -69,12 +70,12 @@ export default function Admin() {
           <button
             key={tab.id}
             onClick={() => setActiveTab(tab.id as any)}
-            className={`flex items-center gap-2 px-6 py-2.5 rounded-lg font-display text-[10px] uppercase tracking-widest transition-all ${activeTab === tab.id
-              ? 'bg-ipl-gold text-ipl-navy shadow-neon shadow-ipl-gold/20'
-              : 'text-gray-500 hover:text-white hover:bg-white/5'
+            className={`flex items-center gap-2 px-5 py-2.5 rounded-xl font-display text-[10px] uppercase tracking-widest transition-all shrink-0 flex-shrink-0 whitespace-nowrap active:scale-95 ${activeTab === tab.id
+              ? 'bg-ipl-gold text-ipl-navy shadow-neon shadow-ipl-gold/20 font-bold'
+              : 'text-gray-400 hover:text-white active:bg-white/5'
               }`}
           >
-            <tab.icon className="w-4 h-4" />
+            <tab.icon className="w-3.5 h-3.5" />
             {tab.label}
           </button>
         ))}
@@ -131,17 +132,17 @@ function LeagueManagement({ onManageUsers }: { onManageUsers: (id: string) => vo
     <div className="grid lg:grid-cols-3 gap-8">
       {/* Create Section - Only for Global Admins */}
       {user?.is_admin && (
-        <section className="glass-panel p-6 border-t-2 border-ipl-gold/50 h-fit">
+        <section className="glass-panel p-6 border-t-2 border-ipl-gold/50 h-fit rounded-3xl">
           <div className="flex items-center gap-3 mb-6">
-            <div className="p-3 bg-ipl-gold/10 rounded-lg">
+            <div className="p-3 bg-ipl-gold/10 rounded-xl">
               <Plus className="w-6 h-6 text-ipl-gold" />
             </div>
             <h2 className="text-xl font-display text-white italic uppercase tracking-tight">Provision New League</h2>
           </div>
 
           {createdCode ? (
-            <div className="bg-ipl-green/10 border border-ipl-green/30 p-6 rounded-xl animate-in zoom-in duration-300">
-              <p className="text-[10px] font-display text-ipl-green uppercase tracking-widest mb-2">League Created Successfully!</p>
+            <div className="bg-ipl-green/10 border border-ipl-green/30 p-6 rounded-2xl animate-in zoom-in duration-300">
+              <p className="text-[10px] font-display text-ipl-green uppercase tracking-widest mb-2 font-bold">League Created Successfully!</p>
               <div className="flex flex-col items-center gap-4 py-4">
                 <span className="text-4xl font-display text-white tracking-[0.2em] font-bold underline decoration-ipl-green underline-offset-8">
                   {createdCode}
@@ -150,7 +151,7 @@ function LeagueManagement({ onManageUsers }: { onManageUsers: (id: string) => vo
               </div>
               <button
                 onClick={() => setCreatedCode(null)}
-                className="w-full mt-4 py-3 border border-white/10 text-white font-display text-[10px] uppercase tracking-[0.2em] hover:bg-white/5 transition-all"
+                className="w-full mt-4 py-3.5 border border-white/10 rounded-2xl text-white font-display text-[10px] uppercase tracking-[0.2em] active:bg-white/5 active:scale-95 transition-all"
               >
                 Provision Another
               </button>
@@ -163,7 +164,7 @@ function LeagueManagement({ onManageUsers }: { onManageUsers: (id: string) => vo
                   type="text"
                   value={newName}
                   onChange={(e) => setNewName(e.target.value)}
-                  className="w-full bg-black/40 border-2 border-white/10 p-3 text-white font-display focus:border-ipl-gold focus:outline-none transition-all"
+                  className="w-full bg-black/40 border-2 border-white/10 p-3.5 rounded-2xl text-white font-display focus:border-ipl-gold focus:outline-none transition-all text-sm"
                   placeholder="e.g. Corporate Challenge"
                 />
               </div>
@@ -172,11 +173,11 @@ function LeagueManagement({ onManageUsers }: { onManageUsers: (id: string) => vo
                 <select
                   value={selectedTournament}
                   onChange={(e) => setSelectedTournament(e.target.value)}
-                  className="w-full bg-black/40 border-2 border-white/10 p-3 text-white font-display focus:border-ipl-gold focus:outline-none transition-all"
+                  className="w-full bg-black/40 border-2 border-white/10 p-3.5 rounded-2xl text-white font-display focus:border-ipl-gold focus:outline-none transition-all text-sm"
                 >
-                  <option value="">Select Tournament...</option>
+                  <option value="" className="bg-ipl-navy">Select Tournament...</option>
                   {tournaments?.map(t => (
-                    <option key={t.id} value={t.id}>{t.name}</option>
+                    <option key={t.id} value={t.id} className="bg-ipl-navy">{t.name}</option>
                   ))}
                 </select>
               </div>
@@ -186,13 +187,13 @@ function LeagueManagement({ onManageUsers }: { onManageUsers: (id: string) => vo
                   type="number"
                   value={powerups}
                   onChange={(e) => setPowerups(parseInt(e.target.value) || 0)}
-                  className="w-full bg-black/40 border-2 border-white/10 p-3 text-white font-display focus:border-ipl-gold focus:outline-none transition-all"
+                  className="w-full bg-black/40 border-2 border-white/10 p-3.5 rounded-2xl text-white font-display focus:border-ipl-gold focus:outline-none transition-all text-sm"
                 />
               </div>
               <button
                 type="submit"
                 disabled={createLeague.isPending || !newName || !selectedTournament}
-                className="w-full py-4 bg-ipl-gold text-ipl-navy font-display text-[10px] uppercase tracking-[0.3em] font-bold hover:bg-white hover:scale-[1.02] transition-all disabled:opacity-30"
+                className="w-full py-4 bg-ipl-gold text-ipl-navy font-display text-[10px] uppercase tracking-[0.3em] font-bold rounded-2xl hover:scale-[1.02] active:scale-[0.98] transition-all disabled:opacity-30"
               >
                 {createLeague.isPending ? 'PROVISIONING...' : 'PROVISION LEAGUE'}
               </button>
@@ -202,7 +203,7 @@ function LeagueManagement({ onManageUsers }: { onManageUsers: (id: string) => vo
       )}
 
       {/* Leagues List - Full width if create section is hidden */}
-      <section className={`${user?.is_admin ? 'lg:col-span-2' : 'lg:col-span-3'} glass-panel p-6 border-t-2 border-white/10`}>
+      <section className={`${user?.is_admin ? 'lg:col-span-2' : 'lg:col-span-3'} glass-panel p-6 border-t-2 border-white/10 rounded-3xl`}>
         <div className="flex items-center justify-between mb-8">
           <div className="flex items-center gap-3">
             <Trophy className="w-6 h-6 text-ipl-gold" />
@@ -210,7 +211,8 @@ function LeagueManagement({ onManageUsers }: { onManageUsers: (id: string) => vo
           </div>
         </div>
 
-        <div className="overflow-hidden rounded-xl border border-white/5 bg-black/20">
+        {/* Desktop View */}
+        <div className="hidden md:block overflow-hidden rounded-2xl border border-white/5 bg-black/20">
           <table className="w-full text-left">
             <thead>
               <tr className="border-b border-white/10 bg-white/5 text-[9px] uppercase tracking-[0.2em] text-gray-500 font-display">
@@ -240,7 +242,7 @@ function LeagueManagement({ onManageUsers }: { onManageUsers: (id: string) => vo
                   <td className="p-4 text-right">
                     <button
                       onClick={() => onManageUsers(league.id)}
-                      className="px-4 py-2 bg-white/5 border border-white/10 text-white hover:bg-white hover:text-ipl-navy transition-all font-display text-[10px] uppercase tracking-widest flex items-center gap-2 ml-auto"
+                      className="px-4 py-2 bg-white/5 border border-white/10 text-white hover:bg-white hover:text-ipl-navy transition-all font-display text-[10px] uppercase tracking-widest flex items-center gap-2 ml-auto rounded-lg"
                     >
                       <Users className="w-3 h-3" />
                       Manage Users
@@ -250,6 +252,37 @@ function LeagueManagement({ onManageUsers }: { onManageUsers: (id: string) => vo
               ))}
             </tbody>
           </table>
+        </div>
+
+        {/* Mobile View */}
+        <div className="md:hidden space-y-4">
+          {isLeaguesLoading ? (
+            <div className="p-10 text-center text-[10px] uppercase tracking-widest text-gray-500 animate-pulse">Syncing League Registry...</div>
+          ) : leagues?.length === 0 ? (
+            <div className="p-10 text-center text-[10px] uppercase tracking-widest text-gray-500">No battlegrounds found</div>
+          ) : leagues?.map(league => (
+            <div key={league.id} className="bg-white/5 border border-white/10 p-4 rounded-2xl flex flex-col gap-4 active:scale-[0.98] transition-all">
+              <div className="flex justify-between items-start">
+                <div className="flex flex-col">
+                  <span className="text-base text-white font-bold font-display">{league.name}</span>
+                  <span className="text-[9px] text-gray-500 font-mono tracking-widest uppercase">{league.id}</span>
+                </div>
+                <span className="font-mono text-ipl-gold text-xs tracking-wider bg-ipl-gold/10 px-2.5 py-1 rounded-xl border border-ipl-gold/10">
+                  {league.join_code}
+                </span>
+              </div>
+              <div className="flex justify-between items-center pt-3 border-t border-white/5">
+                <span className="text-[10px] text-gray-400 uppercase tracking-widest">Base: {league.tournament_id}</span>
+                <button
+                  onClick={() => onManageUsers(league.id)}
+                  className="px-4 py-2.5 bg-white/5 border border-white/10 text-white rounded-xl active:bg-white active:text-ipl-navy transition-all font-display text-[10px] uppercase tracking-widest flex items-center gap-2"
+                >
+                  <Users className="w-3.5 h-3.5" />
+                  Manage Users
+                </button>
+              </div>
+            </div>
+          ))}
         </div>
       </section>
     </div>
@@ -299,7 +332,7 @@ function UserManagement() {
   return (
     <div className="grid lg:grid-cols-3 gap-8">
       {/* Manual Whitelist */}
-      <section className="glass-panel p-6 border-t-2 border-t-ipl-live h-fit">
+      <section className="glass-panel p-6 border-t-2 border-t-ipl-live h-fit rounded-3xl">
         <div className="flex items-center gap-3 mb-6">
           <Mail className="w-6 h-6 text-ipl-live" />
           <h2 className="text-xl font-display text-white italic uppercase tracking-tight">Manual Whitelist</h2>
@@ -310,7 +343,7 @@ function UserManagement() {
             <textarea
               value={newEmail}
               onChange={(e) => setNewEmail(e.target.value)}
-              className="w-full bg-black/40 border-2 border-white/10 p-3 text-white font-display focus:border-ipl-live focus:outline-none transition-all h-32"
+              className="w-full bg-black/40 border-2 border-white/10 p-3.5 rounded-2xl text-white font-display focus:border-ipl-live focus:outline-none transition-all h-32 text-sm"
               placeholder="user1@example.com, user2@example.com"
             />
           </div>
@@ -322,30 +355,33 @@ function UserManagement() {
               onChange={(e) => setIsGuest(e.target.checked)}
               className="w-4 h-4 rounded border-white/10 bg-black/40 text-ipl-live focus:ring-ipl-live"
             />
-            <label htmlFor="guestCheck" className="text-[10px] font-display uppercase tracking-widest text-gray-400 cursor-pointer">Mark as Guest Users</label>
+            <label htmlFor="guestCheck" className="text-[10px] font-display uppercase tracking-widest text-gray-400 cursor-pointer select-none">Mark as Guest Users</label>
           </div>
           <button
             type="submit"
             disabled={isAdding || !newEmail.trim()}
-            className="w-full py-4 bg-ipl-live text-white font-display text-[10px] uppercase tracking-[0.3em] font-bold hover:bg-white hover:text-ipl-navy hover:scale-[1.02] transition-all disabled:opacity-30"
+            className="w-full py-4 bg-ipl-live text-white font-display text-[10px] uppercase tracking-[0.3em] font-bold rounded-2xl hover:scale-[1.02] active:scale-[0.98] transition-all disabled:opacity-30"
           >
             {isAdding ? 'Whitelisting...' : 'Whitelist Users'}
           </button>
         </form>
 
         <div className="mt-10 pt-6 border-t border-white/5">
-          <h3 className="text-[10px] font-display uppercase tracking-[0.2em] text-gray-500 mb-4">Pending Whitelist ({allowlist?.length || 0})</h3>
+          <h3 className="text-[10px] font-display uppercase tracking-[0.2em] text-gray-500 mb-4 font-bold">Pending Whitelist ({allowlist?.length || 0})</h3>
           <div className="space-y-2 max-h-48 overflow-y-auto pr-2 custom-scrollbar">
             {isAllowlistLoading ? (
               <div className="animate-pulse text-[10px] text-gray-600 font-display">Syncing...</div>
             ) : allowlist?.map(item => (
-              <div key={item.email} className="flex items-center justify-between p-2 bg-white/5 rounded border border-white/5 group">
+              <div key={item.email} className="flex items-center justify-between p-3 bg-white/5 rounded-2xl border border-white/5 group">
                 <div className="flex flex-col">
                   <span className="text-[11px] text-gray-300 font-display">{item.email}</span>
-                  {item.is_guest && <span className="text-[8px] text-ipl-gold uppercase tracking-widest">Guest</span>}
+                  {item.is_guest && <span className="text-[8px] text-ipl-gold uppercase tracking-widest font-bold mt-0.5">Guest</span>}
                 </div>
-                <button onClick={() => deleteEmail(item.email)} className="p-1 text-gray-600 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-all">
-                  <Trash2 className="w-3.5 h-3.5" />
+                <button 
+                  onClick={() => deleteEmail(item.email)} 
+                  className="p-2 text-gray-400 hover:text-red-500 active:scale-95 transition-all opacity-100 md:opacity-0 md:group-hover:opacity-100"
+                >
+                  <Trash2 className="w-4 h-4" />
                 </button>
               </div>
             ))}
@@ -354,7 +390,7 @@ function UserManagement() {
       </section>
 
       {/* Directory Management */}
-      <section className="lg:col-span-2 glass-panel p-6 border-t-2 border-white/10">
+      <section className="lg:col-span-2 glass-panel p-6 border-t-2 border-white/10 rounded-3xl">
         <div className="flex items-center justify-between mb-8">
           <div className="flex items-center gap-3">
             <Users className="w-6 h-6 text-ipl-gold" />
@@ -362,7 +398,8 @@ function UserManagement() {
           </div>
         </div>
 
-        <div className="overflow-x-auto">
+        {/* Desktop View */}
+        <div className="hidden md:block overflow-x-auto">
           <table className="w-full text-left">
             <thead>
               <tr className="border-b border-white/10 bg-white/5 text-[9px] uppercase tracking-[0.2em] text-gray-500 font-display">
@@ -440,7 +477,7 @@ function UserManagement() {
                     <button
                       onClick={() => handleUpdate(u.id)}
                       disabled={isPending}
-                      className="p-2 border border-white/10 text-gray-500 hover:text-ipl-gold hover:border-ipl-gold transition-all"
+                      className="p-2 border border-white/10 text-gray-500 hover:text-ipl-gold hover:border-ipl-gold rounded-lg transition-all"
                       title="Save Changes"
                     >
                       <RefreshCw className={`w-4 h-4 ${isPending ? 'animate-spin' : ''}`} />
@@ -450,6 +487,88 @@ function UserManagement() {
               ))}
             </tbody>
           </table>
+        </div>
+
+        {/* Mobile View */}
+        <div className="md:hidden space-y-4">
+          {isLoading ? (
+            <div className="text-center py-10 text-[10px] uppercase tracking-widest text-gray-500 animate-pulse">Syncing Master Records...</div>
+          ) : users?.length === 0 ? (
+            <div className="text-center py-10 text-[10px] uppercase tracking-widest text-gray-500">No users found</div>
+          ) : users?.map(u => (
+            <div key={u.id} className="bg-white/5 border border-white/10 p-4 rounded-2xl flex flex-col gap-4">
+              {/* User Info & Badge */}
+              <div className="flex justify-between items-center">
+                <div className="flex items-center gap-3">
+                  <img src={u.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${getUserDisplayName(u)}`} className="w-10 h-10 rounded-full border border-white/10" alt="" />
+                  <div className="flex flex-col">
+                    <span className="text-sm text-white font-bold font-display">{getUserDisplayName(u)}</span>
+                    <span className="text-[9px] text-gray-500 font-mono tracking-tight uppercase break-all">{u.email}</span>
+                  </div>
+                </div>
+                <div className="flex flex-col items-end gap-1">
+                  {u.is_admin && <span className="px-2 py-0.5 bg-ipl-gold/10 text-ipl-gold border border-ipl-gold/20 rounded-lg text-[8px] uppercase tracking-widest font-bold">Admin</span>}
+                  {u.is_guest && <span className="px-2 py-0.5 bg-blue-500/10 text-blue-400 border border-blue-500/20 rounded-lg text-[8px] uppercase tracking-widest font-bold">Guest</span>}
+                  {!u.is_admin && !u.is_guest && <span className="px-2 py-0.5 bg-white/5 text-gray-500 border border-white/10 rounded-lg text-[8px] uppercase tracking-widest font-bold">Player</span>}
+                </div>
+              </div>
+
+              {/* Stats Inputs & Telegram Inputs */}
+              <div className="grid grid-cols-2 gap-4 pt-3 border-t border-white/5">
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="text-[10px] text-gray-400 font-display uppercase tracking-wider">Points:</span>
+                    <input
+                      type="number"
+                      defaultValue={u.base_points}
+                      onBlur={(e) => setLocalPoints({ ...localPoints, [u.id]: parseInt(e.target.value) })}
+                      className="w-20 bg-black/40 border border-white/10 rounded-xl px-2.5 py-1.5 text-xs font-mono text-white text-center focus:border-ipl-gold outline-none"
+                    />
+                  </div>
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="text-[10px] text-gray-400 font-display uppercase tracking-wider">Powerups:</span>
+                    <input
+                      type="number"
+                      defaultValue={u.base_powerups}
+                      onBlur={(e) => setLocalPowerups({ ...localPowerups, [u.id]: parseInt(e.target.value) })}
+                      className="w-20 bg-black/40 border border-white/10 rounded-xl px-2.5 py-1.5 text-xs font-mono text-white text-center focus:border-ipl-gold outline-none"
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-3 border-l border-white/5 pl-4">
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="text-[10px] text-gray-400 font-display uppercase tracking-wider">Bot Admin:</span>
+                    <input
+                      type="checkbox"
+                      defaultChecked={u.is_telegram_admin}
+                      onChange={(e) => setLocalTelegram({ ...localTelegram, [u.id]: e.target.checked })}
+                      className="w-4 h-4 rounded border-white/10 bg-black/40 text-ipl-gold focus:ring-ipl-gold"
+                    />
+                  </div>
+                  <input
+                    type="text"
+                    defaultValue={u.telegram_username}
+                    placeholder="@username"
+                    onBlur={(e) => setLocalTelegramUser({ ...localTelegramUser, [u.id]: e.target.value })}
+                    className="w-full bg-black/40 border border-white/10 rounded-xl px-2.5 py-1.5 text-xs font-mono text-white focus:border-ipl-gold outline-none"
+                  />
+                </div>
+              </div>
+
+              {/* Save Actions */}
+              <div className="flex justify-end pt-2 border-t border-white/5">
+                <button
+                  onClick={() => handleUpdate(u.id)}
+                  disabled={isPending}
+                  className="w-full py-2.5 bg-white/5 active:bg-white/10 active:scale-[0.98] text-white border border-white/10 rounded-xl font-display text-[10px] uppercase tracking-widest flex items-center justify-center gap-2"
+                >
+                  <RefreshCw className={`w-3.5 h-3.5 ${isPending ? 'animate-spin' : ''}`} />
+                  Save User Changes
+                </button>
+              </div>
+            </div>
+          ))}
         </div>
       </section>
     </div>
@@ -462,7 +581,7 @@ function CampaignManagement() {
 
   return (
     <div className="max-w-4xl mx-auto space-y-8">
-      <section className="glass-panel p-10 border-t-2 border-ipl-gold flex flex-col items-center justify-center text-center">
+      <section className="glass-panel p-10 border-t-2 border-ipl-gold flex flex-col items-center justify-center text-center rounded-3xl">
         <ShieldCheck className="w-16 h-16 text-ipl-gold mb-6 opacity-20" />
         <h2 className="text-2xl font-display text-white mb-2 uppercase italic tracking-tighter">
           {user?.is_admin ? 'Master Campaigns' : 'League Campaigns'}
@@ -472,12 +591,12 @@ function CampaignManagement() {
             ? 'Manage global match questions for the 2026 Season'
             : 'Manage custom questions and engagement for your leagues'}
         </p>
-        <a href="/admin/campaigns" className="px-10 py-4 bg-white text-ipl-navy font-display text-xs uppercase tracking-[0.3em] font-bold hover:bg-ipl-gold transition-all">
+        <a href="/admin/campaigns" className="px-10 py-4 bg-white text-ipl-navy font-display text-xs uppercase tracking-[0.3em] font-bold rounded-2xl active:scale-[0.98] hover:bg-ipl-gold transition-all">
           Launch Builder
         </a>
       </section>
 
-      <section className="glass-panel p-6 border-t-2 border-white/10">
+      <section className="glass-panel p-6 border-t-2 border-white/10 rounded-3xl">
         <div className="flex items-center justify-between mb-8">
           <div className="flex items-center gap-3">
             <List className="w-6 h-6 text-ipl-gold" />
@@ -485,7 +604,8 @@ function CampaignManagement() {
           </div>
         </div>
 
-        <div className="overflow-hidden rounded-xl border border-white/5 bg-black/20">
+        {/* Desktop View */}
+        <div className="hidden md:block overflow-hidden rounded-2xl border border-white/5 bg-black/20">
           <table className="w-full text-left">
             <thead>
               <tr className="border-b border-white/10 bg-white/5 text-[9px] uppercase tracking-[0.2em] text-gray-500 font-display">
@@ -526,7 +646,7 @@ function CampaignManagement() {
                   <td className="p-4 text-right">
                     <a
                       href={`/admin/campaigns/${c.id}/edit`}
-                      className="inline-flex items-center gap-2 px-4 py-2 bg-white/5 border border-white/10 text-white hover:bg-white hover:text-ipl-navy transition-all font-display text-[10px] uppercase tracking-widest ml-auto"
+                      className="inline-flex items-center gap-2 px-4 py-2 bg-white/5 border border-white/10 text-white hover:bg-white hover:text-ipl-navy rounded-lg transition-all font-display text-[10px] uppercase tracking-widest ml-auto"
                     >
                       <Pencil className="w-3 h-3" />
                       Edit
@@ -537,6 +657,44 @@ function CampaignManagement() {
             </tbody>
           </table>
         </div>
+
+        {/* Mobile View */}
+        <div className="md:hidden space-y-4">
+          {isLoading ? (
+            <div className="text-center py-10 text-[10px] uppercase tracking-widest text-gray-500 animate-pulse">Loading Campaigns...</div>
+          ) : campaigns?.length === 0 ? (
+            <div className="text-center py-10 text-[10px] uppercase tracking-widest text-gray-500">No campaigns found</div>
+          ) : campaigns?.map(c => (
+            <div key={c.id} className="bg-white/5 border border-white/10 p-4 rounded-2xl flex flex-col gap-3">
+              <div className="flex justify-between items-start">
+                <div className="flex flex-col">
+                  <span className="text-base text-white font-bold font-display">{c.title}</span>
+                  <span className="text-[9px] text-gray-500 font-mono tracking-widest uppercase">{c.id}</span>
+                </div>
+                <span className={`px-2 py-0.5 border rounded-lg text-[8px] uppercase tracking-widest font-bold w-fit ${
+                  c.status === 'active' ? 'bg-ipl-live/10 text-ipl-live border-ipl-live/20' :
+                  c.status === 'closed' ? 'bg-red-500/10 text-red-500 border-red-500/20' :
+                  'bg-gray-500/10 text-gray-400 border-gray-500/20'
+                }`}>
+                  {c.status}
+                </span>
+              </div>
+              <div className="flex justify-between items-center pt-2 border-t border-white/5">
+                <div className="flex flex-col">
+                  <span className="text-[9px] text-gray-400 uppercase tracking-widest">Type: {c.type}</span>
+                  <span className="text-[8px] text-gray-500 font-mono uppercase mt-0.5">Match: {c.target_match_ids?.[0] || 'Global'}</span>
+                </div>
+                <a
+                  href={`/admin/campaigns/${c.id}/edit`}
+                  className="inline-flex items-center gap-2 px-4 py-2.5 bg-white/5 border border-white/10 text-white rounded-xl active:bg-white active:text-ipl-navy transition-all font-display text-[10px] uppercase tracking-widest"
+                >
+                  <Pencil className="w-3.5 h-3.5" />
+                  Edit
+                </a>
+              </div>
+            </div>
+          ))}
+        </div>
       </section>
     </div>
   );
@@ -545,7 +703,7 @@ function CampaignManagement() {
 function SystemManagement() {
   const { mutate: triggerAI, isPending } = useTriggerAIPredictions();
   return (
-    <div className="max-w-2xl mx-auto glass-panel p-10 border-t-2 border-blue-500 text-center">
+    <div className="max-w-2xl mx-auto glass-panel p-10 border-t-2 border-blue-500 text-center rounded-3xl">
       <Cpu className="w-16 h-16 text-blue-500 mx-auto mb-6 opacity-20" />
       <h2 className="text-2xl font-display text-white mb-2 uppercase italic tracking-tighter">Scoring Engine Controls</h2>
       <p className="text-xs text-gray-400 mb-10 font-mono uppercase tracking-widest">Manual Override for Scoring & AI Predictions</p>
@@ -553,7 +711,7 @@ function SystemManagement() {
       <div className="grid gap-6">
         <button
           onClick={() => triggerAI(undefined, { onSuccess: () => toast.success('AI Assassin triggered') })}
-          className="py-5 bg-gradient-to-r from-[#004BA0] to-[#7B2FF7] text-white font-display text-xs uppercase tracking-[0.4em] hover:shadow-[0_0_20px_rgba(123,47,247,0.4)] transition-all shadow-neon shadow-[#7B2FF7]/20"
+          className="py-5 bg-gradient-to-r from-[#004BA0] to-[#7B2FF7] text-white font-display text-xs uppercase tracking-[0.4em] rounded-2xl hover:shadow-[0_0_20px_rgba(123,47,247,0.4)] active:scale-[0.98] transition-all shadow-neon shadow-[#7B2FF7]/20"
         >
           {isPending ? 'EXECUTING NEURAL NET...' : 'TRIGGER AI ASSASSIN'}
         </button>
@@ -597,9 +755,9 @@ function TournamentRegistry({ onManageMatches }: { onManageMatches: (id: string)
 
   return (
     <div className="grid lg:grid-cols-3 gap-8">
-      <section className="glass-panel p-6 border-t-2 border-ipl-gold/50 h-fit">
+      <section className="glass-panel p-6 border-t-2 border-ipl-gold/50 h-fit rounded-3xl">
         <div className="flex items-center gap-3 mb-6">
-          <div className="p-3 bg-ipl-gold/10 rounded-lg">
+          <div className="p-3 bg-ipl-gold/10 rounded-xl">
             <Plus className="w-6 h-6 text-ipl-gold" />
           </div>
           <h2 className="text-xl font-display text-white italic uppercase tracking-tight">Register Tournament</h2>
@@ -612,7 +770,7 @@ function TournamentRegistry({ onManageMatches }: { onManageMatches: (id: string)
               type="text"
               value={newId}
               onChange={(e) => setNewId(e.target.value)}
-              className="w-full bg-black/40 border-2 border-white/10 p-3 text-white font-display focus:border-ipl-gold focus:outline-none transition-all font-mono"
+              className="w-full bg-black/40 border-2 border-white/10 p-3.5 rounded-2xl text-white font-mono text-sm focus:border-ipl-gold focus:outline-none transition-all"
               placeholder="e.g. ipl-2027"
             />
           </div>
@@ -622,7 +780,7 @@ function TournamentRegistry({ onManageMatches }: { onManageMatches: (id: string)
               type="text"
               value={newName}
               onChange={(e) => setNewName(e.target.value)}
-              className="w-full bg-black/40 border-2 border-white/10 p-3 text-white font-display focus:border-ipl-gold focus:outline-none transition-all"
+              className="w-full bg-black/40 border-2 border-white/10 p-3.5 rounded-2xl text-white font-display text-sm focus:border-ipl-gold focus:outline-none transition-all"
               placeholder="e.g. IPL Season 2027"
             />
           </div>
@@ -633,7 +791,7 @@ function TournamentRegistry({ onManageMatches }: { onManageMatches: (id: string)
                 type="date"
                 value={startsAt}
                 onChange={(e) => setStartsAt(e.target.value)}
-                className="w-full bg-black/40 border-2 border-white/10 p-3 text-white font-display focus:border-ipl-gold focus:outline-none transition-all text-xs"
+                className="w-full bg-black/40 border-2 border-white/10 p-3.5 rounded-2xl text-white font-mono text-xs focus:border-ipl-gold focus:outline-none transition-all"
               />
             </div>
             <div>
@@ -642,21 +800,21 @@ function TournamentRegistry({ onManageMatches }: { onManageMatches: (id: string)
                 type="date"
                 value={endsAt}
                 onChange={(e) => setEndsAt(e.target.value)}
-                className="w-full bg-black/40 border-2 border-white/10 p-3 text-white font-display focus:border-ipl-gold focus:outline-none transition-all text-xs"
+                className="w-full bg-black/40 border-2 border-white/10 p-3.5 rounded-2xl text-white font-mono text-xs focus:border-ipl-gold focus:outline-none transition-all"
               />
             </div>
           </div>
           <button
             type="submit"
             disabled={createTournament.isPending || !newId || !newName}
-            className="w-full py-4 bg-ipl-gold text-ipl-navy font-display text-[10px] uppercase tracking-[0.3em] font-bold hover:bg-white hover:scale-[1.02] transition-all disabled:opacity-30"
+            className="w-full py-4 bg-ipl-gold text-ipl-navy font-display text-[10px] uppercase tracking-[0.3em] font-bold rounded-2xl hover:scale-[1.02] active:scale-[0.98] transition-all disabled:opacity-30"
           >
             {createTournament.isPending ? 'Registering...' : 'Register Tournament'}
           </button>
         </form>
       </section>
 
-      <section className="lg:col-span-2 glass-panel p-6 border-t-2 border-white/10">
+      <section className="lg:col-span-2 glass-panel p-6 border-t-2 border-white/10 rounded-3xl">
         <div className="flex items-center justify-between mb-8">
           <div className="flex items-center gap-3">
             <Trophy className="w-6 h-6 text-ipl-gold" />
@@ -664,7 +822,8 @@ function TournamentRegistry({ onManageMatches }: { onManageMatches: (id: string)
           </div>
         </div>
 
-        <div className="overflow-hidden rounded-xl border border-white/5 bg-black/20">
+        {/* Desktop View */}
+        <div className="hidden md:block overflow-hidden rounded-2xl border border-white/5 bg-black/20">
           <table className="w-full text-left">
             <thead>
               <tr className="border-b border-white/10 bg-white/5 text-[9px] uppercase tracking-[0.2em] text-gray-500 font-display">
@@ -696,7 +855,7 @@ function TournamentRegistry({ onManageMatches }: { onManageMatches: (id: string)
                   <td className="p-4 text-right">
                     <button
                       onClick={() => onManageMatches(t.id)}
-                      className="px-4 py-2 bg-white/5 border border-white/10 text-white hover:bg-white hover:text-ipl-navy transition-all font-display text-[10px] uppercase tracking-widest flex items-center gap-2 ml-auto"
+                      className="px-4 py-2 bg-white/5 border border-white/10 text-white hover:bg-white hover:text-ipl-navy rounded-lg transition-all font-display text-[10px] uppercase tracking-widest flex items-center gap-2 ml-auto"
                     >
                       <Sword className="w-3 h-3" />
                       Manage
@@ -706,6 +865,39 @@ function TournamentRegistry({ onManageMatches }: { onManageMatches: (id: string)
               ))}
             </tbody>
           </table>
+        </div>
+
+        {/* Mobile View */}
+        <div className="md:hidden space-y-4">
+          {isLoading ? (
+            <div className="text-center py-10 text-[10px] uppercase tracking-widest text-gray-500 animate-pulse">Syncing Tournament Records...</div>
+          ) : tournaments?.length === 0 ? (
+            <div className="text-center py-10 text-[10px] uppercase tracking-widest text-gray-500">No tournaments found</div>
+          ) : tournaments?.map(t => (
+            <div key={t.id} className="bg-white/5 border border-white/10 p-4 rounded-2xl flex flex-col gap-3">
+              <div className="flex justify-between items-start">
+                <div className="flex flex-col">
+                  <span className="text-base text-white font-bold font-display">{t.name}</span>
+                  <span className="text-[9px] text-gray-500 font-mono tracking-widest uppercase">{t.id}</span>
+                </div>
+                <span className="px-2.5 py-0.5 bg-white/5 border border-white/10 rounded-full text-[9px] uppercase tracking-widest font-bold">
+                  {t.status}
+                </span>
+              </div>
+              <div className="flex justify-between items-center pt-2 border-t border-white/5">
+                <span className="text-[10px] font-mono text-gray-400">
+                  {t.starts_at ? new Date(t.starts_at).toLocaleDateString() : 'N/A'} — {t.ends_at ? new Date(t.ends_at).toLocaleDateString() : 'N/A'}
+                </span>
+                <button
+                  onClick={() => onManageMatches(t.id)}
+                  className="px-4 py-2.5 bg-white/5 border border-white/10 text-white rounded-xl active:bg-white active:text-ipl-navy transition-all font-display text-[10px] uppercase tracking-widest flex items-center gap-2"
+                >
+                  <Sword className="w-3.5 h-3.5" />
+                  Manage
+                </button>
+              </div>
+            </div>
+          ))}
         </div>
       </section>
     </div>
@@ -733,7 +925,6 @@ function TournamentMatchManager({ tournamentId, onBack }: { tournamentId: string
     setTeam1(m.team1);
     setTeam2(m.team2);
     setVenue(m.venue);
-    // Convert to local datetime string for input
     const date = new Date(m.start_time);
     const localDateTime = new Date(date.getTime() - date.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
     setStartTime(localDateTime);
@@ -800,19 +991,19 @@ function TournamentMatchManager({ tournamentId, onBack }: { tournamentId: string
   return (
     <div className="space-y-8 animate-in fade-in slide-in-from-right-4 duration-500">
       <div className="flex items-center gap-4">
-        <button onClick={onBack} className="p-2 hover:bg-white/5 rounded-full text-gray-400 hover:text-white transition-all">
+        <button onClick={onBack} className="p-2.5 bg-white/5 active:bg-white/10 active:scale-90 border border-white/5 rounded-full text-gray-400 hover:text-white transition-all">
           <RefreshCw className="w-5 h-5 rotate-[-90deg]" />
         </button>
         <div>
           <h2 className="text-2xl font-display text-white uppercase italic tracking-tighter flex items-center gap-3">
-            <Sword className="text-ipl-gold" />
+            <Sword className="text-ipl-gold w-6 h-6" />
             Manage Tournament: {tournamentId}
           </h2>
           <p className="text-[10px] text-gray-500 font-display uppercase tracking-widest">Schedule and monitor match states</p>
         </div>
       </div>
 
-      <nav className="flex gap-1 bg-white/5 p-1 rounded-xl border border-white/10 w-fit mb-8">
+      <nav className="flex gap-1 bg-white/5 p-1 rounded-2xl border border-white/10 w-full overflow-x-auto scrollbar-hide flex-nowrap md:w-fit mb-8 select-none">
         {[
           { id: 'schedule', label: 'Match Schedule', icon: Calendar },
           { id: 'bank', label: 'Question Bank', icon: ShieldCheck },
@@ -821,12 +1012,12 @@ function TournamentMatchManager({ tournamentId, onBack }: { tournamentId: string
           <button
             key={tab.id}
             onClick={() => setActiveSubTab(tab.id as any)}
-            className={`flex items-center gap-2 px-6 py-2.5 rounded-lg font-display text-[10px] uppercase tracking-widest transition-all ${activeSubTab === tab.id
-              ? 'bg-ipl-gold text-ipl-navy shadow-neon shadow-ipl-gold/20'
-              : 'text-gray-500 hover:text-white hover:bg-white/5'
+            className={`flex items-center gap-2 px-5 py-2.5 rounded-xl font-display text-[10px] uppercase tracking-widest transition-all shrink-0 flex-shrink-0 whitespace-nowrap active:scale-95 ${activeSubTab === tab.id
+              ? 'bg-ipl-gold text-ipl-navy shadow-neon shadow-ipl-gold/20 font-bold'
+              : 'text-gray-400 hover:text-white active:bg-white/5'
               }`}
           >
-            <tab.icon className="w-4 h-4" />
+            <tab.icon className="w-3.5 h-3.5" />
             {tab.label}
           </button>
         ))}
@@ -835,40 +1026,40 @@ function TournamentMatchManager({ tournamentId, onBack }: { tournamentId: string
       {activeSubTab === 'schedule' && (
         <div className="grid lg:grid-cols-3 gap-8">
           <div className="space-y-8 h-fit">
-            <section className="glass-panel p-6 border-t-2 border-ipl-gold/50">
-                <div className="flex items-center justify-between mb-6">
-                  <h3 className="text-lg font-display text-white italic uppercase flex items-center gap-2">
-                    {editingMatch ? <Pencil className="w-4 h-4 text-ipl-gold" /> : <Plus className="w-4 h-4 text-ipl-gold" />}
-                    {editingMatch ? 'Edit Match' : 'Schedule Match'}
-                  </h3>
-                  {editingMatch && (
-                    <button onClick={resetMatchForm} className="text-[9px] font-display uppercase tracking-widest text-gray-500 hover:text-white flex items-center gap-1">
-                      <X className="w-3 h-3" /> Cancel
-                    </button>
-                  )}
+            <section className="glass-panel p-6 border-t-2 border-ipl-gold/50 rounded-3xl">
+              <div className="flex items-center justify-between mb-6">
+                <h3 className="text-lg font-display text-white italic uppercase flex items-center gap-2">
+                  {editingMatch ? <Pencil className="w-4 h-4 text-ipl-gold" /> : <Plus className="w-4 h-4 text-ipl-gold" />}
+                  {editingMatch ? 'Edit Match' : 'Schedule Match'}
+                </h3>
+                {editingMatch && (
+                  <button onClick={resetMatchForm} className="text-[9px] font-display uppercase tracking-widest text-gray-500 hover:text-white flex items-center gap-1 active:scale-95">
+                    <X className="w-3 h-3" /> Cancel
+                  </button>
+                )}
+              </div>
+              <form onSubmit={handleSubmitMatch} className="space-y-5">
+                <div>
+                  <label className="block text-[9px] font-display uppercase tracking-[0.2em] text-gray-500 mb-1.5">Match ID (Slug)</label>
+                  <input
+                    type="text"
+                    value={matchId}
+                    onChange={(e) => setMatchId(e.target.value)}
+                    placeholder="e.g. m1-mi-csk"
+                    disabled={!!editingMatch}
+                    className="w-full bg-black/40 border border-white/10 p-3.5 rounded-2xl text-white font-mono text-xs focus:border-ipl-gold focus:outline-none transition-all disabled:opacity-50"
+                  />
                 </div>
-                <form onSubmit={handleSubmitMatch} className="space-y-5">
-                  <div>
-                    <label className="block text-[9px] font-display uppercase tracking-[0.2em] text-gray-500 mb-1.5">Match ID (Slug)</label>
-                    <input
-                      type="text"
-                      value={matchId}
-                      onChange={(e) => setMatchId(e.target.value)}
-                      placeholder="e.g. m1-mi-csk"
-                      disabled={!!editingMatch}
-                      className="w-full bg-black/40 border border-white/10 p-3 text-white font-mono text-xs focus:border-ipl-gold focus:outline-none transition-all disabled:opacity-50"
-                    />
-                  </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <label className="block text-[9px] font-display uppercase tracking-[0.2em] text-gray-500 mb-1.5">Team 1</label>
                     <select
                       value={team1}
                       onChange={(e) => setTeam1(e.target.value)}
-                      className="w-full bg-black/40 border border-white/10 p-3 text-white font-display text-xs focus:border-ipl-gold focus:outline-none transition-all"
+                      className="w-full bg-black/40 border border-white/10 p-3.5 rounded-2xl text-white font-display text-xs focus:border-ipl-gold focus:outline-none transition-all"
                     >
-                      <option value="">Select...</option>
-                      {Object.keys(teamColors).map(t => <option key={t} value={t}>{t}</option>)}
+                      <option value="" className="bg-ipl-navy">Select...</option>
+                      {Object.keys(teamColors).map(t => <option key={t} value={t} className="bg-ipl-navy">{t}</option>)}
                     </select>
                   </div>
                   <div>
@@ -876,49 +1067,49 @@ function TournamentMatchManager({ tournamentId, onBack }: { tournamentId: string
                     <select
                       value={team2}
                       onChange={(e) => setTeam2(e.target.value)}
-                      className="w-full bg-black/40 border border-white/10 p-3 text-white font-display text-xs focus:border-ipl-gold focus:outline-none transition-all"
+                      className="w-full bg-black/40 border border-white/10 p-3.5 rounded-2xl text-white font-display text-xs focus:border-ipl-gold focus:outline-none transition-all"
                     >
-                      <option value="">Select...</option>
-                      {Object.keys(teamColors).map(t => <option key={t} value={t}>{t}</option>)}
+                      <option value="" className="bg-ipl-navy">Select...</option>
+                      {Object.keys(teamColors).map(t => <option key={t} value={t} className="bg-ipl-navy">{t}</option>)}
                     </select>
                   </div>
                 </div>
                 <div>
                   <label className="block text-[9px] font-display uppercase tracking-[0.2em] text-gray-500 mb-1.5">Venue</label>
                   <div className="relative">
-                    <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-600" />
+                    <MapPin className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
                     <input
                       type="text"
                       value={venue}
                       onChange={(e) => setVenue(e.target.value)}
                       placeholder="e.g. Wankhede Stadium"
-                      className="w-full bg-black/40 border border-white/10 p-3 pl-10 text-white font-display text-xs focus:border-ipl-gold focus:outline-none transition-all"
+                      className="w-full bg-black/40 border border-white/10 p-3.5 pl-11 rounded-2xl text-white font-display text-xs focus:border-ipl-gold focus:outline-none transition-all"
                     />
                   </div>
                 </div>
                 <div>
                   <label className="block text-[9px] font-display uppercase tracking-[0.2em] text-gray-500 mb-1.5">Start Time (Local)</label>
                   <div className="relative">
-                    <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-600" />
+                    <Calendar className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
                     <input
                       type="datetime-local"
                       value={startTime}
                       onChange={(e) => setStartTime(e.target.value)}
-                      className="w-full bg-black/40 border border-white/10 p-3 pl-10 text-white font-mono text-xs focus:border-ipl-gold focus:outline-none transition-all"
+                      className="w-full bg-black/40 border border-white/10 p-3.5 pl-11 rounded-2xl text-white font-mono text-xs focus:border-ipl-gold focus:outline-none transition-all"
                     />
                   </div>
                 </div>
                 <button
                   type="submit"
                   disabled={createMatch.isPending || updateMatch.isPending}
-                  className="w-full py-4 bg-ipl-gold text-ipl-navy font-display text-[10px] uppercase tracking-[0.3em] font-bold hover:bg-white hover:scale-[1.02] transition-all disabled:opacity-30"
+                  className="w-full py-4 bg-ipl-gold text-ipl-navy font-display text-[10px] uppercase tracking-[0.3em] font-bold rounded-2xl hover:scale-[1.02] active:scale-[0.98] transition-all disabled:opacity-30"
                 >
                   {createMatch.isPending || updateMatch.isPending ? 'PROCESSING...' : editingMatch ? 'UPDATE MATCH' : 'ADD MATCH'}
                 </button>
               </form>
             </section>
 
-            <section className="glass-panel p-6 border-t-2 border-ipl-live/50">
+            <section className="glass-panel p-6 border-t-2 border-ipl-live/50 rounded-3xl">
               <h3 className="text-lg font-display text-white italic uppercase mb-2 flex items-center gap-2">
                 <RefreshCw className="w-4 h-4 text-ipl-live" />
                 Bulk Import Matches
@@ -926,7 +1117,7 @@ function TournamentMatchManager({ tournamentId, onBack }: { tournamentId: string
               <p className="text-[10px] text-gray-400 font-display mb-6">Upload a CSV file to create multiple matches at once.</p>
 
               <div className="space-y-4">
-                <div className="bg-black/40 border border-white/10 p-3 rounded-lg flex items-center justify-between">
+                <div className="bg-black/40 border border-white/10 p-3 rounded-2xl flex items-center justify-between">
                   <span className="text-[10px] font-mono text-gray-300">sample_format.csv</span>
                   <button
                     onClick={() => {
@@ -939,7 +1130,7 @@ function TournamentMatchManager({ tournamentId, onBack }: { tournamentId: string
                       link.click();
                       document.body.removeChild(link);
                     }}
-                    className="text-[9px] font-display uppercase tracking-widest text-ipl-gold hover:text-white transition-all"
+                    className="text-[9px] font-display uppercase tracking-widest text-ipl-gold hover:text-white transition-all active:scale-95"
                   >
                     Download Sample
                   </button>
@@ -966,17 +1157,17 @@ function TournamentMatchManager({ tournamentId, onBack }: { tournamentId: string
                     );
                   }}
                   className="block w-full text-sm text-gray-500
-                  file:mr-4 file:py-2 file:px-4
-                  file:border-0
+                  file:mr-4 file:py-2.5 file:px-4
+                  file:border-0 file:rounded-xl
                   file:text-[10px] file:font-display file:uppercase file:tracking-widest
                   file:bg-ipl-live/10 file:text-ipl-live
-                  hover:file:bg-ipl-live/20 transition-all cursor-pointer"
+                  hover:file:bg-ipl-live/20 transition-all cursor-pointer active:scale-95"
                 />
               </div>
             </section>
           </div>
 
-          <section className="lg:col-span-2 glass-panel p-6 border-t-2 border-white/10">
+          <section className="lg:col-span-2 glass-panel p-6 border-t-2 border-white/10 rounded-3xl">
             <div className="flex items-center justify-between mb-8">
               <h3 className="text-lg font-display text-white italic uppercase flex items-center gap-2">
                 <Calendar className="w-5 h-5 text-ipl-gold" />
@@ -985,7 +1176,8 @@ function TournamentMatchManager({ tournamentId, onBack }: { tournamentId: string
               <span className="text-[10px] text-gray-500 font-display uppercase tracking-widest">{matches?.length || 0} Matches Registered</span>
             </div>
 
-            <div className="grid gap-4">
+            {/* Desktop View */}
+            <div className="hidden md:grid gap-4">
               {isLoading ? (
                 <div className="text-center py-20 text-[10px] uppercase tracking-widest text-gray-600 animate-pulse bg-white/5 border border-dashed border-white/10 rounded-2xl">Syncing Tournament Schedule...</div>
               ) : matches?.length === 0 ? (
@@ -1075,6 +1267,78 @@ function TournamentMatchManager({ tournamentId, onBack }: { tournamentId: string
                 );
               })}
             </div>
+
+            {/* Mobile View */}
+            <div className="md:hidden space-y-4">
+              {isLoading ? (
+                <div className="text-center py-10 text-[10px] uppercase tracking-widest text-gray-500 animate-pulse">Syncing Tournament Schedule...</div>
+              ) : matches?.length === 0 ? (
+                <div className="text-center py-10 text-[10px] uppercase tracking-widest text-gray-500">No matches found for this tournament.</div>
+              ) : matches?.map((match, idx) => {
+                const t1Color = getTeamColor(match.team1);
+                const t2Color = getTeamColor(match.team2);
+                const t1Short = getTeamShortName(match.team1);
+                const t2Short = getTeamShortName(match.team2);
+                const t1Logo = getTeamLogo(match.team1);
+                const t2Logo = getTeamLogo(match.team2);
+
+                return (
+                  <div key={match.id} className="bg-white/5 border border-white/10 p-4 rounded-2xl flex flex-col gap-3 active:scale-[0.98] transition-all">
+                    <div className="flex justify-between items-center">
+                      <span className="text-[10px] text-gray-500 font-display">Match #{idx + 1}</span>
+                      <div className="flex items-center gap-2">
+                        <span className={`px-2 py-0.5 rounded text-[8px] uppercase tracking-widest font-bold border ${
+                          match.status === 'upcoming' ? 'bg-ipl-gold/10 text-ipl-gold border-ipl-gold/20' :
+                          match.status === 'live' ? 'bg-ipl-live/10 text-ipl-live border-ipl-live/20 animate-pulse' :
+                          'bg-white/5 text-gray-500 border-white/10'
+                        }`}>
+                          {match.status}
+                        </span>
+                        <button
+                          onClick={() => handleEditMatch(match)}
+                          className="p-2 text-gray-400 active:text-ipl-gold bg-white/5 rounded-lg border border-white/5 active:scale-95 transition-all"
+                        >
+                          <Pencil className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center justify-between py-2">
+                      <div className="flex items-center gap-2">
+                        <div 
+                          className="w-10 h-10 rounded-lg flex items-center justify-center border p-1 bg-black/40"
+                          style={{ borderColor: `${t1Color}40`, backgroundColor: `${t1Color}10` }}
+                        >
+                          {t1Logo ? <img src={t1Logo} className="w-full h-full object-contain" /> : <span className="text-[8px] text-white">{t1Short}</span>}
+                        </div>
+                        <span className="text-sm font-bold text-white font-display">{match.team1}</span>
+                      </div>
+                      <span className="text-xs text-ipl-gold font-bold italic font-display px-3">VS</span>
+                      <div className="flex items-center gap-2 justify-end">
+                        <span className="text-sm font-bold text-white font-display text-right">{match.team2}</span>
+                        <div 
+                          className="w-10 h-10 rounded-lg flex items-center justify-center border p-1 bg-black/40"
+                          style={{ borderColor: `${t2Color}40`, backgroundColor: `${t2Color}10` }}
+                        >
+                          {t2Logo ? <img src={t2Logo} className="w-full h-full object-contain" /> : <span className="text-[8px] text-white">{t2Short}</span>}
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="flex justify-between items-center pt-2 border-t border-white/5 text-[9px] text-gray-500 uppercase tracking-wider font-display">
+                      <div className="flex items-center gap-1">
+                        <MapPin className="w-3 h-3 text-ipl-gold animate-bounce" />
+                        <span className="truncate max-w-[120px]">{match.venue}</span>
+                      </div>
+                      <div className="flex items-center gap-1">
+                        <Calendar className="w-3 h-3 text-ipl-gold" />
+                        <span>{new Date(match.start_time).toLocaleDateString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}</span>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
           </section>
         </div>
       )}
@@ -1106,7 +1370,7 @@ function TournamentMatchManager({ tournamentId, onBack }: { tournamentId: string
                 <button
                   key={match.id}
                   onClick={() => setGradingMatchId(match.id)}
-                  className={`w-full text-left p-3.5 border rounded-2xl transition-all group relative overflow-hidden ${gradingMatchId === match.id
+                  className={`w-full text-left p-3.5 border rounded-2xl transition-all group relative overflow-hidden active:scale-[0.98] ${gradingMatchId === match.id
                       ? 'bg-ipl-gold/10 border-ipl-gold shadow-[0_0_20px_rgba(244,196,48,0.15)]'
                       : 'bg-white/5 border-white/10 hover:border-white/20'
                     }`}
@@ -1147,11 +1411,11 @@ function TournamentMatchManager({ tournamentId, onBack }: { tournamentId: string
 
           <div className="lg:col-span-2">
             {gradingMatchId ? (
-              <div className="glass-panel p-6 border-t-2 border-ipl-gold/50">
+              <div className="glass-panel p-6 border-t-2 border-ipl-gold/50 rounded-3xl">
                 <TournamentMatchGrading tournamentId={tournamentId} matchId={gradingMatchId} onClose={() => setGradingMatchId(null)} />
               </div>
             ) : (
-              <div className="glass-panel p-20 text-center border-dashed border-2 border-white/5 opacity-50 flex flex-col items-center gap-4 h-full justify-center">
+              <div className="glass-panel p-20 text-center border-dashed border-2 border-white/5 opacity-50 flex flex-col items-center gap-4 h-full justify-center rounded-3xl">
                 <div className="p-4 bg-white/5 rounded-full">
                   <Star className="w-8 h-8 text-gray-600" />
                 </div>
@@ -1183,7 +1447,6 @@ function TournamentQuestionBankManager({ tournamentId }: { tournamentId: string 
     setQuestionText(q.question_text);
     setQuestionType(q.question_type);
     setOptionsStr(q.options ? q.options.join(', ') : '');
-    // Scroll to form or just show it's editing
     toast(`Editing question: ${q.key}`);
   };
 
@@ -1258,7 +1521,7 @@ function TournamentQuestionBankManager({ tournamentId }: { tournamentId: string 
                 value={key}
                 onChange={(e) => setKey(e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, '_'))}
                 placeholder="e.g. match_winner"
-                className="w-full bg-black/40 border border-white/10 p-3 text-white font-mono text-xs focus:border-ipl-gold focus:outline-none transition-all"
+                className="w-full bg-black/40 border border-white/10 p-3.5 rounded-2xl text-white font-mono text-xs focus:border-ipl-gold focus:outline-none transition-all"
               />
             </div>
             <div>
@@ -1268,7 +1531,7 @@ function TournamentQuestionBankManager({ tournamentId }: { tournamentId: string 
                 value={questionText}
                 onChange={(e) => setQuestionText(e.target.value)}
                 placeholder="e.g. Who will win the match?"
-                className="w-full bg-black/40 border border-white/10 p-3 text-white font-display text-xs focus:border-ipl-gold focus:outline-none transition-all"
+                className="w-full bg-black/40 border border-white/10 p-3.5 rounded-2xl text-white font-display text-xs focus:border-ipl-gold focus:outline-none transition-all"
               />
             </div>
             <div>
@@ -1276,13 +1539,13 @@ function TournamentQuestionBankManager({ tournamentId }: { tournamentId: string 
               <select
                 value={questionType}
                 onChange={(e) => setQuestionType(e.target.value as any)}
-                className="w-full bg-black/40 border border-white/10 p-3 text-white font-display text-xs focus:border-ipl-gold focus:outline-none transition-all"
+                className="w-full bg-black/40 border border-white/10 p-3.5 rounded-2xl text-white font-display text-xs focus:border-ipl-gold focus:outline-none transition-all"
               >
-                <option value="toggle">Toggle (2 options)</option>
-                <option value="multiple_choice">Multiple Choice</option>
-                <option value="dropdown">Dropdown</option>
-                <option value="free_text">Free Text</option>
-                <option value="free_number">Free Number</option>
+                <option value="toggle" className="bg-ipl-navy">Toggle (2 options)</option>
+                <option value="multiple_choice" className="bg-ipl-navy">Multiple Choice</option>
+                <option value="dropdown" className="bg-ipl-navy">Dropdown</option>
+                <option value="free_text" className="bg-ipl-navy">Free Text</option>
+                <option value="free_number" className="bg-ipl-navy">Free Number</option>
               </select>
             </div>
             {['toggle', 'multiple_choice', 'dropdown'].includes(questionType) && (
@@ -1293,17 +1556,17 @@ function TournamentQuestionBankManager({ tournamentId }: { tournamentId: string 
                   value={optionsStr}
                   onChange={(e) => setOptionsStr(e.target.value)}
                   placeholder="e.g. {{Team1}}, {{Team2}}"
-                  className="w-full bg-black/40 border border-white/10 p-3 text-white font-display text-xs focus:border-ipl-gold focus:outline-none transition-all"
+                  className="w-full bg-black/40 border border-white/10 p-3.5 rounded-2xl text-white font-display text-xs focus:border-ipl-gold focus:outline-none transition-all"
                 />
                 <p className="text-[9px] text-gray-500 mt-1 uppercase tracking-widest">Use {'{{Team1}}'} and {'{{Team2}}'} for dynamic match teams</p>
               </div>
             )}
-            <div className="flex gap-2">
+            <div className="flex gap-2 pt-2">
               {editingQuestionId && (
                 <button
                   type="button"
                   onClick={resetForm}
-                  className="flex-1 py-3 bg-white/5 text-gray-400 border border-white/10 font-display text-[10px] uppercase tracking-[0.3em] font-bold hover:bg-white/10 hover:text-white transition-all"
+                  className="flex-1 py-3 bg-white/5 text-gray-400 border border-white/10 rounded-2xl font-display text-[10px] uppercase tracking-[0.3em] font-bold hover:bg-white/10 hover:text-white transition-all active:scale-95"
                 >
                   CANCEL
                 </button>
@@ -1311,7 +1574,7 @@ function TournamentQuestionBankManager({ tournamentId }: { tournamentId: string 
               <button
                 type="submit"
                 disabled={addQuestion.isPending || updateQuestion.isPending || !key || !questionText}
-                className={`flex-[2] py-3 font-display text-[10px] uppercase tracking-[0.3em] font-bold transition-all disabled:opacity-30 ${editingQuestionId
+                className={`flex-[2] py-3 font-display text-[10px] uppercase tracking-[0.3em] font-bold rounded-2xl transition-all disabled:opacity-30 active:scale-95 ${editingQuestionId
                     ? 'bg-blue-500/10 text-blue-400 border border-blue-500/50 hover:bg-blue-500 hover:text-white'
                     : 'bg-ipl-gold/10 text-ipl-gold border border-ipl-gold/50 hover:bg-ipl-gold hover:text-ipl-navy'
                   }`}
@@ -1330,53 +1593,110 @@ function TournamentQuestionBankManager({ tournamentId }: { tournamentId: string 
             <div className="space-y-3 pr-2 custom-scrollbar">
               {bank?.questions?.length === 0 ? (
                 <div className="text-center py-20 bg-white/5 border border-dashed border-white/10 rounded-2xl text-[10px] uppercase tracking-[0.3em] text-gray-600">No questions in bank yet</div>
-              ) : bank?.questions?.map((q: any) => (
-                <div key={q.id} className="group relative">
-                  <div className="absolute inset-0 bg-gradient-to-r from-ipl-gold/5 to-transparent rounded-2xl -z-10 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-                  <div className="bg-white/5 border border-white/10 p-5 rounded-2xl hover:border-white/20 transition-all flex items-center justify-between shadow-sm hover:shadow-xl hover:shadow-black/40">
-                    <div className="flex items-center gap-5 min-w-0">
-                      <div className="w-12 h-12 flex-shrink-0 flex items-center justify-center rounded-xl bg-black/40 text-[9px] font-mono font-bold text-ipl-gold border border-ipl-gold/20 group-hover:border-ipl-gold/50 transition-all uppercase px-2 text-center break-all overflow-hidden">
-                        {q.key}
-                      </div>
-                      <div className="min-w-0">
-                        <h4 className="text-lg font-display font-bold text-white leading-tight group-hover:text-ipl-gold transition-colors">{q.question_text}</h4>
-                        <div className="flex items-center gap-3 mt-1.5">
-                          <span className="text-[8px] bg-white/5 text-gray-500 px-2 py-0.5 rounded border border-white/10 font-bold uppercase tracking-widest">Type: {q.question_type}</span>
-                          {q.options && q.options.length > 0 && (
-                            <span className="text-[8px] bg-white/5 text-gray-400 px-2 py-0.5 rounded border border-white/10 font-bold uppercase tracking-widest truncate max-w-[200px]">Options: {q.options.join(', ')}</span>
-                          )}
+              ) : (
+                <>
+                  {/* Desktop View */}
+                  <div className="hidden md:block space-y-3">
+                    {bank?.questions?.map((q: any) => (
+                      <div key={q.id} className="group relative">
+                        <div className="absolute inset-0 bg-gradient-to-r from-ipl-gold/5 to-transparent rounded-2xl -z-10 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+                        <div className="bg-white/5 border border-white/10 p-5 rounded-2xl hover:border-white/20 transition-all flex items-center justify-between shadow-sm hover:shadow-xl hover:shadow-black/40">
+                          <div className="flex items-center gap-5 min-w-0">
+                            <div className="w-12 h-12 flex-shrink-0 flex items-center justify-center rounded-xl bg-black/40 text-[9px] font-mono font-bold text-ipl-gold border border-ipl-gold/20 group-hover:border-ipl-gold/50 transition-all uppercase px-2 text-center break-all overflow-hidden">
+                              {q.key}
+                            </div>
+                            <div className="min-w-0">
+                              <h4 className="text-lg font-display font-bold text-white leading-tight group-hover:text-ipl-gold transition-colors">{q.question_text}</h4>
+                              <div className="flex items-center gap-3 mt-1.5">
+                                <span className="text-[8px] bg-white/5 text-gray-500 px-2 py-0.5 rounded border border-white/10 font-bold uppercase tracking-widest">Type: {q.question_type}</span>
+                                {q.options && q.options.length > 0 && (
+                                  <span className="text-[8px] bg-white/5 text-gray-400 px-2 py-0.5 rounded border border-white/10 font-bold uppercase tracking-widest truncate max-w-[200px]">Options: {q.options.join(', ')}</span>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-2 pl-4 border-l border-white/10 ml-4">
+                            <button
+                              type="button"
+                              onClick={() => handleEdit(q)}
+                              className="p-2.5 text-gray-400 hover:text-ipl-gold hover:bg-ipl-gold/10 rounded-xl transition-all border border-transparent hover:border-ipl-gold/20"
+                              title="Edit Question"
+                            >
+                              <Pencil className="w-4 h-4" />
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                if (confirm(`Are you sure you want to delete question '${q.key}' from the bank?`)) {
+                                  deleteQuestion.mutate({ tournamentId, questionId: q.id }, {
+                                    onSuccess: () => toast.success(`Question '${q.key}' deleted`),
+                                    onError: (err: any) => toast.error(err.response?.data?.detail || 'Failed to delete question')
+                                  });
+                                }
+                              }}
+                              disabled={deleteQuestion.isPending}
+                              className="p-2.5 text-gray-400 hover:text-red-500 hover:bg-red-500/10 rounded-xl transition-all border border-transparent hover:border-red-500/20 disabled:opacity-30"
+                              title="Delete Question"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          </div>
                         </div>
                       </div>
-                    </div>
-                    <div className="flex items-center gap-2 pl-4 border-l border-white/10 ml-4">
-                      <button
-                        type="button"
-                        onClick={() => handleEdit(q)}
-                        className="p-2.5 text-gray-500 hover:text-ipl-gold hover:bg-ipl-gold/10 rounded-xl transition-all border border-transparent hover:border-ipl-gold/20"
-                        title="Edit Question"
-                      >
-                        <Pencil className="w-4 h-4" />
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          if (confirm(`Are you sure you want to delete question '${q.key}' from the bank?`)) {
-                            deleteQuestion.mutate({ tournamentId, questionId: q.id }, {
-                              onSuccess: () => toast.success(`Question '${q.key}' deleted`),
-                              onError: (err: any) => toast.error(err.response?.data?.detail || 'Failed to delete question')
-                            });
-                          }
-                        }}
-                        disabled={deleteQuestion.isPending}
-                        className="p-2.5 text-gray-500 hover:text-red-500 hover:bg-red-500/10 rounded-xl transition-all border border-transparent hover:border-red-500/20 disabled:opacity-30"
-                        title="Delete Question"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
-                    </div>
+                    ))}
                   </div>
-                </div>
-              ))}
+
+                  {/* Mobile View */}
+                  <div className="md:hidden space-y-4">
+                    {bank?.questions?.map((q: any) => (
+                      <div key={q.id} className="bg-white/5 border border-white/10 p-4 rounded-2xl flex flex-col gap-3">
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 flex-shrink-0 flex items-center justify-center rounded-lg bg-black/40 text-[8px] font-mono font-bold text-ipl-gold border border-ipl-gold/20 uppercase px-1.5 text-center break-all overflow-hidden">
+                            {q.key}
+                          </div>
+                          <div className="min-w-0">
+                            <h4 className="text-sm font-display font-bold text-white leading-tight">{q.question_text}</h4>
+                          </div>
+                        </div>
+
+                        <div className="flex flex-col gap-1.5 text-[9px] uppercase tracking-wider font-display text-gray-400">
+                          <div>Type: <span className="text-white font-bold">{q.question_type}</span></div>
+                          {q.options && q.options.length > 0 && (
+                            <div className="truncate">Options: <span className="text-white font-bold">{q.options.join(', ')}</span></div>
+                          )}
+                        </div>
+
+                        <div className="flex gap-2 pt-2 border-t border-white/5 w-full">
+                          <button
+                            type="button"
+                            onClick={() => handleEdit(q)}
+                            className="flex-1 py-2.5 bg-white/5 active:bg-white/10 text-white rounded-xl border border-white/10 font-display text-[10px] uppercase tracking-widest flex items-center justify-center gap-2"
+                          >
+                            <Pencil className="w-3.5 h-3.5" />
+                            Edit
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              if (confirm(`Are you sure you want to delete question '${q.key}' from the bank?`)) {
+                                deleteQuestion.mutate({ tournamentId, questionId: q.id }, {
+                                  onSuccess: () => toast.success(`Question '${q.key}' deleted`),
+                                  onError: (err: any) => toast.error(err.response?.data?.detail || 'Failed to delete question')
+                                });
+                              }
+                            }}
+                            disabled={deleteQuestion.isPending}
+                            className="flex-1 py-2.5 bg-red-500/10 active:bg-red-500/20 text-red-500 rounded-xl border border-red-500/20 font-display text-[10px] uppercase tracking-widest flex items-center justify-center gap-2"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                            Delete
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </>
+              )}
             </div>
           )}
         </div>
@@ -1413,12 +1733,12 @@ function LeagueUserManager({ leagueId, onBack }: { leagueId: string, onBack: () 
   return (
     <div className="space-y-8 animate-in fade-in slide-in-from-right-4 duration-500">
       <div className="flex items-center gap-4">
-        <button onClick={onBack} className="p-2 hover:bg-white/5 rounded-full text-gray-400 hover:text-white transition-all">
+        <button onClick={onBack} className="p-2.5 bg-white/5 active:bg-white/10 active:scale-90 border border-white/5 rounded-full text-gray-400 hover:text-white transition-all">
           <RefreshCw className="w-5 h-5 rotate-[-90deg]" />
         </button>
         <div>
           <h2 className="text-2xl font-display text-white uppercase italic tracking-tighter flex items-center gap-3">
-            <Users className="text-ipl-gold" />
+            <Users className="text-ipl-gold w-6 h-6" />
             League Roster: {league?.name || 'Loading...'}
           </h2>
           <p className="text-[10px] text-gray-500 font-display uppercase tracking-widest">Manage members and admin roles</p>
@@ -1426,7 +1746,7 @@ function LeagueUserManager({ leagueId, onBack }: { leagueId: string, onBack: () 
       </div>
 
       <div className="grid lg:grid-cols-3 gap-8">
-        <section className="glass-panel p-6 border-t-2 border-ipl-gold/50 h-fit">
+        <section className="glass-panel p-6 border-t-2 border-ipl-gold/50 h-fit rounded-3xl">
           <h3 className="text-lg font-display text-white italic uppercase mb-6 flex items-center gap-2">
             <Plus className="w-4 h-4 text-ipl-gold" />
             Provision User
@@ -1437,25 +1757,25 @@ function LeagueUserManager({ leagueId, onBack }: { leagueId: string, onBack: () 
               <select
                 value={selectedUserId}
                 onChange={(e) => setSelectedUserId(e.target.value)}
-                className="w-full bg-black/40 border border-white/10 p-3 text-white font-display text-xs focus:border-ipl-gold focus:outline-none transition-all"
+                className="w-full bg-black/40 border border-white/10 p-3.5 rounded-2xl text-white font-display text-xs focus:border-ipl-gold focus:outline-none transition-all"
               >
-                <option value="">Select user...</option>
+                <option value="" className="bg-ipl-navy">Select user...</option>
                 {availableUsers.map(u => (
-                  <option key={u.id} value={u.id}>{getUserDisplayName(u)} ({u.email})</option>
+                  <option key={u.id} value={u.id} className="bg-ipl-navy">{getUserDisplayName(u)} ({u.email})</option>
                 ))}
               </select>
             </div>
             <button
               type="submit"
               disabled={addMember.isPending || !selectedUserId}
-              className="w-full py-4 bg-ipl-gold text-ipl-navy font-display text-[10px] uppercase tracking-[0.3em] font-bold hover:bg-white hover:scale-[1.02] transition-all disabled:opacity-30"
+              className="w-full py-4 bg-ipl-gold text-ipl-navy font-display text-[10px] uppercase tracking-[0.3em] font-bold rounded-2xl hover:scale-[1.02] active:scale-[0.98] transition-all disabled:opacity-30"
             >
               {addMember.isPending ? 'PROVISIONING...' : 'ADD USER'}
             </button>
           </form>
         </section>
 
-        <section className="lg:col-span-2 glass-panel p-6 border-t-2 border-white/10">
+        <section className="lg:col-span-2 glass-panel p-6 border-t-2 border-white/10 rounded-3xl">
           <div className="flex items-center justify-between mb-8">
             <h3 className="text-lg font-display text-white italic uppercase flex items-center gap-2">
               <ShieldCheck className="w-5 h-5 text-ipl-gold" />
@@ -1464,7 +1784,8 @@ function LeagueUserManager({ leagueId, onBack }: { leagueId: string, onBack: () 
             <span className="text-[10px] text-gray-500 font-display uppercase tracking-widest">{league?.participants?.length || 0} Members</span>
           </div>
 
-          <div className="overflow-hidden rounded-xl border border-white/5 bg-black/20">
+          {/* Desktop View */}
+          <div className="hidden md:block overflow-hidden rounded-2xl border border-white/5 bg-black/20">
             <table className="w-full text-left">
               <thead>
                 <tr className="border-b border-white/10 bg-white/5 text-[9px] uppercase tracking-[0.2em] text-gray-500 font-display">
@@ -1496,7 +1817,7 @@ function LeagueUserManager({ leagueId, onBack }: { leagueId: string, onBack: () 
                     <td className="p-4 text-center">
                       <button
                         onClick={() => toggleAdmin.mutate({ userId: participant.id, isAdmin: !participant.is_league_admin })}
-                        className={`p-2 border transition-all ${participant.is_league_admin ? 'bg-ipl-gold/10 border-ipl-gold text-ipl-gold' : 'border-white/10 text-gray-600 hover:text-white'}`}
+                        className={`p-2 border transition-all rounded-lg ${participant.is_league_admin ? 'bg-ipl-gold/10 border-ipl-gold text-ipl-gold' : 'border-white/10 text-gray-600 hover:text-white'}`}
                         title={participant.is_league_admin ? "Remove Admin Role" : "Make League Admin"}
                       >
                         <ShieldCheck className="w-4 h-4" />
@@ -1509,7 +1830,7 @@ function LeagueUserManager({ leagueId, onBack }: { leagueId: string, onBack: () 
                             kickMember.mutate(participant.id);
                           }
                         }}
-                        className="p-2 text-gray-600 hover:text-red-500 transition-colors ml-auto flex items-center gap-2"
+                        className="p-2 text-gray-600 hover:text-red-500 transition-colors ml-auto flex items-center gap-2 rounded-lg"
                         title="Remove User"
                       >
                         <Trash2 className="w-4 h-4" />
@@ -1519,6 +1840,53 @@ function LeagueUserManager({ leagueId, onBack }: { leagueId: string, onBack: () 
                 ))}
               </tbody>
             </table>
+          </div>
+
+          {/* Mobile View */}
+          <div className="md:hidden space-y-4">
+            {isLoading ? (
+              <div className="text-center py-10 text-[10px] uppercase tracking-widest text-gray-500 animate-pulse">Syncing League Roster...</div>
+            ) : league?.participants?.length === 0 ? (
+              <div className="text-center py-10 text-[10px] uppercase tracking-widest text-gray-500">No members found in this league.</div>
+            ) : league?.participants?.map(participant => (
+              <div key={participant.id} className="bg-white/5 border border-white/10 p-4 rounded-2xl flex flex-col gap-3">
+                <div className="flex items-center gap-3">
+                  <img
+                    src={participant.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${getUserDisplayName(participant)}`}
+                    className="w-10 h-10 rounded-full border border-white/10"
+                    alt=""
+                  />
+                  <div className="flex flex-col">
+                    <span className="text-sm font-bold text-white font-display">{getUserDisplayName(participant)}</span>
+                    <span className="text-[9px] text-gray-500 font-mono">Joined: {new Date(participant.joined_at).toLocaleDateString()}</span>
+                  </div>
+                </div>
+
+                <div className="flex gap-2 pt-2 border-t border-white/5 w-full">
+                  <button
+                    onClick={() => toggleAdmin.mutate({ userId: participant.id, isAdmin: !participant.is_league_admin })}
+                    className={`flex-1 py-2 rounded-xl border text-[10px] font-display uppercase tracking-widest flex items-center justify-center gap-2 transition-all active:scale-95 ${
+                      participant.is_league_admin 
+                        ? 'bg-ipl-gold/10 border-ipl-gold text-ipl-gold font-bold' 
+                        : 'border-white/10 text-gray-400 active:text-white'
+                    }`}
+                  >
+                    <ShieldCheck className="w-3.5 h-3.5" />
+                    {participant.is_league_admin ? 'Admin' : 'Make Admin'}
+                  </button>
+                  <button
+                    onClick={() => {
+                      if (confirm(`Are you sure you want to remove ${getUserDisplayName(participant)} from this league?`)) {
+                        kickMember.mutate(participant.id);
+                      }
+                    }}
+                    className="px-4 py-2 bg-red-500/10 active:bg-red-500/20 text-red-500 border border-red-500/20 rounded-xl flex items-center justify-center active:scale-95 transition-all"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              </div>
+            ))}
           </div>
         </section>
       </div>
@@ -1564,22 +1932,22 @@ function TournamentMatchGrading({ tournamentId, matchId, onClose }: { tournament
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between mb-2">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-white/10 pb-4">
         <div>
-          <h3 className="text-xl font-display text-white italic">Match Results</h3>
+          <h3 className="text-xl font-display text-white italic uppercase tracking-tight">Match Results</h3>
           <p className="text-[10px] text-gray-400 uppercase font-display tracking-widest mt-1">Set correct answers for the entire tournament for this match</p>
         </div>
-        <div className="flex gap-4">
+        <div className="flex gap-3 w-full md:w-auto">
           <button
             onClick={onClose}
-            className="px-6 py-3 border border-white/10 text-gray-400 hover:text-white font-display text-xs uppercase tracking-[0.2em] transition-all hover:bg-white/5"
+            className="flex-1 md:flex-none px-6 py-3 border border-white/10 text-gray-400 active:text-white font-display text-xs uppercase tracking-[0.2em] rounded-xl active:bg-white/5 transition-all active:scale-95 text-center"
           >
             Cancel
           </button>
           <button
             onClick={handleSave}
             disabled={isPending}
-            className="flex items-center gap-2 px-8 py-3 bg-ipl-gold text-black font-display text-xs uppercase tracking-[0.2em] hover:bg-white transition-all disabled:opacity-30 shadow-[0_0_20px_rgba(244,196,48,0.2)]"
+            className="flex-1 md:flex-none flex items-center justify-center gap-2 px-8 py-3 bg-ipl-gold text-black font-display text-xs uppercase tracking-[0.2em] font-bold rounded-xl hover:bg-white transition-all disabled:opacity-30 active:scale-95 shadow-[0_0_20px_rgba(244,196,48,0.2)]"
           >
             {isPending ? 'Propagating...' : 'Release Scores'}
           </button>
@@ -1597,21 +1965,21 @@ function TournamentMatchGrading({ tournamentId, matchId, onClose }: { tournament
 
           const replacedOptions = q.options?.map((opt: string) =>
             opt.replace(/\{\{Team1\}\}/gi, currentMatch?.team1 || 'Team 1')
-              .replace(/\{\{Team2\}\}/gi, currentMatch?.team2 || 'Team 2')
+               .replace(/\{\{Team2\}\}/gi, currentMatch?.team2 || 'Team 2')
           );
 
           return (
-            <div key={q.id} className="p-6 border-l-2 border-white/10 hover:border-ipl-gold transition-all bg-white/5 rounded-r-xl">
-              <h4 className="text-sm font-display text-white tracking-widest uppercase mb-4">{replacedText}</h4>
+            <div key={q.id} className="p-5 border-l-4 border-white/10 hover:border-ipl-gold transition-all bg-white/5 rounded-r-2xl rounded-l-md">
+              <h4 className="text-xs font-display text-white tracking-widest uppercase mb-4 leading-relaxed">{replacedText}</h4>
               {isChoice && replacedOptions ? (
-                <div className="flex flex-wrap gap-3">
+                <div className="flex flex-wrap gap-2.5">
                   {replacedOptions.map((opt: string) => (
                     <button
                       key={opt}
                       onClick={() => setCorrectAnswers(prev => ({ ...prev, [q.key]: opt }))}
-                      className={`px-4 py-2 font-display text-xs uppercase tracking-widest transition-all ${correctAnswers[q.key] === opt
-                          ? 'bg-ipl-gold text-ipl-navy'
-                          : 'bg-white/5 text-gray-400 hover:bg-white/10'
+                      className={`px-4 py-2.5 font-display text-xs uppercase tracking-widest rounded-xl transition-all active:scale-95 ${correctAnswers[q.key] === opt
+                          ? 'bg-ipl-gold text-ipl-navy font-bold'
+                          : 'bg-white/5 text-gray-400 active:bg-white/10'
                         }`}
                     >
                       {opt}
@@ -1623,7 +1991,7 @@ function TournamentMatchGrading({ tournamentId, matchId, onClose }: { tournament
                   type={q.question_type === 'free_number' ? 'number' : 'text'}
                   value={correctAnswers[q.key] || ''}
                   onChange={(e) => setCorrectAnswers(prev => ({ ...prev, [q.key]: e.target.value }))}
-                  className="w-full bg-black/40 border border-white/10 p-3 text-white font-display text-xs focus:border-ipl-gold focus:outline-none transition-all"
+                  className="w-full bg-black/40 border border-white/10 p-3.5 rounded-2xl text-white font-display text-xs focus:border-ipl-gold focus:outline-none transition-all"
                   placeholder={`Enter correct ${q.question_type.replace('free_', '')}...`}
                 />
               )}

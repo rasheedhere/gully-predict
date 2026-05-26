@@ -52,9 +52,9 @@ const SocialFeed: React.FC = () => {
 
   if (isLoading) {
     return (
-      <div className="flex flex-col gap-4 p-4 animate-pulse">
+      <div className="flex flex-col gap-3 p-1 animate-pulse">
         {[1, 2, 3].map((i) => (
-          <div key={i} className="h-16 bg-white/5 rounded-xl border border-white/10" />
+          <div key={i} className="h-16 bg-white/5 rounded-2xl border border-white/5" />
         ))}
       </div>
     );
@@ -62,30 +62,30 @@ const SocialFeed: React.FC = () => {
 
   if (!events || events.length === 0) {
     return (
-      <div className="p-8 text-center text-white/40 italic">
+      <div className="p-8 text-center text-white/40 italic text-xs font-display uppercase tracking-widest">
         No recent activity found.
       </div>
     );
   }
 
   return (
-    <div className="flex flex-col gap-3 p-2 overflow-y-auto max-h-[600px] scrollbar-thin scrollbar-thumb-white/10 scrollbar-track-transparent">
+    <div className="flex flex-col gap-2.5 p-1 overflow-y-auto max-h-[600px] scrollbar-hide select-none">
       {events.map((event) => (
         <div
           key={event.id}
           onClick={() => handleEventClick(event)}
           className={`
-            group flex gap-3 p-3 rounded-xl border transition-all duration-300 cursor-pointer
-            ${event.match_id ? 'hover:bg-white/10 hover:scale-[1.02]' : 'hover:bg-white/5'}
-            bg-white/5 border-white/10 hover:border-ipl-gold/30
+            flex gap-3.5 p-3.5 rounded-[18px] border transition-all duration-100 select-none
+            ${event.match_id ? 'bg-white/5 border-white/5 active:bg-white/10 active:scale-[0.98] cursor-pointer' : 'bg-white/5 border-white/5'}
           `}
         >
-          <div className="relative shrink-0">
+          {/* Avatar and Event Icon Badge */}
+          <div className="relative shrink-0 select-none">
             {event.user_avatar ? (
               <img
                 src={event.user_avatar}
                 alt={event.username}
-                className="w-10 h-10 rounded-full border border-white/20 shadow-lg"
+                className="w-10 h-10 rounded-full border border-white/20 shadow-md object-cover"
               />
             ) : (
               <div className="w-10 h-10 rounded-full bg-gradient-to-br from-ipl-navy to-ipl-gold/20 flex items-center justify-center border border-white/20">
@@ -94,30 +94,31 @@ const SocialFeed: React.FC = () => {
                 </span>
               </div>
             )}
-            <div className="absolute -bottom-1 -right-1 w-5 h-5 rounded-full bg-[#1e1e1e] border border-white/10 flex items-center justify-center text-[10px] shadow-md group-hover:scale-110 transition-transform">
+            <div className="absolute -bottom-1 -right-1 w-5 h-5 rounded-full bg-[#161B2E] border border-white/10 flex items-center justify-center text-[10px] shadow-sm select-none">
               {getEventIcon(event.event_type)}
             </div>
           </div>
 
-          <div className="flex flex-col gap-0.5 min-w-0">
-            <div className="flex items-center gap-2">
-              <span className="font-bold text-white/90 text-sm truncate">
+          {/* Event description and details */}
+          <div className="flex flex-col gap-0.5 min-w-0 flex-1">
+            <div className="flex items-baseline justify-between gap-2">
+              <span className="font-bold text-white text-sm truncate leading-none">
                 {getUserDisplayName({ name: event.username, alias: event.alias ?? undefined, use_alias: event.use_alias })}
               </span>
-              <span className="text-[10px] text-white/40 whitespace-nowrap">
+              <span className="text-[9px] text-gray-500 font-mono whitespace-nowrap shrink-0">
                 {renderTime(event.timestamp)}
               </span>
             </div>
-            <p className="text-xs text-white/70 leading-snug break-words">
+            <p className="text-xs text-gray-300 leading-snug break-words mt-1">
               {event.message.replace(event.username, getUserDisplayName({ name: event.username, alias: event.alias ?? undefined, use_alias: event.use_alias }))}
             </p>
           </div>
 
           {event.match_id && (
-            <div className="ml-auto flex items-center opacity-0 group-hover:opacity-100 transition-opacity">
-              <div className="w-6 h-6 rounded-full bg-ipl-gold/10 flex items-center justify-center text-ipl-gold">
+            <div className="flex items-center text-gray-500 shrink-0 self-center">
+              <div className="w-6 h-6 rounded-full bg-white/5 flex items-center justify-center text-ipl-gold">
                 <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="9 5l7 7-7 7" />
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="9 5l7 7-7 7" />
                 </svg>
               </div>
             </div>

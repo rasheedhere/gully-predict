@@ -133,32 +133,32 @@ export default function MatchPage() {
     if (isBinary) {
       const isMatchWinner = q.key === winnerQId;
       return (
-        <div key={q.key} className={`space-y-4 ${isMatchWinner ? 'col-span-full' : ''}`}>
-          <div className="flex items-center justify-between mb-2">
-            <label className="block text-gray-300 font-display tracking-wide uppercase text-sm">
+        <div key={q.key} className={`space-y-3 ${isMatchWinner ? 'col-span-full' : ''}`}>
+          <div className="flex items-center justify-between mb-1 px-1">
+            <label className="block text-gray-300 font-display tracking-wide uppercase text-xs">
               {q.question_text}
               {error && <span className="ml-2 text-red-500 text-[10px] animate-pulse">(! Required)</span>}
             </label>
             {q.source_name && q.source_name !== 'IPL Global' && (
-              <span className="text-[8px] bg-ipl-gold/10 text-ipl-gold px-1.5 py-0.5 rounded border border-ipl-gold/20 font-bold uppercase tracking-tighter">
+              <span className="text-[8px] bg-ipl-gold/10 text-ipl-gold px-1.5 py-0.5 rounded-full border border-ipl-gold/20 font-bold uppercase tracking-tighter">
                 {q.source_name} League
               </span>
             )}
             {q.allow_powerup === false && (
-              <span className="text-[8px] bg-white/5 text-gray-500 px-1.5 py-0.5 rounded border border-white/10 font-bold uppercase tracking-tighter ml-1.5">
+              <span className="text-[8px] bg-white/5 text-gray-500 px-1.5 py-0.5 rounded-full border border-white/10 font-bold uppercase tracking-tighter ml-1.5">
                 No Booster
               </span>
             )}
           </div>
           <div className={`grid grid-cols-2 gap-4 ${isLocked ? 'pointer-events-none opacity-80' : ''}`}>
             {options.map((opt: string) => (
-              <label key={opt} className="cursor-pointer">
+              <label key={opt} className="cursor-pointer select-none">
                 <input type="radio" value={opt} {...register(registerName, { required: true })} className="peer sr-only" disabled={isLocked} />
                 <div
-                  className={`team-select-button p-4 border-2 text-center font-display transition-all peer-checked:text-white ${isMatchWinner ? 'text-xl' : 'text-sm'}`}
+                  className={`team-select-button p-4 border-2 text-center font-display transition-all peer-checked:text-white rounded-[18px] active:scale-[0.97] duration-150 ${isMatchWinner ? 'text-lg md:text-xl' : 'text-xs md:text-sm'}`}
                   style={{
                     '--team-color': getTeamColor(opt),
-                    borderColor: error ? 'rgba(239, 68, 68, 0.5)' : 'rgba(255, 255, 255, 0.2)',
+                    borderColor: error ? 'rgba(239, 68, 68, 0.4)' : 'rgba(255, 255, 255, 0.1)',
                     color: error ? 'rgba(239, 68, 68, 0.5)' : 'rgba(156, 163, 175, 1)'
                   } as any}
                 >
@@ -168,11 +168,11 @@ export default function MatchPage() {
             ))}
           </div>
           <style>{`
-            .team-select-button { transition: all 0.3s ease; }
+            .team-select-button { transition: all 0.2s ease; }
             input:checked + .team-select-button {
               background-color: var(--team-color) !important;
               border-color: var(--team-color) !important;
-              box-shadow: 0 0 20px var(--team-color) !important;
+              box-shadow: 0 8px 24px var(--team-color)40 !important;
             }
           `}</style>
         </div>
@@ -183,40 +183,43 @@ export default function MatchPage() {
 
     return (
       <div key={q.key} className={`space-y-2 ${isFullWidth ? 'col-span-full' : ''}`}>
-        <div className="flex items-center justify-between mb-2">
-          <label className="block text-gray-300 font-display tracking-wide uppercase text-sm">
+        <div className="flex items-center justify-between mb-1 px-1">
+          <label className="block text-gray-300 font-display tracking-wide uppercase text-xs">
             {q.question_text}
             {error && <span className="ml-2 text-red-500 text-[10px] animate-pulse">(! Required)</span>}
           </label>
           {q.source_name && q.source_name !== 'IPL Global' && (
-            <span className="text-[8px] bg-ipl-gold/10 text-ipl-gold px-1.5 py-0.5 rounded border border-ipl-gold/20 font-bold uppercase tracking-tighter">
+            <span className="text-[8px] bg-ipl-gold/10 text-ipl-gold px-1.5 py-0.5 rounded-full border border-ipl-gold/20 font-bold uppercase tracking-tighter">
               {q.source_name} League
             </span>
           )}
           {q.allow_powerup === false && (
-            <span className="text-[8px] bg-white/5 text-gray-500 px-1.5 py-0.5 rounded border border-white/10 font-bold uppercase tracking-tighter ml-1.5">
+            <span className="text-[8px] bg-white/5 text-gray-500 px-1.5 py-0.5 rounded-full border border-white/10 font-bold uppercase tracking-tighter ml-1.5">
               No Booster
             </span>
           )}
         </div>
 
         {q.answer_type === 'dropdown' || (options.length > 2) ? (
-          <select
-            {...register(registerName, { required: true })}
-            disabled={isLocked}
-            className={`w-full bg-white/5 border border-white/10 rounded-xl p-3 md:p-4 text-white font-display text-sm md:text-base focus:outline-none focus:border-ipl-gold focus:bg-white/10 transition-all appearance-none disabled:opacity-50 shadow-inner ${error ? 'border-red-500/50' : 'border-white/20'}`}
-          >
-            <option value="" className="bg-ipl-navy">Select Option</option>
-            {q.options?.map((opt: string) => (
-              <option key={opt} value={opt} className="bg-ipl-navy">{opt}</option>
-            ))}
-          </select>
+          <div className="relative">
+            <select
+              {...register(registerName, { required: true })}
+              disabled={isLocked}
+              className={`w-full bg-white/5 border border-white/10 rounded-[18px] p-4 text-white font-display text-sm focus:outline-none focus:border-ipl-gold focus:bg-white/10 transition-all appearance-none disabled:opacity-50 shadow-inner ${error ? 'border-red-500/50' : 'border-white/10'}`}
+            >
+              <option value="" className="bg-ipl-navy">Select Option</option>
+              {q.options?.map((opt: string) => (
+                <option key={opt} value={opt} className="bg-ipl-navy">{opt}</option>
+              ))}
+            </select>
+            <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
+          </div>
         ) : q.answer_type === 'multiple_choice' ? (
           <div className={`grid grid-cols-2 gap-3 ${isLocked ? 'pointer-events-none opacity-80' : ''}`}>
             {q.options?.map((opt: string) => (
-              <label key={opt} className="cursor-pointer">
+              <label key={opt} className="cursor-pointer select-none">
                 <input type="radio" value={opt} {...register(registerName, { required: true })} className="peer sr-only" disabled={isLocked} />
-                <div className={`p-3 md:p-4 border border-white/10 rounded-xl text-center font-display text-xs md:text-sm transition-all peer-checked:bg-ipl-gold peer-checked:text-black peer-checked:border-ipl-gold peer-checked:shadow-[0_0_15px_rgba(255,215,0,0.3)] hover:border-white/30 text-gray-400 bg-white/5 shadow-inner`}>
+                <div className={`p-4 border border-white/10 rounded-[18px] text-center font-display text-xs transition-all peer-checked:bg-ipl-gold peer-checked:text-black peer-checked:border-ipl-gold peer-checked:shadow-[0_4px_16px_rgba(255,215,0,0.25)] active:scale-[0.97] active:bg-white/10 text-gray-400 bg-white/5 shadow-inner`}>
                   {opt}
                 </div>
               </label>
@@ -228,7 +231,7 @@ export default function MatchPage() {
             type={q.answer_type === 'number' || q.answer_type === 'free_number' ? 'number' : 'text'}
             disabled={isLocked}
             placeholder={q.answer_type === 'number' || q.answer_type === 'free_number' ? '0' : 'Type your answer'}
-            className={`w-full bg-white/5 border border-white/10 rounded-xl p-3 md:p-4 text-white font-display text-sm md:text-base focus:outline-none focus:border-ipl-gold focus:bg-white/10 transition-all disabled:opacity-50 shadow-inner ${error ? 'border-red-500/50' : 'border-white/20'}`}
+            className={`w-full bg-white/5 border border-white/10 rounded-[18px] p-4 text-white font-display text-sm focus:outline-none focus:border-ipl-gold focus:bg-white/10 transition-all disabled:opacity-50 shadow-inner ${error ? 'border-red-500/50' : 'border-white/10'}`}
           />
         )}
       </div>
@@ -514,16 +517,16 @@ export default function MatchPage() {
                   </label>
                   <span className="text-[10px] text-gray-500 font-display uppercase">Season Limit: {totalPowerups}</span>
                 </div>
-                <div className={`flex gap-4 ${isLocked ? 'pointer-events-none opacity-80' : ''}`}>
-                  <label className={`flex-1 cursor-pointer ${(powerupsLeft <= 0 && myPredictions?.use_powerup !== 'Yes') ? 'opacity-30 grayscale pointer-events-none' : ''}`}>
+                 <div className={`flex bg-white/5 p-1 rounded-2xl border border-white/10 w-full ${isLocked ? 'pointer-events-none opacity-80' : ''}`}>
+                  <label className={`flex-1 cursor-pointer select-none ${(powerupsLeft <= 0 && myPredictions?.use_powerup !== 'Yes') ? 'opacity-30 grayscale pointer-events-none' : ''}`}>
                     <input type="radio" value="Yes" {...register('use_powerup', { required: true })} className="peer sr-only" disabled={isLocked || (powerupsLeft <= 0 && myPredictions?.use_powerup !== 'Yes')} />
-                    <div className={`p-3 border-2 text-center font-display transition-all peer-checked:bg-ipl-gold peer-checked:text-black peer-checked:border-ipl-gold ${errors.use_powerup ? 'border-red-500/50 text-red-500/50' : 'border-white/20 text-gray-400'}`}>
-                      YES (Use Powerup)
+                    <div className="py-3 rounded-[12px] text-center font-display text-xs font-bold uppercase transition-all peer-checked:bg-ipl-gold peer-checked:text-black text-gray-400 select-none">
+                      YES (Booster 2x)
                     </div>
                   </label>
-                  <label className="flex-1 cursor-pointer">
+                  <label className="flex-1 cursor-pointer select-none">
                     <input type="radio" value="No" {...register('use_powerup', { required: true })} className="peer sr-only" disabled={isLocked} />
-                    <div className={`p-3 border-2 text-center font-display transition-all peer-checked:bg-white/20 peer-checked:text-white peer-checked:border-white/40 ${errors.use_powerup ? 'border-red-500/50 text-red-500/50' : 'border-white/20 text-gray-400'}`}>
+                    <div className="py-3 rounded-[12px] text-center font-display text-xs font-bold uppercase transition-all peer-checked:bg-white/10 peer-checked:text-white text-gray-400 select-none">
                       NO
                     </div>
                   </label>
@@ -537,7 +540,7 @@ export default function MatchPage() {
                 <button
                   type="submit"
                   disabled={isPending || isLocked}
-                  className="w-full bg-white text-ipl-navy hover:bg-gray-200 font-display uppercase tracking-widest py-4 transition-all disabled:bg-white/10 disabled:text-white/40 disabled:border-white/10"
+                  className="w-full bg-white text-ipl-navy rounded-2xl font-display font-bold uppercase tracking-widest py-4 transition-all active:scale-[0.98] disabled:bg-white/10 disabled:text-white/40 disabled:border-white/10 disabled:scale-100 shadow-[0_8px_20px_rgba(255,255,255,0.05)]"
                 >
                   {isLocked ? 'LOCK PERIOD CLOSED' : (isPending ? 'LOCKING...' : (hasPredicted ? 'Update Lock' : 'Submit Lock'))}
                 </button>

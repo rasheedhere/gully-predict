@@ -33,8 +33,8 @@ function ScoringHint({ rules, type }: { rules: ScoringRules; type: CampaignQuest
 
   if (parts.length === 0) return null;
   return (
-    <div className="flex items-center gap-1.5 text-[10px] text-gray-500 font-display uppercase tracking-widest mt-1.5 bg-white/5 py-1 px-2 rounded-sm border border-white/5 w-fit">
-      <Info className="w-3 h-3 text-ipl-gold" />
+    <div className="flex items-center gap-1.5 text-[9px] text-gray-500 font-display uppercase tracking-widest mt-2 bg-white/5 py-1 px-2.5 rounded-lg border border-white/5 w-fit">
+      <Info className="w-3.5 h-3.5 text-ipl-gold" />
       {parts.join(' | ')}
     </div>
   );
@@ -45,17 +45,17 @@ function ScoringHint({ rules, type }: { rules: ScoringRules; type: CampaignQuest
 function ToggleInput({ q, value, onChange, disabled }: { q: CampaignQuestion; value: any; onChange: (v: any) => void; disabled: boolean }) {
   const [a, b] = q.options ?? ['Option A', 'Option B'];
   return (
-    <div className="flex gap-3 mt-3">
+    <div className="flex bg-white/5 p-1 rounded-2xl border border-white/10 w-full mt-3 select-none">
       {[a, b].map(opt => (
         <button
           key={opt}
           type="button"
           disabled={disabled}
           onClick={() => onChange(opt)}
-          className={`flex-1 py-3 font-display text-sm uppercase tracking-widest border-2 transition-all
+          className={`flex-1 py-3 rounded-xl font-display text-xs uppercase tracking-wider transition-all duration-200 select-none
             ${value === opt
-              ? 'border-ipl-gold bg-ipl-gold/10 text-ipl-gold'
-              : 'border-white/10 text-gray-400 hover:border-white/30 disabled:opacity-50 disabled:cursor-not-allowed'
+              ? 'bg-ipl-gold text-black shadow-lg font-bold'
+              : 'text-gray-500 active:text-gray-300 disabled:opacity-50'
             }`}
         >
           {opt}
@@ -79,7 +79,7 @@ function MultipleChoiceInput({ q, value, onChange, disabled }: { q: CampaignQues
     onChange(next);
   };
   return (
-    <div className="flex flex-col gap-2 mt-3">
+    <div className="flex flex-col gap-2 mt-3 select-none">
       {(q.options ?? []).map(opt => {
         const isSelected = selected.includes(opt);
         const isMaxedOut = !isSelected && maxSel && selected.length >= maxSel;
@@ -89,10 +89,10 @@ function MultipleChoiceInput({ q, value, onChange, disabled }: { q: CampaignQues
             type="button"
             disabled={disabled || !!isMaxedOut}
             onClick={() => toggle(opt)}
-            className={`text-left px-4 py-3 border-2 font-display text-sm transition-all
+            className={`text-left px-4 py-3.5 border rounded-[18px] font-display text-xs transition-all duration-150 active:scale-[0.98]
               ${isSelected
-                ? 'border-ipl-gold bg-ipl-gold/10 text-ipl-gold'
-                : 'border-white/10 text-gray-400 hover:border-white/30 disabled:opacity-50 disabled:cursor-not-allowed'
+                ? 'border-ipl-gold bg-ipl-gold/10 text-ipl-gold shadow-[0_4px_12px_rgba(244,196,48,0.15)] font-bold'
+                : 'border-white/10 text-gray-400 bg-white/5 active:bg-white/10'
               }`}
           >
             {opt}
@@ -110,14 +110,14 @@ function DropdownInput({ q, value, onChange, disabled }: { q: CampaignQuestion; 
         disabled={disabled}
         value={value ?? ''}
         onChange={e => onChange(e.target.value || null)}
-        className="w-full bg-black/40 border-2 border-white/10 py-3 pl-4 pr-10 text-white font-display text-sm appearance-none focus:outline-none focus:border-ipl-gold transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+        className="w-full bg-white/5 border border-white/10 rounded-[18px] p-4 text-white font-display text-sm appearance-none focus:outline-none focus:border-ipl-gold focus:bg-white/10 transition-all disabled:opacity-50"
       >
-        <option value="">Select an option…</option>
+        <option value="" className="bg-ipl-navy">Select an option…</option>
         {(q.options ?? []).map(opt => (
-          <option key={opt} value={opt}>{opt}</option>
+          <option key={opt} value={opt} className="bg-ipl-navy">{opt}</option>
         ))}
       </select>
-      <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500 pointer-events-none" />
+      <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500 pointer-events-none" />
     </div>
   );
 }
@@ -140,7 +140,7 @@ function FreeTextInput({ value, onChange, disabled }: { value: any; onChange: (v
         value={value ?? ''}
         onChange={e => handle(e.target.value)}
         placeholder="Type your answer…"
-        className="w-full bg-black/40 border-2 border-white/10 py-3 px-4 text-white font-display text-sm placeholder:text-gray-600 focus:outline-none focus:border-ipl-gold transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+        className="w-full bg-white/5 border border-white/10 rounded-[18px] p-4 text-white font-display text-sm placeholder:text-gray-600 focus:outline-none focus:border-ipl-gold focus:bg-white/10 transition-all disabled:opacity-50"
       />
       {err && <p className="text-ipl-live text-xs mt-1 font-display">{err}</p>}
     </div>
@@ -156,7 +156,7 @@ function FreeNumberInput({ value, onChange, disabled }: { value: any; onChange: 
         value={value ?? ''}
         onChange={e => onChange(e.target.value === '' ? null : parseFloat(e.target.value))}
         placeholder="Enter a number…"
-        className="w-full bg-black/40 border-2 border-white/10 py-3 px-4 text-white font-display text-sm placeholder:text-gray-600 focus:outline-none focus:border-ipl-gold transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+        className="w-full bg-white/5 border border-white/10 rounded-[18px] p-4 text-white font-display text-sm placeholder:text-gray-600 focus:outline-none focus:border-ipl-gold focus:bg-white/10 transition-all disabled:opacity-50"
       />
     </div>
   );
@@ -177,11 +177,11 @@ function ResultBadge({ points, correct }: { points: number | null | undefined; c
   const color = points > 0 ? 'text-green-400' : points < 0 ? 'text-ipl-live' : 'text-gray-500';
   const prefix = points > 0 ? '+' : '';
   return (
-    <div className={`text-sm font-display font-bold ${color}`}>
-      {prefix}{points}
+    <div className={`text-xs font-display font-bold ${color}`}>
+      {prefix}{points} PTS
       {correct != null && (
-        <span className="text-gray-500 font-normal text-xs ml-2">
-          (correct: {Array.isArray(correct) ? correct.join(', ') : String(correct)})
+        <span className="text-gray-500 font-normal text-[10px] ml-2">
+          (Correct: {Array.isArray(correct) ? correct.join(', ') : String(correct)})
         </span>
       )}
     </div>
@@ -273,34 +273,34 @@ export default function CampaignPage() {
   };
 
   return (
-    <div className="max-w-2xl mx-auto pb-20 space-y-8">
+    <div className="max-w-xl mx-auto pb-20 space-y-6 select-none">
       {/* Header */}
-      <header>
+      <header className="space-y-4">
         <button
           onClick={() => navigate('/campaigns')}
-          className="flex items-center gap-2 text-gray-500 hover:text-white font-display text-xs uppercase tracking-widest transition-colors mb-6"
+          className="hidden md:flex items-center gap-2 text-gray-500 hover:text-white font-display text-xs uppercase tracking-widest transition-colors"
         >
           <ArrowLeft className="w-4 h-4" />
           Campaigns
         </button>
 
-        <div className="flex items-start justify-between gap-4 border-b-2 border-white/10 pb-4">
+        <div className="flex items-start justify-between gap-4 border-b border-white/10 pb-4">
           <div>
-            <span className="text-[10px] font-display uppercase tracking-widest text-gray-500 block mb-1">
+            <span className="text-[9px] font-display uppercase tracking-widest text-gray-500 block mb-1">
               {campaign.type} campaign
             </span>
-            <h1 className="text-2xl font-display text-white">{campaign.title}</h1>
+            <h1 className="text-xl md:text-2xl font-display text-white uppercase font-bold leading-tight">{campaign.title}</h1>
             {campaign.description && (
-              <p className="text-gray-400 text-sm mt-1">{campaign.description}</p>
+              <p className="text-gray-400 text-xs mt-1 leading-relaxed">{campaign.description}</p>
             )}
           </div>
           {isClosed ? (
-            <span className="flex items-center gap-1.5 text-[10px] font-display uppercase tracking-widest text-gray-500 pt-1 shrink-0">
-              <Lock className="w-3 h-3" />
+            <span className="flex items-center gap-1 text-[9px] font-display uppercase tracking-widest text-gray-500 pt-1 shrink-0">
+              <Lock className="w-3.5 h-3.5" />
               Closed
             </span>
           ) : isActive ? (
-            <span className="flex items-center gap-1.5 text-[10px] font-display uppercase tracking-widest text-ipl-live pt-1 shrink-0">
+            <span className="flex items-center gap-1.5 text-[9px] font-display uppercase tracking-widest text-ipl-live pt-1 shrink-0">
               <span className="w-1.5 h-1.5 rounded-full bg-ipl-live animate-pulse" />
               Active
             </span>
@@ -308,12 +308,12 @@ export default function CampaignPage() {
         </div>
 
         {isClosed && (
-          <div className="flex border-b border-white/10 mt-6">
+          <div className="flex bg-white/5 p-1 rounded-2xl border border-white/10 mt-6 select-none">
             <button
               type="button"
               onClick={() => setActiveTab('response')}
-              className={`pb-3 px-4 font-display text-xs uppercase tracking-widest transition-colors ${
-                activeTab === 'response' ? 'text-ipl-gold border-b-2 border-ipl-gold' : 'text-gray-500 hover:text-gray-300'
+              className={`flex-1 py-2.5 rounded-xl font-display text-[10px] uppercase tracking-widest transition-all duration-200 ${
+                activeTab === 'response' ? 'bg-ipl-gold text-ipl-navy shadow-neon shadow-ipl-gold/10 font-bold' : 'text-gray-500'
               }`}
             >
               Your Response
@@ -321,8 +321,8 @@ export default function CampaignPage() {
             <button
               type="button"
               onClick={() => setActiveTab('predictions')}
-              className={`pb-3 px-4 font-display text-xs uppercase tracking-widest transition-colors ${
-                activeTab === 'predictions' ? 'text-ipl-gold border-b-2 border-ipl-gold' : 'text-gray-500 hover:text-gray-300'
+              className={`flex-1 py-2.5 rounded-xl font-display text-[10px] uppercase tracking-widest transition-all duration-200 ${
+                activeTab === 'predictions' ? 'bg-ipl-gold text-ipl-navy shadow-neon shadow-ipl-gold/10 font-bold' : 'text-gray-500'
               }`}
             >
               Reveal / Predictions
@@ -331,25 +331,24 @@ export default function CampaignPage() {
         )}
 
         {isSubmitted && (
-          <div className="mt-4 glass-panel border-l-4 border-l-ipl-gold p-4 flex items-center gap-3">
-            <CheckCircle className="w-5 h-5 text-ipl-gold shrink-0" />
+          <div className="glass-panel border-l-4 border-l-ipl-gold p-4 flex items-start gap-3 rounded-2xl">
+            <CheckCircle className="w-5 h-5 text-ipl-gold shrink-0 mt-0.5" />
             <div>
-              <p className="text-white font-display text-sm uppercase tracking-widest">Response {isClosed ? 'submitted' : 'recorded'}</p>
+              <p className="text-white font-display text-xs uppercase tracking-widest font-bold">Response {isClosed ? 'submitted' : 'recorded'}</p>
               {isClosed && campaign.my_response?.total_points != null && (
-                <p className="text-gray-400 text-xs mt-0.5">
+                <p className="text-gray-400 text-[11px] mt-0.5">
                   Total score: <span className="text-ipl-gold font-bold">{campaign.my_response.total_points} pts</span>
                 </p>
               )}
               {!isClosed && isActive && (
-                <p className="text-gray-500 text-xs mt-0.5">You can update your answers until the campaign closes</p>
+                <p className="text-gray-500 text-[11px] mt-0.5">You can update your answers until the campaign closes</p>
               )}
             </div>
           </div>
         )}
 
         {(campaign.starts_at || campaign.ends_at) && (
-          <div className="mt-4 flex items-center gap-2 text-gray-500 text-xs font-display uppercase tracking-widest flex-wrap">
-
+          <div className="flex items-center gap-2 text-gray-500 text-xs font-display uppercase tracking-widest flex-wrap">
             {campaign.ends_at && (
               <span className="flex items-center flex-wrap">
                 <CampaignCountdown endsAt={campaign.ends_at} />
@@ -359,7 +358,7 @@ export default function CampaignPage() {
         )}
 
         {user?.is_guest && isActive && (
-          <div className="mt-4 glass-panel border-l-4 border-l-gray-600 p-4">
+          <div className="glass-panel border-l-4 border-l-gray-600 p-4 rounded-2xl">
             <p className="text-gray-400 font-display text-xs uppercase tracking-widest">Guests cannot submit responses</p>
           </div>
         )}
@@ -375,13 +374,13 @@ export default function CampaignPage() {
             : undefined;
 
           return (
-            <div key={q.id} className="glass-panel p-6 border-t-2 border-t-white/10">
-              <div className="flex items-center gap-2 text-gray-500 text-[10px] font-display uppercase tracking-widest mb-2">
+            <div key={q.id} className="glass-panel p-5 border-t-2 border-t-white/10 rounded-3xl">
+              <div className="flex items-center gap-2 text-gray-500 text-[9px] font-display uppercase tracking-widest mb-1.5">
                 {QUESTION_ICONS[q.question_type]}
                 <span>Question {idx + 1} · {q.question_type.replace('_', ' ')}</span>
               </div>
 
-              <p className="text-white font-display text-base">{q.question_text}</p>
+              <p className="text-white font-display text-sm font-bold uppercase tracking-tight">{q.question_text}</p>
               <ScoringHint rules={q.scoring_rules} type={q.question_type} />
 
               {q.question_type === 'toggle' && (
@@ -401,7 +400,7 @@ export default function CampaignPage() {
               )}
 
               {isClosed && isSubmitted && (
-                <div className="mt-3 pt-3 border-t border-white/5">
+                <div className="mt-4 pt-3 border-t border-white/5">
                   <ResultBadge points={myPoints} correct={q.correct_answer} />
                 </div>
               )}
@@ -413,7 +412,7 @@ export default function CampaignPage() {
           <button
             type="submit"
             disabled={isSubmitting}
-            className="w-full py-4 bg-ipl-gold text-black font-display text-sm uppercase tracking-widest hover:bg-ipl-gold/90 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 shadow-[0_0_20px_rgba(255,215,0,0.2)] active:scale-[0.98]"
+            className="w-full py-4 bg-ipl-gold text-black rounded-2xl font-display text-xs uppercase tracking-[0.25em] font-bold hover:bg-ipl-gold/90 transition-all disabled:opacity-50 flex items-center justify-center gap-2 shadow-[0_8px_20px_rgba(255,215,0,0.2)] active:scale-[0.98]"
           >
             {isSubmitting ? (
               <span className="flex items-center gap-2">
@@ -433,15 +432,15 @@ export default function CampaignPage() {
         )}
       </form>
       ) : (
-        <div className="space-y-8 animate-in fade-in duration-500">
-          <div className="flex justify-between items-center mb-6">
-            <h2 className="text-xl font-display text-white">Community Predictions</h2>
-            <div className="flex bg-white/5 rounded p-1 border border-white/10">
+        <div className="space-y-6 animate-in fade-in duration-500">
+          <div className="flex justify-between items-center mb-4 px-1">
+            <h2 className="text-xs font-display text-gray-500 uppercase tracking-widest">Community Guesses</h2>
+            <div className="flex bg-white/5 rounded-2xl p-1 border border-white/10 select-none shrink-0">
               <button
                 type="button"
                 onClick={() => setViewMode('player')}
-                className={`px-3 py-1.5 rounded transition-all font-display text-[10px] uppercase tracking-widest ${
-                  viewMode === 'player' ? 'bg-white/10 text-white font-bold' : 'text-gray-500 hover:text-gray-300'
+                className={`px-4 py-1.5 rounded-xl transition-all font-display text-[9px] uppercase tracking-widest ${
+                  viewMode === 'player' ? 'bg-white/10 text-white font-bold shadow-sm' : 'text-gray-500'
                 }`}
               >
                 By Player
@@ -449,8 +448,8 @@ export default function CampaignPage() {
               <button
                 type="button"
                 onClick={() => setViewMode('question')}
-                className={`px-3 py-1.5 rounded transition-all font-display text-[10px] uppercase tracking-widest ${
-                  viewMode === 'question' ? 'bg-white/10 text-white font-bold' : 'text-gray-500 hover:text-gray-300'
+                className={`px-4 py-1.5 rounded-xl transition-all font-display text-[9px] uppercase tracking-widest ${
+                  viewMode === 'question' ? 'bg-white/10 text-white font-bold shadow-sm' : 'text-gray-500'
                 }`}
               >
                 By Question
@@ -463,7 +462,7 @@ export default function CampaignPage() {
               Loading predictions...
             </div>
           ) : !responsesData || responsesData.length === 0 ? (
-            <div className="glass-panel p-8 text-center border-dashed border-2 border-white/5 opacity-50">
+            <div className="glass-panel p-8 text-center border-dashed border-2 border-white/5 opacity-50 rounded-2xl">
               <p className="text-gray-500 font-display text-xs uppercase tracking-[0.2em]">
                 No predictions submitted yet
               </p>
@@ -474,9 +473,9 @@ export default function CampaignPage() {
               if (!allPredictions || allPredictions.length === 0) return null;
 
               return (
-                <div key={section.league.id} className="space-y-6">
-                  <div className="flex items-center gap-3 border-l-4 border-ipl-gold pl-4">
-                    <h3 className="text-lg font-display text-white tracking-widest uppercase italic">
+                <div key={section.league.id} className="space-y-4">
+                  <div className="flex items-center gap-3 border-l-4 border-ipl-gold pl-3">
+                    <h3 className="text-sm font-display text-white tracking-widest uppercase italic">
                       {section.league.name === 'IPL Global' ? (
                         <>IPL Global <span className="text-ipl-gold not-italic">Reveal</span></>
                       ) : (
@@ -486,55 +485,55 @@ export default function CampaignPage() {
                   </div>
 
                   {viewMode === 'question' ? (
-                    <div className="space-y-6">
+                    <div className="space-y-4">
                       {campaign.questions.map((q: any, qIdx: number) => {
                         return (
-                          <div key={q.id} className="glass-panel p-6 border-t-2 border-t-white/10 space-y-4">
+                          <div key={q.id} className="glass-panel p-5 border-t-2 border-t-white/10 space-y-4 rounded-3xl">
                             <div>
-                              <div className="flex items-center gap-2 text-gray-500 text-[10px] font-display uppercase tracking-widest mb-1">
+                              <div className="flex items-center gap-2 text-gray-500 text-[9px] font-display uppercase tracking-widest mb-1.5">
                                 {QUESTION_ICONS[q.question_type as keyof typeof QUESTION_ICONS] || <Type className="w-4 h-4" />}
                                 <span>Question {qIdx + 1} · {q.question_type.replace('_', ' ')}</span>
                               </div>
-                              <p className="text-white font-display text-base">{q.question_text}</p>
+                              <p className="text-white font-display text-sm font-bold uppercase tracking-tight">{q.question_text}</p>
                               
                               {q.correct_answer !== null && q.correct_answer !== undefined && (
-                                <div className="mt-2 inline-flex items-center gap-1.5 bg-green-500/10 border border-green-500/20 px-2.5 py-1 rounded text-xs text-green-400 font-display">
+                                <div className="mt-2 inline-flex items-center gap-1.5 bg-green-500/10 border border-green-500/20 px-2.5 py-1 rounded-xl text-[10px] text-green-400 font-display uppercase font-bold tracking-widest">
                                   <CheckCircle className="w-3.5 h-3.5" />
-                                  <span>Correct Answer: <strong className="font-bold">{String(q.correct_answer)}</strong></span>
+                                  <span>Answer: {String(q.correct_answer)}</span>
                                 </div>
                               )}
                             </div>
 
                             <div className="border-t border-white/5 pt-4 space-y-2">
-                              <h4 className="text-[10px] text-gray-500 font-display uppercase tracking-wider mb-2">Player Predictions</h4>
+                              <h4 className="text-[10px] text-gray-500 font-display uppercase tracking-wider mb-2">Predictions</h4>
                               <div className="grid gap-2 md:grid-cols-2">
                                 {allPredictions.map((resp: any) => {
                                   const userAnsVal = resp.answers[q.id];
                                   const ptsAwarded = resp.points_breakdown?.rules?.find((r: any) => (r.key && r.key === q.key) || r.category === q.question_text)?.points ?? 0;
 
                                   return (
-                                    <div key={resp.prediction_id} className="flex items-center justify-between p-3 rounded bg-white/5 border border-white/5 hover:border-white/10 transition-colors">
+                                    <div key={resp.prediction_id} className="flex items-center justify-between p-3 rounded-xl bg-white/5 border border-white/5">
                                       <div className="flex items-center gap-3 min-w-0">
-                                        <div className="w-6 h-6 rounded-full border border-white/10 overflow-hidden shrink-0">
+                                        <div className="w-7 h-7 rounded-full border border-white/10 overflow-hidden shrink-0">
                                           <img
                                             src={resp.user.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${getUserDisplayName(resp.user)}`}
                                             alt={getUserDisplayName(resp.user)}
                                           />
                                         </div>
                                         <div className="min-w-0">
-                                          <span className="text-xs font-display text-gray-300 block truncate leading-tight">
+                                          <span className="text-[10px] font-display text-gray-300 block truncate leading-none">
                                             {getUserDisplayName(resp.user)}
                                           </span>
-                                          <span className="text-white font-bold text-sm block truncate mt-0.5">
+                                          <span className="text-white font-bold text-xs block truncate mt-1 uppercase font-display">
                                             {userAnsVal !== undefined && userAnsVal !== null
                                               ? (Array.isArray(userAnsVal) ? userAnsVal.join(', ') : String(userAnsVal))
-                                              : <span className="text-gray-600 italic font-normal text-xs">Unanswered</span>}
+                                              : <span className="text-gray-600 italic font-normal">Unanswered</span>}
                                           </span>
                                         </div>
                                       </div>
                                       
                                       {ptsAwarded !== undefined && ptsAwarded !== null && (
-                                        <div className={`shrink-0 text-xs font-display font-bold px-2 py-0.5 rounded ${
+                                        <div className={`shrink-0 text-[10px] font-display font-bold px-2 py-0.5 rounded-lg ${
                                           ptsAwarded > 0 ? 'bg-green-500/20 text-green-400' : ptsAwarded < 0 ? 'bg-red-500/20 text-red-400' : 'bg-gray-500/20 text-gray-400'
                                         }`}>
                                           {ptsAwarded > 0 ? '+' : ''}{ptsAwarded}
@@ -554,14 +553,14 @@ export default function CampaignPage() {
                       {allPredictions.map((resp: any) => {
                         const isExpanded = expandedUser === resp.user.id;
                         return (
-                          <div key={resp.prediction_id} className="glass-panel overflow-hidden border border-white/10">
+                          <div key={resp.prediction_id} className="glass-panel overflow-hidden border border-white/10 rounded-[22px] active:scale-[0.99] transition-transform duration-100">
                             <button
                               type="button"
                               onClick={() => setExpandedUser(isExpanded ? null : resp.user.id)}
                               className="w-full flex items-center justify-between p-4 hover:bg-white/5 transition-colors"
                             >
                               <div className="flex items-center gap-4">
-                                <div className="w-10 h-10 rounded-full border border-white/10 overflow-hidden shrink-0">
+                                <div className="w-8 h-8 rounded-full border border-white/10 overflow-hidden shrink-0">
                                   <img
                                     src={resp.user.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${getUserDisplayName(resp.user)}`}
                                     alt={getUserDisplayName(resp.user)}
@@ -569,15 +568,15 @@ export default function CampaignPage() {
                                   />
                                 </div>
                                 <div className="text-left">
-                                  <div className="text-base font-display text-white">{getUserDisplayName(resp.user)}</div>
+                                  <div className="text-sm font-display font-bold text-white uppercase">{getUserDisplayName(resp.user)}</div>
                                   {resp.points_awarded !== null && resp.points_awarded !== undefined && (
-                                    <div className="text-xs text-ipl-gold font-display tracking-widest uppercase mt-0.5">
+                                    <div className="text-[10px] text-ipl-gold font-display tracking-widest uppercase mt-0.5">
                                       Total: {resp.points_awarded} pts
                                     </div>
                                   )}
                                 </div>
                               </div>
-                              <ChevronDown className={`w-5 h-5 text-gray-500 transition-transform ${isExpanded ? 'rotate-180' : ''}`} />
+                              <ChevronDown className={`w-4 h-4 text-gray-500 transition-transform duration-200 ${isExpanded ? 'rotate-180' : ''}`} />
                             </button>
 
                             {isExpanded && (
@@ -587,26 +586,26 @@ export default function CampaignPage() {
                                   const ptsAwarded = resp.points_breakdown?.rules?.find((r: any) => (r.key && r.key === q.key) || r.category === q.question_text)?.points ?? 0;
 
                                   return (
-                                    <div key={q.id} className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 p-3 bg-white/5 rounded">
+                                    <div key={q.id} className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 p-3 bg-white/5 rounded-xl border border-white/5">
                                       <div className="flex-1 min-w-0">
-                                        <div className="text-[10px] text-gray-500 font-display uppercase tracking-widest mb-1">
+                                        <div className="text-[9px] text-gray-500 font-display uppercase tracking-widest mb-1">
                                           {q.question_text}
                                         </div>
-                                        <div className="text-sm text-white font-bold truncate">
+                                        <div className="text-xs text-white font-bold truncate uppercase font-display">
                                           {userAnsVal !== undefined && userAnsVal !== null
                                             ? (Array.isArray(userAnsVal) ? userAnsVal.join(', ') : String(userAnsVal))
-                                            : <span className="text-gray-600 italic font-normal text-xs">Unanswered</span>}
+                                            : <span className="text-gray-600 italic font-normal">Unanswered</span>}
                                         </div>
                                       </div>
                                       
                                       <div className="flex items-center gap-4 shrink-0 mt-2 sm:mt-0">
                                         {q.correct_answer !== null && q.correct_answer !== undefined && (
-                                          <div className="text-[10px] text-gray-400 font-display hidden sm:block">
+                                          <div className="text-[9px] text-gray-400 font-display hidden sm:block uppercase">
                                             Correct: {String(q.correct_answer)}
                                           </div>
                                         )}
                                         {ptsAwarded !== undefined && ptsAwarded !== null && (
-                                          <div className={`text-xs font-display font-bold px-2 py-0.5 rounded ${
+                                          <div className={`text-[10px] font-display font-bold px-2 py-0.5 rounded-lg ${
                                             ptsAwarded > 0 ? 'bg-green-500/20 text-green-400' : ptsAwarded < 0 ? 'bg-red-500/20 text-red-400' : 'bg-gray-500/20 text-gray-400'
                                           }`}>
                                             {ptsAwarded > 0 ? '+' : ''}{ptsAwarded}

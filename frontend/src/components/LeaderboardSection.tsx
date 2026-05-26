@@ -13,11 +13,223 @@ export default function LeaderboardSection({ leagueId, leagueName, tournamentNam
   const handleRowClick = (entry: any) => {
     setSelectedUser(entry);
     setExpandedMatch(null);
-    if (window.innerWidth < 768) {
-      setTimeout(() => {
-        document.getElementById(`progression-details-${leagueId}`)?.scrollIntoView({ behavior: 'smooth' });
-      }, 100);
+  };
+
+  const renderProgressionPanel = (isMobile = false) => {
+    if (!selectedUser) {
+      return (
+        <div className="glass-panel p-8 text-center border-dashed border-2 border-white/10 opacity-40 rounded-2xl">
+          <History className="w-10 h-10 text-white/20 mx-auto mb-4" />
+          <p className="text-[10px] font-display uppercase tracking-widest leading-loose">
+            Select a player to view<br />match-by-match<br />progression
+          </p>
+        </div>
+      );
     }
+
+    return (
+      <div className={`glass-panel p-5 border-t-2 border-ipl-gold rounded-2xl ${
+        isMobile ? '!border-none !bg-transparent !p-0 !shadow-none' : 'animate-in fade-in slide-in-from-right-4 duration-500'
+      }`}>
+        <div className="flex justify-between items-start mb-6">
+          <div className="flex items-center gap-3">
+            <img
+              src={selectedUser.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${selectedUser.username}`}
+              className="w-10 h-10 rounded-full border border-ipl-gold/30"
+              alt=""
+            />
+            <div>
+              <h3 className="text-white font-display uppercase text-sm tracking-tight leading-none">
+                {getUserDisplayName({ name: selectedUser.username, alias: selectedUser.alias, use_alias: selectedUser.use_alias })}
+              </h3>
+              <p className="text-ipl-gold text-[10px] font-display uppercase tracking-widest mt-1">Rank #{selectedUser.rank}</p>
+            </div>
+          </div>
+          <button onClick={() => setSelectedUser(null)} className="text-gray-500 hover:text-white p-1">
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+
+        <div className="space-y-3">
+          <div className="flex items-center gap-2 mb-4 border-b border-white/5 pb-2">
+            <Trophy className="w-4 h-4 text-ipl-gold opacity-50" />
+            <h4 className="text-[10px] font-display text-gray-400 uppercase tracking-widest">Match History</h4>
+            <span className="ml-auto text-[8px] font-mono text-gray-500 tracking-tighter opacity-60">(Latest First)</span>
+          </div>
+
+          <div className="max-h-[320px] overflow-y-auto scrollbar-hide space-y-2 pr-1">
+            {selectedUser.progression?.length === 0 ? (
+              <p className="text-center py-10 text-gray-600 font-display text-[10px] uppercase italic">No matches played yet</p>
+            ) : (
+              selectedUser.progression?.map((prog: any, idx: number) => {
+                const isExpanded = expandedMatch === prog.match_number;
+                return (
+                  <div key={idx} className={`bg-white/5 border border-white/10 rounded-xl overflow-hidden transition-all duration-300 ${isExpanded ? 'border-ipl-gold/50 bg-ipl-gold/5' : 'hover:border-white/20'}`}>
+                    <button
+                      onClick={() => setExpandedMatch(isExpanded ? null : prog.match_number)}
+                      className="w-full text-left p-3 flex flex-col group/row"
+                    >
+                      <div className="flex justify-between items-start mb-1 w-full">
+                        <span className="text-[9px] font-mono text-gray-500 flex items-center gap-1">
+                          MATCH {prog.match_number}
+                          {prog.breakdown && (isExpanded ? <ChevronUp className="w-2.5 h-2.5" /> : <ChevronDown className="w-2.5 h-2.5 opacity-40" />)}
+                        </span>
+                        <span className={`text-xs font-display font-bold ${prog.points > 0 ? 'text-green-400' : prog.points < 0 ? 'text-red-400' : 'text-gray-500'}`}>
+                          {prog.points > 0 ? '+' : ''}{prog.points}
+                        </span>
+                      </div>
+                      <div className="text-[10px] text-gray-300 font-display uppercase tracking-tight truncate group-hover/row:text-white transition-colors">
+                        {prog.teams}
+                      </div>
+                    </button>
+
+                    {isExpanded && prog.breakdown && (
+                      <div className="px-3 pb-3 pt-1 border-t border-white/5 animate-in fade-in slide-in-from-top-1 duration-200">
+                        <div className="space-y-1.5 mt-2">
+                          {prog.breakdown.rules?.map((rule: any, ridx: number) => (
+                            <div key={ridx} className="flex justify-between items-center text-[9px] bg-white/5 p-1.5 rounded-sm">
+                              <div className="flex items-center gap-1.5">
+                                {rule.status === 'correct' || rule.status === 'bingo' ? (
+                                  <Check className="w-3 h-3 text-green-500 shrink-0" />
+                                ) : rule.status === 'range' ? (
+                                  <Target className="w-3 h-3 text-blue-400 shrink-0" />
+                                ) : (
+                                  <AlertCircle className="w-3 h-3 text-red-500/50 shrink-0" />
+                                )}
+                                <div className="flex flex-col">
+                                  <span className="text-gray-300 font-display uppercase tracking-tighter">{rule.category}</span>
+                                  <span className="text-[7px] text-gray-500 font-mono">
+                                    P: {rule.predicted} | A: {rule.actual}
+                                  </span>
+                                </div>
+                              </div>
+                              <span className={`font-mono font-bold ${rule.points > 0 ? 'text-green-400' : rule.points < 0 ? 'text-red-400' : 'text-gray-500'}`}>
+                                {rule.points > 0 ? '+' : ''}{rule.points}
+                              </span>
+                            </div>
+                          ))}
+
+                          {prog.breakdown.powerup?.used && (
+                            <div className="flex justify-between items-center text-[9px] bg-ipl-live/10 border border-ipl-live/20 p-1.5 rounded-sm">
+                              <div className="flex items-center gap-1.5">
+                                <Zap className="w-3 h-3 text-ipl-live" />
+                                <span className="text-ipl-live font-display uppercase tracking-tighter">Powerup Applied (2x)</span>
+                              </div>
+                              <span className="text-ipl-live font-mono font-bold">
+                                ×2
+                              </span>
+                            </div>
+                          )}
+
+                          <div className="mt-2 text-[8px] text-gray-500 font-mono text-center uppercase tracking-widest opacity-40">
+                            Breakdown Log Complete
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    {isExpanded && !prog.breakdown && (
+                      <div className="px-3 pb-3 pt-1 text-[9px] text-gray-500 italic text-center font-display uppercase tracking-widest bg-red-500/5 mt-2 rounded border border-red-500/10">
+                        {prog.points < 0 ? 'Non-participation Penalty (-5)' : 'No breakdown data available'}
+                      </div>
+                    )}
+                  </div>
+                );
+              })
+            )}
+          </div>
+        </div>
+
+        {selectedUser.campaign_scores?.length > 0 && (
+          <div className="space-y-3 mt-6 pt-6 border-t border-white/10">
+            <div className="flex items-center gap-2 mb-4 border-b border-white/5 pb-2">
+              <Trophy className="w-4 h-4 text-ipl-gold" />
+              <h4 className="text-[10px] font-display text-white uppercase tracking-widest">Campaigns & Bonuses</h4>
+            </div>
+            
+            <div className="space-y-2 pr-2">
+              {selectedUser.campaign_scores.map((camp: any, idx: number) => {
+                const isExpanded = expandedMatch === `camp-${idx}`;
+                return (
+                  <div key={idx} className={`bg-white/5 border border-white/10 rounded-xl overflow-hidden transition-all duration-300 ${isExpanded ? 'border-ipl-gold/50 bg-ipl-gold/5' : 'hover:border-white/20'}`}>
+                    <button
+                      onClick={() => setExpandedMatch(isExpanded ? null : `camp-${idx}`)}
+                      className="w-full text-left p-3 flex flex-col group/row"
+                    >
+                      <div className="flex justify-between items-start mb-1 w-full">
+                        <span className="text-[9px] font-mono text-ipl-gold flex items-center gap-1 uppercase tracking-widest truncate pr-2">
+                          🏆 {camp.campaign_title}
+                          {camp.breakdown && (isExpanded ? <ChevronUp className="w-2.5 h-2.5 shrink-0" /> : <ChevronDown className="w-2.5 h-2.5 opacity-40 shrink-0" />)}
+                        </span>
+                        <span className={`text-xs font-display font-bold shrink-0 ${camp.points > 0 ? 'text-green-400' : camp.points < 0 ? 'text-red-400' : 'text-gray-500'}`}>
+                          {camp.points > 0 ? '+' : ''}{camp.points}
+                        </span>
+                      </div>
+                      <div className="text-[10px] text-gray-500 font-display uppercase tracking-tight truncate transition-colors">
+                        BONUS POINTS
+                      </div>
+                    </button>
+
+                    {isExpanded && camp.breakdown && (
+                      <div className="px-3 pb-3 pt-1 border-t border-white/5 animate-in fade-in slide-in-from-top-1 duration-200">
+                        <div className="space-y-1.5 mt-2">
+                          {camp.breakdown.rules?.map((rule: any, ridx: number) => (
+                            <div key={ridx} className="flex justify-between items-center text-[9px] bg-white/5 p-1.5 rounded-sm">
+                              <div className="flex items-center gap-1.5">
+                                {rule.status === 'correct' || rule.status === 'bingo' ? (
+                                  <Check className="w-3 h-3 text-green-500 shrink-0" />
+                                ) : rule.status === 'range' ? (
+                                  <Target className="w-3 h-3 text-blue-400 shrink-0" />
+                                ) : (
+                                  <AlertCircle className="w-3 h-3 text-red-500/50 shrink-0" />
+                                )}
+                                <div className="flex flex-col">
+                                  <span className="text-gray-300 font-display uppercase tracking-tighter">{rule.category || rule.key}</span>
+                                  <span className="text-[7px] text-gray-500 font-mono">
+                                    P: {rule.predicted} | A: {rule.actual}
+                                  </span>
+                                </div>
+                              </div>
+                              <span className={`font-mono font-bold ${rule.points > 0 ? 'text-green-400' : rule.points < 0 ? 'text-red-400' : 'text-gray-500'}`}>
+                                {rule.points > 0 ? '+' : ''}{rule.points}
+                              </span>
+                            </div>
+                          ))}
+
+                          {camp.breakdown.powerup?.used && (
+                            <div className="flex justify-between items-center text-[9px] bg-ipl-live/10 border border-ipl-live/20 p-1.5 rounded-sm">
+                              <div className="flex items-center gap-1.5">
+                                <Zap className="w-3 h-3 text-ipl-live" />
+                                <span className="text-ipl-live font-display uppercase tracking-tighter">Powerup Applied (2x)</span>
+                              </div>
+                              <span className="text-ipl-live font-mono font-bold">
+                                ×2
+                              </span>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+        {currentUser?.is_guest && (
+          <div className="glass-panel p-5 border-l-4 border-l-ipl-gold bg-white/[0.02] mt-6 rounded-xl">
+            <div className="flex items-center gap-2 mb-3">
+              <Info className="w-4 h-4 text-ipl-gold" />
+              <h4 className="text-[10px] font-display text-white uppercase tracking-widest">Guest Standing</h4>
+            </div>
+            <p className="text-[10px] text-gray-500 font-display leading-relaxed">
+              As a Guest, your points are not tracked in the global standings. Contact an admin to become a full expert and join the race for the top!
+            </p>
+          </div>
+        )}
+      </div>
+    );
   };
 
   return (
@@ -161,217 +373,30 @@ export default function LeaderboardSection({ leagueId, leagueName, tournamentNam
         </div>
 
         {/* Selected User Details Sidebar */}
-        <div id={`progression-details-${leagueId}`} className="lg:col-span-1 space-y-4">
-          {!selectedUser ? (
-            <div className="glass-panel p-8 text-center border-dashed border-2 border-white/10 opacity-40">
-              <History className="w-10 h-10 text-white/20 mx-auto mb-4" />
-              <p className="text-[10px] font-display uppercase tracking-widest leading-loose">
-                Select a player to view<br />match-by-match<br />progression
-              </p>
-            </div>
-          ) : (
-            <div className="glass-panel p-6 animate-in fade-in slide-in-from-right-4 duration-500 border-t-2 border-ipl-gold">
-              <div className="flex justify-between items-start mb-6">
-                <div className="flex items-center gap-3">
-                  <img
-                    src={selectedUser.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${selectedUser.username}`}
-                    className="w-10 h-10 rounded-full border border-ipl-gold/30"
-                    alt=""
-                  />
-                  <div>
-                    <h3 className="text-white font-display uppercase text-sm tracking-tight">
-                      {getUserDisplayName({ name: selectedUser.username, alias: selectedUser.alias, use_alias: selectedUser.use_alias })}
-                    </h3>
-                    <p className="text-ipl-gold text-[10px] font-display uppercase tracking-widest">Rank #{selectedUser.rank}</p>
-                  </div>
-                </div>
-                <button onClick={() => setSelectedUser(null)} className="text-gray-500 hover:text-white">
-                  <X className="w-4 h-4" />
-                </button>
-              </div>
-
-              <div className="space-y-3">
-                <div className="flex items-center gap-2 mb-4 border-b border-white/5 pb-2">
-                  <Trophy className="w-4 h-4 text-ipl-gold opacity-50" />
-                  <h4 className="text-[10px] font-display text-gray-400 uppercase tracking-widest">Match History</h4>
-                  <span className="ml-auto text-[8px] font-mono text-gray-500 tracking-tighter opacity-60">(Latest First)</span>
-                </div>
-
-                <div className="max-h-[500px] overflow-y-auto custom-scrollbar space-y-2 pr-2">
-                  {selectedUser.progression?.length === 0 ? (
-                    <p className="text-center py-10 text-gray-600 font-display text-[10px] uppercase italic">No matches played yet</p>
-                  ) : (
-                    selectedUser.progression?.map((prog: any, idx: number) => {
-                      const isExpanded = expandedMatch === prog.match_number;
-                      return (
-                        <div key={idx} className={`bg-white/5 border border-white/10 overflow-hidden transition-all duration-300 ${isExpanded ? 'border-ipl-gold/50 bg-ipl-gold/5' : 'hover:border-white/20'}`}>
-                          <button
-                            onClick={() => setExpandedMatch(isExpanded ? null : prog.match_number)}
-                            className="w-full text-left p-3 flex flex-col group/row"
-                          >
-                            <div className="flex justify-between items-start mb-1 w-full">
-                              <span className="text-[9px] font-mono text-gray-500 flex items-center gap-1">
-                                MATCH {prog.match_number}
-                                {prog.breakdown && (isExpanded ? <ChevronUp className="w-2.5 h-2.5" /> : <ChevronDown className="w-2.5 h-2.5 opacity-40" />)}
-                              </span>
-                              <span className={`text-xs font-display font-bold ${prog.points > 0 ? 'text-green-400' : prog.points < 0 ? 'text-red-400' : 'text-gray-500'}`}>
-                                {prog.points > 0 ? '+' : ''}{prog.points}
-                              </span>
-                            </div>
-                            <div className="text-[10px] text-gray-300 font-display uppercase tracking-tight truncate group-hover/row:text-white transition-colors">
-                              {prog.teams}
-                            </div>
-                          </button>
-
-                          {isExpanded && prog.breakdown && (
-                            <div className="px-3 pb-3 pt-1 border-t border-white/5 animate-in fade-in slide-in-from-top-1 duration-200">
-                              <div className="space-y-1.5 mt-2">
-                                {prog.breakdown.rules?.map((rule: any, ridx: number) => (
-                                  <div key={ridx} className="flex justify-between items-center text-[9px] bg-white/5 p-1.5 rounded-sm">
-                                    <div className="flex items-center gap-1.5">
-                                      {rule.status === 'correct' || rule.status === 'bingo' ? (
-                                        <Check className="w-3 h-3 text-green-500 shrink-0" />
-                                      ) : rule.status === 'range' ? (
-                                        <Target className="w-3 h-3 text-blue-400 shrink-0" />
-                                      ) : (
-                                        <AlertCircle className="w-3 h-3 text-red-500/50 shrink-0" />
-                                      )}
-                                      <div className="flex flex-col">
-                                        <span className="text-gray-300 font-display uppercase tracking-tighter">{rule.category}</span>
-                                        <span className="text-[7px] text-gray-500 font-mono">
-                                          P: {rule.predicted} | A: {rule.actual}
-                                        </span>
-                                      </div>
-                                    </div>
-                                    <span className={`font-mono font-bold ${rule.points > 0 ? 'text-green-400' : rule.points < 0 ? 'text-red-400' : 'text-gray-500'}`}>
-                                      {rule.points > 0 ? '+' : ''}{rule.points}
-                                    </span>
-                                  </div>
-                                ))}
-
-                                {prog.breakdown.powerup?.used && (
-                                  <div className="flex justify-between items-center text-[9px] bg-ipl-live/10 border border-ipl-live/20 p-1.5 rounded-sm">
-                                    <div className="flex items-center gap-1.5">
-                                      <Zap className="w-3 h-3 text-ipl-live" />
-                                      <span className="text-ipl-live font-display uppercase tracking-tighter">Powerup Applied (2x)</span>
-                                    </div>
-                                    <span className="text-ipl-live font-mono font-bold">
-                                      ×2
-                                    </span>
-                                  </div>
-                                )}
-
-                                <div className="mt-2 text-[8px] text-gray-500 font-mono text-center uppercase tracking-widest opacity-40">
-                                  Breakdown Log Complete
-                                </div>
-                              </div>
-                            </div>
-                          )}
-
-                          {isExpanded && !prog.breakdown && (
-                            <div className="px-3 pb-3 pt-1 text-[9px] text-gray-500 italic text-center font-display uppercase tracking-widest bg-red-500/5 mt-2 rounded border border-red-500/10">
-                              {prog.points < 0 ? 'Non-participation Penalty (-5)' : 'No breakdown data available'}
-                            </div>
-                          )}
-                        </div>
-                      );
-                    })
-                  )}
-                </div>
-              </div>
-
-              {selectedUser.campaign_scores?.length > 0 && (
-                <div className="space-y-3 mt-6 pt-6 border-t border-white/10 animate-in fade-in slide-in-from-bottom-2 duration-500">
-                  <div className="flex items-center gap-2 mb-4 border-b border-white/5 pb-2">
-                    <Trophy className="w-4 h-4 text-ipl-gold" />
-                    <h4 className="text-[10px] font-display text-white uppercase tracking-widest">Campaigns & Bonuses</h4>
-                  </div>
-                  
-                  <div className="space-y-2 pr-2">
-                    {selectedUser.campaign_scores.map((camp: any, idx: number) => {
-                      const isExpanded = expandedMatch === `camp-${idx}`;
-                      return (
-                        <div key={idx} className={`bg-white/5 border border-white/10 overflow-hidden transition-all duration-300 ${isExpanded ? 'border-ipl-gold/50 bg-ipl-gold/5' : 'hover:border-white/20'}`}>
-                          <button
-                            onClick={() => setExpandedMatch(isExpanded ? null : `camp-${idx}`)}
-                            className="w-full text-left p-3 flex flex-col group/row"
-                          >
-                            <div className="flex justify-between items-start mb-1 w-full">
-                              <span className="text-[9px] font-mono text-ipl-gold flex items-center gap-1 uppercase tracking-widest truncate pr-2">
-                                🏆 {camp.campaign_title}
-                                {camp.breakdown && (isExpanded ? <ChevronUp className="w-2.5 h-2.5 shrink-0" /> : <ChevronDown className="w-2.5 h-2.5 opacity-40 shrink-0" />)}
-                              </span>
-                              <span className={`text-xs font-display font-bold shrink-0 ${camp.points > 0 ? 'text-green-400' : camp.points < 0 ? 'text-red-400' : 'text-gray-500'}`}>
-                                {camp.points > 0 ? '+' : ''}{camp.points}
-                              </span>
-                            </div>
-                            <div className="text-[10px] text-gray-500 font-display uppercase tracking-tight truncate transition-colors">
-                              BONUS POINTS
-                            </div>
-                          </button>
-
-                          {isExpanded && camp.breakdown && (
-                            <div className="px-3 pb-3 pt-1 border-t border-white/5 animate-in fade-in slide-in-from-top-1 duration-200">
-                              <div className="space-y-1.5 mt-2">
-                                {camp.breakdown.rules?.map((rule: any, ridx: number) => (
-                                  <div key={ridx} className="flex justify-between items-center text-[9px] bg-white/5 p-1.5 rounded-sm">
-                                    <div className="flex items-center gap-1.5">
-                                      {rule.status === 'correct' || rule.status === 'bingo' ? (
-                                        <Check className="w-3 h-3 text-green-500 shrink-0" />
-                                      ) : rule.status === 'range' ? (
-                                        <Target className="w-3 h-3 text-blue-400 shrink-0" />
-                                      ) : (
-                                        <AlertCircle className="w-3 h-3 text-red-500/50 shrink-0" />
-                                      )}
-                                      <div className="flex flex-col">
-                                        <span className="text-gray-300 font-display uppercase tracking-tighter">{rule.category || rule.key}</span>
-                                        <span className="text-[7px] text-gray-500 font-mono">
-                                          P: {rule.predicted} | A: {rule.actual}
-                                        </span>
-                                      </div>
-                                    </div>
-                                    <span className={`font-mono font-bold ${rule.points > 0 ? 'text-green-400' : rule.points < 0 ? 'text-red-400' : 'text-gray-500'}`}>
-                                      {rule.points > 0 ? '+' : ''}{rule.points}
-                                    </span>
-                                  </div>
-                                ))}
-
-                                {camp.breakdown.powerup?.used && (
-                                  <div className="flex justify-between items-center text-[9px] bg-ipl-live/10 border border-ipl-live/20 p-1.5 rounded-sm">
-                                    <div className="flex items-center gap-1.5">
-                                      <Zap className="w-3 h-3 text-ipl-live" />
-                                      <span className="text-ipl-live font-display uppercase tracking-tighter">Powerup Applied (2x)</span>
-                                    </div>
-                                    <span className="text-ipl-live font-mono font-bold">
-                                      ×2
-                                    </span>
-                                  </div>
-                                )}
-                              </div>
-                            </div>
-                          )}
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-              )}
-            </div>
-          )}
-
-          {currentUser?.is_guest && (
-            <div className="glass-panel p-6 border-l-4 border-l-ipl-gold bg-white/[0.02] mt-8">
-              <div className="flex items-center gap-2 mb-3">
-                <Info className="w-4 h-4 text-ipl-gold" />
-                <h4 className="text-[10px] font-display text-white uppercase tracking-widest">Guest Standing</h4>
-              </div>
-              <p className="text-[10px] text-gray-500 font-display leading-relaxed">
-                As a Guest, your points are not tracked in the global standings. Contact an admin to become a full expert and join the race for the top!
-              </p>
-            </div>
-          )}
+        <div id={`progression-details-${leagueId}`} className="hidden lg:block lg:col-span-1 space-y-4">
+          {renderProgressionPanel()}
         </div>
       </div>
+
+      {/* Mobile iOS Bottom Sheet */}
+      {selectedUser && (
+        <div className="lg:hidden fixed inset-0 z-50 flex items-end justify-center select-none">
+          {/* Backdrop overlay */}
+          <div 
+            className="absolute inset-0 bg-black/60 backdrop-blur-sm animate-in fade-in duration-300"
+            onClick={() => setSelectedUser(null)}
+          />
+          {/* Bottom Sheet Panel */}
+          <div className="w-full max-h-[80vh] bg-ipl-surface border-t border-white/10 rounded-t-[28px] shadow-2xl z-10 flex flex-col pb-[env(safe-area-inset-bottom)] animate-in slide-in-from-bottom duration-300">
+            {/* Drag handle */}
+            <div className="w-12 h-1 bg-white/20 rounded-full mx-auto my-3 shrink-0" />
+            {/* Scrollable details content */}
+            <div className="overflow-y-auto px-6 pb-6 pt-2 flex-1 scrollbar-hide">
+              {renderProgressionPanel(true)}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

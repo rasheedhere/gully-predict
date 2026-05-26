@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Megaphone, CheckCircle, Lock, Trophy, Star, Hash } from 'lucide-react';
 import { useCampaigns, type Campaign } from '../api/hooks/useCampaigns';
 import { CampaignCountdown } from '../components/CampaignCountdown';
+import { useTournamentStore } from '../store/tournament';
 
 function StatusBadge({ status }: { status: Campaign['status'] }) {
   if (status === 'active') {
@@ -32,22 +33,23 @@ function CampaignCard({ campaign }: { campaign: Campaign }) {
   return (
     <button
       onClick={() => navigate(`/campaigns/${campaign.id}`)}
-      className={`glass-panel p-6 text-left w-full border-2 transition-all duration-500 group relative overflow-hidden flex flex-col h-full ${hasResponded && !isClosed
-        ? 'border-green-500/30 hover:border-green-500 shadow-[0_0_20px_rgba(34,197,94,0.05)]'
-        : 'border-white/5 hover:border-white/20'
-        }`}
+      className={`glass-panel p-5 text-left w-full border-2 transition-all duration-300 group relative overflow-hidden flex flex-col h-full rounded-[22px] active:scale-[0.98] select-none ${
+        hasResponded && !isClosed
+          ? 'border-green-500/20 hover:border-green-500/40 shadow-[0_0_20px_rgba(34,197,94,0.05)]'
+          : 'border-white/5 hover:border-white/10'
+      }`}
     >
       {/* Top Section: Icon & Badges */}
-      <div className="flex items-start justify-between mb-4">
-        <div className="p-2.5 bg-ipl-gold/10 rounded-lg group-hover:bg-ipl-gold/20 transition-colors">
-          {campaign.type === 'match' ? <Trophy className="w-5 h-5 text-ipl-gold" /> : <Star className="w-5 h-5 text-ipl-gold" />}
+      <div className="flex items-start justify-between w-full mb-4">
+        <div className="p-2.5 bg-ipl-gold/10 rounded-xl group-hover:bg-ipl-gold/20 transition-colors shrink-0">
+          {campaign.type === 'match' ? <Trophy className="w-4 h-4 text-ipl-gold" /> : <Star className="w-4 h-4 text-ipl-gold" />}
         </div>
 
-        <div className="flex flex-col items-end gap-2">
+        <div className="flex flex-col items-end gap-2 shrink-0">
           {hasResponded && (
-            <span className="bg-green-500 text-white font-display text-[10px] tracking-widest px-3 py-1 flex items-center gap-1.5 shadow-lg -mr-6 -mt-6">
+            <span className="bg-green-500 text-white font-display text-[9px] font-bold tracking-widest px-2.5 py-1 flex items-center gap-1 rounded-bl-xl shadow-lg -mr-5 -mt-5">
               <CheckCircle className="w-3 h-3" />
-              SUBMITTED
+              LOCKED
             </span>
           )}
           <div className={`${hasResponded ? 'mt-1' : ''}`}>
@@ -57,12 +59,12 @@ function CampaignCard({ campaign }: { campaign: Campaign }) {
       </div>
 
       {/* Middle Section: Title & Info */}
-      <div className="flex-1">
-        <span className="text-[10px] font-display uppercase tracking-widest text-gray-500 mb-2 inline-block">
+      <div className="flex-1 w-full">
+        <span className="text-[9px] font-display uppercase tracking-widest text-gray-500 mb-1 inline-block">
           {campaign.type}
         </span>
 
-        <h3 className="text-white font-display text-xl mb-1.5 group-hover:text-ipl-gold transition-colors leading-tight">
+        <h3 className="text-white font-display text-lg mb-1.5 group-hover:text-ipl-gold transition-colors leading-tight uppercase font-bold">
           {campaign.title}
         </h3>
 
@@ -72,17 +74,15 @@ function CampaignCard({ campaign }: { campaign: Campaign }) {
       </div>
 
       {/* Bottom Section: Meta Data */}
-      <div className="mt-auto pt-4 border-t border-white/5 space-y-3">
+      <div className="mt-auto pt-4 border-t border-white/5 space-y-3 w-full">
         {campaign.ends_at && campaign.status === 'active' && !isClosed && (
-          <div className="flex items-center justify-center gap-2 text-[10px] text-gray-400 font-display uppercase tracking-widest bg-white/[0.03] px-2.5 py-1.5 rounded border border-white/5">
-            <div className="flex items-center">
-              <CampaignCountdown endsAt={campaign.ends_at} />
-            </div>
+          <div className="flex items-center justify-center gap-2 text-[9px] text-gray-400 font-display uppercase tracking-widest bg-white/[0.03] px-2.5 py-1.5 rounded-xl border border-white/5">
+            <CampaignCountdown endsAt={campaign.ends_at} />
           </div>
         )}
 
         <div className="flex items-center justify-between text-[10px] text-gray-500 font-display uppercase tracking-widest">
-          <span className="flex items-center gap-1.5">
+          <span className="flex items-center gap-1">
             <Hash className="w-3.5 h-3.5 opacity-40 text-ipl-gold" />
             {campaign.questions.length} question{campaign.questions.length !== 1 ? 's' : ''}
           </span>
@@ -94,8 +94,6 @@ function CampaignCard({ campaign }: { campaign: Campaign }) {
     </button>
   );
 }
-
-import { useTournamentStore } from '../store/tournament';
 
 export default function Campaigns() {
   const { activeTournamentId } = useTournamentStore();
@@ -134,51 +132,50 @@ export default function Campaigns() {
   }) ?? [];
 
   return (
-    <div className="space-y-12 w-full max-w-full mx-auto pb-20">
-      <header className="flex flex-col md:flex-row md:items-end justify-between border-b-2 border-white/10 pb-4 gap-4">
+    <div className="space-y-8 md:space-y-12 w-full max-w-full mx-auto pb-20 select-none">
+      {/* Header (Hidden on Mobile) */}
+      <header className="hidden md:flex flex-col md:flex-row md:items-end justify-between border-b border-white/10 pb-8 gap-4">
         <div>
-          <h1 className="text-3xl font-display text-white flex items-center gap-3">
-            <Megaphone className="w-7 h-7 text-ipl-gold" />
+          <h1 className="text-4xl font-display text-white flex items-center gap-3 italic uppercase tracking-tighter">
+            <Megaphone className="w-10 h-10 text-ipl-gold drop-shadow-[0_0_15px_rgba(244,196,48,0.4)]" />
             CAMPAIGNS
           </h1>
-          <p className="text-gray-500 text-xs font-display uppercase tracking-[0.2em] mt-2">
-            Predict, answer, earn points
+          <p className="text-gray-400 mt-2 font-display uppercase tracking-widest text-xs opacity-60">
+            Predict, answer, and earn bonus points
           </p>
-        </div>
-
-        {/* Tab switcher */}
-        <div className="flex bg-white/5 p-1 rounded-lg border border-white/10 shrink-0 self-start md:self-end">
-          <button
-            id="campaigns-tab-active"
-            onClick={() => setActiveTab('active')}
-            className={`px-6 py-2 rounded-md text-[10px] font-bold uppercase transition-all duration-300 font-display tracking-widest ${
-              activeTab === 'active'
-                ? 'bg-ipl-gold text-black shadow-lg scale-105'
-                : 'text-gray-500 hover:text-gray-300'
-            }`}
-          >
-            Active ({active.length})
-          </button>
-          <button
-            id="campaigns-tab-history"
-            onClick={() => setActiveTab('past')}
-            className={`px-6 py-2 rounded-md text-[10px] font-bold uppercase transition-all duration-300 font-display tracking-widest ${
-              activeTab === 'past'
-                ? 'bg-ipl-gold text-black shadow-lg scale-105'
-                : 'text-gray-500 hover:text-gray-300'
-            }`}
-          >
-            History ({past.length})
-          </button>
         </div>
       </header>
 
+      {/* Tab Switcher (Styled as iOS Segmented Control) */}
+      <div className="flex bg-white/5 p-1 rounded-2xl border border-white/10 w-full md:w-fit shrink-0 self-start md:self-end">
+        <button
+          onClick={() => setActiveTab('active')}
+          className={`flex-1 md:flex-none px-6 py-2.5 rounded-xl text-[10px] font-bold uppercase transition-all duration-200 font-display tracking-widest ${
+            activeTab === 'active'
+              ? 'bg-ipl-gold text-ipl-navy shadow-neon shadow-ipl-gold/10'
+              : 'text-gray-500 active:text-gray-300'
+          }`}
+        >
+          Active ({active.length})
+        </button>
+        <button
+          onClick={() => setActiveTab('past')}
+          className={`flex-1 md:flex-none px-6 py-2.5 rounded-xl text-[10px] font-bold uppercase transition-all duration-200 font-display tracking-widest ${
+            activeTab === 'past'
+              ? 'bg-ipl-gold text-ipl-navy shadow-neon shadow-ipl-gold/10'
+              : 'text-gray-500 active:text-gray-300'
+          }`}
+        >
+          History ({past.length})
+        </button>
+      </div>
+
       {/* Content */}
-      <section className="space-y-6">
+      <section className="space-y-6 w-full">
         {activeTab === 'active' ? (
           <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
             {active.length === 0 ? (
-              <div className="glass-panel p-8 text-center border-dashed border-2 border-white/5 opacity-50 col-span-full">
+              <div className="glass-panel p-10 text-center border-dashed border-2 border-white/5 opacity-50 col-span-full rounded-2xl">
                 <p className="text-gray-500 font-display text-xs uppercase tracking-[0.2em]">
                   No active campaigns right now
                 </p>
@@ -190,7 +187,7 @@ export default function Campaigns() {
         ) : (
           <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
             {past.length === 0 ? (
-              <div className="glass-panel p-8 text-center border-dashed border-2 border-white/5 opacity-50 col-span-full">
+              <div className="glass-panel p-10 text-center border-dashed border-2 border-white/5 opacity-50 col-span-full rounded-2xl">
                 <p className="text-gray-500 font-display text-xs uppercase tracking-[0.2em]">
                   No past campaigns found
                 </p>
