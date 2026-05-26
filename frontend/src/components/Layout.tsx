@@ -176,6 +176,10 @@ export default function Layout() {
               <Users className="w-5 h-5 text-ipl-gold" />
               LEAGUES
             </Link>
+            <Link to="/activity" onClick={clMenu} className="block text-gray-300 hover:text-white font-medium flex items-center gap-3 px-4 py-3 bg-white/5 rounded-lg active:bg-white/10 transition-colors">
+              <ActivityIcon className="w-5 h-5 text-ipl-gold" />
+              ACTIVITY
+            </Link>
             {(user?.is_admin || user?.is_league_admin) && (
               <Link to="/admin" onClick={clMenu} className="block text-gray-300 hover:text-white font-medium flex items-center gap-3 px-4 py-3 bg-white/5 rounded-lg active:bg-white/10 transition-colors">
                 <Settings className="w-5 h-5 text-ipl-gold" />

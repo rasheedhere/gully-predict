@@ -24,16 +24,15 @@ export default function CountdownTimer({ targetDate }: CountdownTimerProps) {
 
     const lockTime = lockDate.getTime() - 30 * 60 * 1000;
 
-    const interval = setInterval(() => {
+    const updateTimer = () => {
       const now = new Date().getTime();
       const distance = lockTime - now;
 
       if (distance < 0) {
-        clearInterval(interval);
         setTimeLeft('LOCKED');
         setIsLocked(true);
         setUrgent(false);
-        return;
+        return true;
       }
 
       const hours = Math.floor(distance / (1000 * 60 * 60));
@@ -41,7 +40,17 @@ export default function CountdownTimer({ targetDate }: CountdownTimerProps) {
       const seconds = Math.floor((distance % (1000 * 60)) / 1000);
 
       setTimeLeft(`${hours}h ${minutes}m ${seconds}s`);
-      setUrgent(distance < 60 * 60 * 1000); // Less than 1 hour -> urgent
+      setUrgent(distance < 60 * 60 * 1000);
+      return false;
+    };
+
+    // Run immediately so we don't have a 1-second blank flash
+    const isAlreadyLocked = updateTimer();
+    if (isAlreadyLocked) return;
+
+    const interval = setInterval(() => {
+      const locked = updateTimer();
+      if (locked) clearInterval(interval);
     }, 1000);
 
     return () => clearInterval(interval);
