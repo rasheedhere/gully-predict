@@ -26,6 +26,9 @@ function App() {
       <PWAInstallBanner />
       <Toaster 
         position="top-center"
+        containerStyle={{
+          top: 'max(env(safe-area-inset-top), 16px)'
+        }}
         toastOptions={{
           style: {
             background: '#0B0E1A',
