@@ -16,7 +16,7 @@ from backend.models import (
     Campaign, CampaignQuestion, CampaignResponse,
     LeagueUserMapping, League, CampaignMatchResult,
     TournamentUserMapping, CampaignTargetMatch,
-    SystemEventType,
+    SystemEventType, TournamentMatchAnswer,
 )
 from backend.utils.cache import backend_cache
 from backend.utils.events import dispatch_event
@@ -134,61 +134,10 @@ async def get_match(
     if not m:
         raise HTTPException(status_code=404, detail="Match not found")
 
-    # Ground truth from master CampaignMatchResult
-    cmr_res = await db.execute(
-        select(CampaignMatchResult)
-        .join(Campaign, CampaignMatchResult.campaign_id == Campaign.id)
-        .where(CampaignMatchResult.match_id == match_id, Campaign.is_master == True)
-    )
-    cmr = cmr_res.scalars().first()
-    results_map = dict(cmr.correct_answers) if (cmr and cmr.correct_answers) else {}
-
-    # Query league campaign results the user has access to
-    if not current_user.is_guest:
-        league_cmr_res = await db.execute(
-            select(CampaignMatchResult, Campaign.id)
-            .join(Campaign, CampaignMatchResult.campaign_id == Campaign.id)
-            .join(League, League.id == Campaign.league_id)
-            .join(LeagueUserMapping, LeagueUserMapping.league_id == League.id)
-            .where(
-                League.tournament_id == m.tournament_id,
-                Campaign.type == "match",
-                Campaign.is_master == False,
-                LeagueUserMapping.user_id == current_user.id,
-                Campaign.status == "active",
-                CampaignMatchResult.match_id == match_id,
-                or_(
-                    Campaign.target_matches.any(Match.id == m.id),
-                    ~Campaign.target_matches.any()
-                ),
-            )
-        )
-        for league_cmr, campaign_id in league_cmr_res.all():
-            if league_cmr.correct_answers:
-                for q_id, val in league_cmr.correct_answers.items():
-                    results_map[f"league_{campaign_id}_{q_id}"] = val
-
-    match_dict = {
-        "id": m.id,
-        "team1": m.team1,
-        "team2": m.team2,
-        "venue": m.venue,
-        "tossTime": m.start_time.isoformat() if m.start_time else None,
-        "start_time": m.start_time,
-        "status": m.status,
-        "results": results_map,
-        "report_method": m.report_method,
-        "reported_by_name": m.reporter.name if m.reporter else None,
-        "reported_by_email": m.reporter.email if m.reporter else None,
-    }
-
     # Scoped Stats
     mapping = await _get_tournament_user_mapping(db, m.tournament_id, current_user.id)
-    # ── Build question list ───────────────────────────────────────────────────
-    final_questions = []
 
     # 1. Master campaign questions
-    from backend.models import CampaignTargetMatch
     master_result = await db.execute(
         select(Campaign)
         .options(selectinload(Campaign.questions), selectinload(Campaign.target_matches))
@@ -213,6 +162,75 @@ async def get_match(
     if not master_campaign:
         master_campaign = fallback_master
 
+    # 2. League-specific campaign questions
+    league_campaigns = []
+    if not current_user.is_guest:
+        league_result = await db.execute(
+            select(Campaign, League.name)
+            .join(League, League.id == Campaign.league_id)
+            .join(LeagueUserMapping, LeagueUserMapping.league_id == League.id)
+            .options(selectinload(Campaign.questions))
+            .where(
+                League.tournament_id == m.tournament_id,
+                Campaign.type == "match",
+                Campaign.is_master == False,
+                LeagueUserMapping.user_id == current_user.id,
+                Campaign.status.in_(["active", "closed"]),
+                or_(
+                    Campaign.target_matches.any(Match.id == m.id),
+                    ~Campaign.target_matches.any()
+                ),
+            )
+        )
+        league_campaigns = league_result.all()
+
+    # 3. Build results map
+    # Initialize from master CampaignMatchResult (for legacy / standalone compatibility)
+    cmr_res = await db.execute(
+        select(CampaignMatchResult)
+        .join(Campaign, CampaignMatchResult.campaign_id == Campaign.id)
+        .where(CampaignMatchResult.match_id == match_id, Campaign.is_master == True)
+    )
+    cmr = cmr_res.scalars().first()
+    results_map = dict(cmr.correct_answers) if (cmr and cmr.correct_answers) else {}
+
+    # Query TournamentMatchAnswer for the tournament and match (single source of truth for tournament matches)
+    tma_res = await db.execute(
+        select(TournamentMatchAnswer).where(
+            TournamentMatchAnswer.tournament_id == m.tournament_id,
+            TournamentMatchAnswer.match_id == m.id
+        )
+    )
+    tma = tma_res.scalars().first()
+    tma_answers = tma.correct_answers if (tma and tma.correct_answers) else {}
+
+    # Map TournamentMatchAnswer to master campaign question IDs
+    if master_campaign:
+        for q in master_campaign.questions:
+            if q.key and q.key in tma_answers:
+                results_map[q.id] = tma_answers[q.key]
+
+    # Map TournamentMatchAnswer to league campaign question IDs
+    for c, league_name in league_campaigns:
+        for q in c.questions:
+            if q.key and q.key in tma_answers:
+                results_map[f"league_{c.id}_{q.id}"] = tma_answers[q.key]
+
+    match_dict = {
+        "id": m.id,
+        "team1": m.team1,
+        "team2": m.team2,
+        "venue": m.venue,
+        "tossTime": m.start_time.isoformat() if m.start_time else None,
+        "start_time": m.start_time,
+        "status": m.status,
+        "results": results_map,
+        "report_method": m.report_method,
+        "reported_by_name": m.reporter.name if m.reporter else None,
+        "reported_by_email": m.reporter.email if m.reporter else None,
+    }
+
+    # 4. Powerup details
     if master_campaign and master_campaign.max_powerups is not None:
         total_powerups = master_campaign.max_powerups
         powerups_res = await db.execute(
@@ -238,6 +256,8 @@ async def get_match(
         )
         powerups_used = len(powerups_res.scalars().all())
 
+    # 5. Build final_questions list
+    final_questions = []
     if master_campaign:
         for q in master_campaign.questions:
             text = _replace_placeholders(q.question_text, m)
@@ -255,42 +275,23 @@ async def get_match(
                 "source_name": "IPL Global",
             })
 
-    # 2. League-specific campaign questions
-    if not current_user.is_guest:
-        league_result = await db.execute(
-            select(Campaign, League.name)
-            .join(League, League.id == Campaign.league_id)
-            .join(LeagueUserMapping, LeagueUserMapping.league_id == League.id)
-            .options(selectinload(Campaign.questions))
-            .where(
-                League.tournament_id == m.tournament_id,
-                Campaign.type == "match",
-                Campaign.is_master == False,
-                LeagueUserMapping.user_id == current_user.id,
-                Campaign.status == "active",
-                or_(
-                    Campaign.target_matches.any(Match.id == m.id),
-                    ~Campaign.target_matches.any()
-                ),
-            )
-        )
-        for c, league_name in league_result.all():
-            for q in c.questions:
-                text = _replace_placeholders(q.question_text, m)
-                opts = [_replace_placeholders(o, m) for o in q.options] if q.options else None
-                final_questions.append({
-                    "key": f"league_{c.id}_{q.id}",
-                    "question_id": q.id,
-                    "slug": q.key,
-                    "campaign_id": c.id,
-                    "question_text": text,
-                    "answer_type": q.question_type.value if hasattr(q.question_type, "value") else q.question_type,
-                    "options": opts,
-                    "scoring_rules": q.scoring_rules,
-                    "category": "League Specific",
-                    "source_name": league_name,
-                    "league_id": c.league_id,
-                })
+    for c, league_name in league_campaigns:
+        for q in c.questions:
+            text = _replace_placeholders(q.question_text, m)
+            opts = [_replace_placeholders(o, m) for o in q.options] if q.options else None
+            final_questions.append({
+                "key": f"league_{c.id}_{q.id}",
+                "question_id": q.id,
+                "slug": q.key,
+                "campaign_id": c.id,
+                "question_text": text,
+                "answer_type": q.question_type.value if hasattr(q.question_type, "value") else q.question_type,
+                "options": opts,
+                "scoring_rules": q.scoring_rules,
+                "category": "League Specific",
+                "source_name": league_name,
+                "league_id": c.league_id,
+            })
 
     # Powerup question is always last
     final_questions.append({
