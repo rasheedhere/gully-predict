@@ -57,7 +57,7 @@ export default function Layout() {
 
   return (
     <div className="min-h-screen flex flex-col">
-      <nav className="border-b border-white/5 bg-ipl-surface/90 backdrop-blur-sm sticky top-0 z-50">
+      <nav className="border-b border-white/5 bg-ipl-surface/90 backdrop-blur-sm sticky top-0 z-50 pt-[env(safe-area-inset-top)]">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
             <div className="flex items-center space-x-8">
