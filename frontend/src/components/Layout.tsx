@@ -129,9 +129,6 @@ export default function Layout() {
                     <span className="text-sm font-display font-bold hidden sm:block leading-none italic uppercase tracking-tight">
                       {getUserDisplayName(user)}
                     </span>
-                    <span className="text-[8px] text-gray-500 font-display uppercase tracking-widest mt-1 group-hover:text-ipl-gold/50 transition-colors">
-                      Identity Settings
-                    </span>
                   </button>
                   <button onClick={() => setIsProfileOpen(true)} className="relative">
                     <img src={user.avatar || `https://ui-avatars.com/api/?name=${getUserDisplayName(user)}&background=0B0E1A&color=F4C430`} alt="avatar" className="w-9 h-9 rounded-xl border border-white/10 group-hover:border-ipl-gold transition-all shadow-lg object-cover" />
