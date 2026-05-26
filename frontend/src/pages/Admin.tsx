@@ -23,6 +23,7 @@ import {
   useTournamentMatchAnswers,
   useUpdateTournamentMatchAnswers
 } from '../api/hooks/useAdmin';
+import { getUserDisplayName } from '../utils/userUtils';
 import { useMatches } from '../api/hooks/useMatches';
 import { useCreateLeague, useLeagueDetails, useToggleLeagueAdmin, useKickMember } from '../api/hooks/useLeagues';
 import { teamColors, getTeamColor, getTeamShortName } from '../utils/teamColors';
@@ -379,9 +380,9 @@ function UserManagement() {
                 <tr key={u.id} className="group hover:bg-white/5 transition-all">
                   <td className="p-4">
                     <div className="flex items-center gap-3">
-                      <img src={u.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${u.name}`} className="w-8 h-8 rounded-full border border-white/10" alt="" />
+                      <img src={u.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${getUserDisplayName(u)}`} className="w-8 h-8 rounded-full border border-white/10" alt="" />
                       <div className="flex flex-col">
-                        <span className="text-white group-hover:text-ipl-gold transition-colors">{u.name}</span>
+                        <span className="text-white group-hover:text-ipl-gold transition-colors">{getUserDisplayName(u)}</span>
                         <span className="text-[9px] text-gray-600 font-mono tracking-tighter uppercase">{u.email}</span>
                       </div>
                     </div>
@@ -1440,7 +1441,7 @@ function LeagueUserManager({ leagueId, onBack }: { leagueId: string, onBack: () 
               >
                 <option value="">Select user...</option>
                 {availableUsers.map(u => (
-                  <option key={u.id} value={u.id}>{u.name} ({u.email})</option>
+                  <option key={u.id} value={u.id}>{getUserDisplayName(u)} ({u.email})</option>
                 ))}
               </select>
             </div>
@@ -1482,12 +1483,12 @@ function LeagueUserManager({ leagueId, onBack }: { leagueId: string, onBack: () 
                     <td className="p-4">
                       <div className="flex items-center gap-4">
                         <img
-                          src={participant.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${participant.name}`}
+                          src={participant.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${getUserDisplayName(participant)}`}
                           className="w-10 h-10 rounded-full border border-white/10 group-hover:border-ipl-gold transition-colors"
                           alt=""
                         />
                         <div className="flex flex-col">
-                          <span className="text-sm text-white group-hover:text-ipl-gold transition-colors">{participant.name}</span>
+                          <span className="text-sm text-white group-hover:text-ipl-gold transition-colors">{getUserDisplayName(participant)}</span>
                           <span className="text-[9px] text-gray-600 font-mono">Joined: {new Date(participant.joined_at).toLocaleDateString()}</span>
                         </div>
                       </div>
@@ -1504,7 +1505,7 @@ function LeagueUserManager({ leagueId, onBack }: { leagueId: string, onBack: () 
                     <td className="p-4 text-right">
                       <button
                         onClick={() => {
-                          if (confirm(`Are you sure you want to remove ${participant.name} from this league?`)) {
+                          if (confirm(`Are you sure you want to remove ${getUserDisplayName(participant)} from this league?`)) {
                             kickMember.mutate(participant.id);
                           }
                         }}

@@ -85,7 +85,7 @@ export default function MatchPage() {
       const scoreDiff = getScore(a) - getScore(b);
       if (scoreDiff !== 0) return scoreDiff;
 
-      return (a.user?.name || '').localeCompare(b.user?.name || '');
+      return (getUserDisplayName(a.user) || '').localeCompare(getUserDisplayName(b.user) || '');
     });
   };
 
@@ -626,7 +626,7 @@ export default function MatchPage() {
                             >
                               <div className="flex items-center gap-2 md:gap-3">
                                 <div className="relative shrink-0">
-                                  <img src={pred.user.avatar_url || 'https://via.placeholder.com/32'} className={`${isDesktop ? 'md:w-9 md:h-9' : 'w-7 h-7'} rounded-full border object-cover ${isMyRow ? 'border-ipl-gold' : 'border-white/10'}`} alt={pred.user.name} />
+                                  <img src={pred.user.avatar_url || 'https://via.placeholder.com/32'} className={`${isDesktop ? 'md:w-9 md:h-9' : 'w-7 h-7'} rounded-full border object-cover ${isMyRow ? 'border-ipl-gold' : 'border-white/10'}`} alt={getUserDisplayName(pred.user)} />
                                   {isMyRow && (
                                     <div className={`absolute -top-1 -right-1 bg-ipl-gold rounded-full border border-ipl-navy flex items-center justify-center ${isDesktop ? 'md:w-3.5 md:h-3.5' : 'w-2.5 h-2.5'}`}>
                                       <Check className={`${isDesktop ? 'md:w-2 md:h-2' : 'w-1.5 h-1.5'} text-black`} />

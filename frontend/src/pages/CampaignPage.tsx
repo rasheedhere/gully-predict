@@ -5,6 +5,7 @@ import toast from 'react-hot-toast';
 import { useCampaign, useSubmitCampaignResponse, useCampaignResponses, type CampaignQuestion, type ScoringRules } from '../api/hooks/useCampaigns';
 import { useAuthStore } from '../store/auth';
 import { CampaignCountdown } from '../components/CampaignCountdown';
+import { getUserDisplayName } from '../utils/userUtils';
 
 // ── Scoring hint ──────────────────────────────────────────────────────────────
 
@@ -516,13 +517,13 @@ export default function CampaignPage() {
                                       <div className="flex items-center gap-3 min-w-0">
                                         <div className="w-6 h-6 rounded-full border border-white/10 overflow-hidden shrink-0">
                                           <img
-                                            src={resp.user.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${resp.user.name}`}
-                                            alt=""
+                                            src={resp.user.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${getUserDisplayName(resp.user)}`}
+                                            alt={getUserDisplayName(resp.user)}
                                           />
                                         </div>
                                         <div className="min-w-0">
                                           <span className="text-xs font-display text-gray-300 block truncate leading-tight">
-                                            {resp.user.name}
+                                            {getUserDisplayName(resp.user)}
                                           </span>
                                           <span className="text-white font-bold text-sm block truncate mt-0.5">
                                             {userAnsVal !== undefined && userAnsVal !== null
@@ -562,13 +563,13 @@ export default function CampaignPage() {
                               <div className="flex items-center gap-4">
                                 <div className="w-10 h-10 rounded-full border border-white/10 overflow-hidden shrink-0">
                                   <img
-                                    src={resp.user.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${resp.user.name}`}
-                                    alt=""
+                                    src={resp.user.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${getUserDisplayName(resp.user)}`}
+                                    alt={getUserDisplayName(resp.user)}
                                     className="w-full h-full object-cover"
                                   />
                                 </div>
                                 <div className="text-left">
-                                  <div className="text-base font-display text-white">{resp.user.name}</div>
+                                  <div className="text-base font-display text-white">{getUserDisplayName(resp.user)}</div>
                                   {resp.points_awarded !== null && resp.points_awarded !== undefined && (
                                     <div className="text-xs text-ipl-gold font-display tracking-widest uppercase mt-0.5">
                                       Total: {resp.points_awarded} pts

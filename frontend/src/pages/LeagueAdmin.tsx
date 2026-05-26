@@ -10,6 +10,7 @@ import { useAdminCampaigns } from '../api/hooks/useCampaigns';
 import { useGeneralCampaignResult, useUpdateGeneralCampaignResult } from '../api/hooks/useCampaignResults';
 
 import { useAllUsers, useAddLeagueMember } from '../api/hooks/useAdmin';
+import { getUserDisplayName } from '../utils/userUtils';
 import { AdminCampaignList } from './CampaignBuilder';
 import toast from 'react-hot-toast';
 
@@ -116,7 +117,7 @@ function MemberManagement({ league, onUpdate }: { league: any, onUpdate: () => v
             >
               <option value="">Select user to add...</option>
               {availableUsers.map(u => (
-                <option key={u.id} value={u.id}>{u.name} ({u.email})</option>
+                <option key={u.id} value={u.id}>{getUserDisplayName(u)} ({u.email})</option>
               ))}
             </select>
             <ChevronRight className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500 rotate-90 pointer-events-none" />
@@ -154,7 +155,7 @@ function MemberManagement({ league, onUpdate }: { league: any, onUpdate: () => v
                   <div className="flex items-center gap-4">
                     <img src={p.avatar_url} className="w-10 h-10 rounded-image border border-white/10" alt="" />
                     <div>
-                      <span className="block text-white font-display text-sm group-hover:text-ipl-gold transition-colors">{p.name}</span>
+                      <span className="block text-white font-display text-sm group-hover:text-ipl-gold transition-colors">{getUserDisplayName(p)}</span>
                       {p.id === league.created_by && (
                         <span className="flex items-center gap-1 text-[8px] text-ipl-gold uppercase tracking-tighter">
                           <Crown className="w-2 h-2" /> League Owner
@@ -174,7 +175,7 @@ function MemberManagement({ league, onUpdate }: { league: any, onUpdate: () => v
                 <td className="p-4 text-right">
                   {p.id !== league.created_by && (
                     <button
-                      onClick={() => handleKick(p.id, p.name)}
+                      onClick={() => handleKick(p.id, getUserDisplayName(p))}
                       className="p-2 text-gray-600 hover:text-ipl-live transition-all opacity-0 group-hover:opacity-100"
                     >
                       <UserMinus className="w-4 h-4" />

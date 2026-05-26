@@ -134,7 +134,7 @@ export default function Layout() {
                     </span>
                   </button>
                   <button onClick={() => setIsProfileOpen(true)} className="relative">
-                    <img src={user.avatar || `https://ui-avatars.com/api/?name=${user.name}&background=0B0E1A&color=F4C430`} alt="avatar" className="w-9 h-9 rounded-xl border border-white/10 group-hover:border-ipl-gold transition-all shadow-lg object-cover" />
+                    <img src={user.avatar || `https://ui-avatars.com/api/?name=${getUserDisplayName(user)}&background=0B0E1A&color=F4C430`} alt="avatar" className="w-9 h-9 rounded-xl border border-white/10 group-hover:border-ipl-gold transition-all shadow-lg object-cover" />
                     <div className="absolute -bottom-1 -right-1 w-3.5 h-3.5 bg-ipl-gold rounded-full border-2 border-ipl-navy flex items-center justify-center">
                       <Settings className="w-2 h-2 text-ipl-navy" />
                     </div>

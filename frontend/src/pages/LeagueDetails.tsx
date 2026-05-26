@@ -147,8 +147,8 @@ export default function LeagueDetails() {
                 <div className="flex items-center gap-5">
                   <div className="relative">
                     <img 
-                      src={p.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${p.name}`} 
-                      alt={p.name} 
+                      src={p.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${getUserDisplayName(p)}`} 
+                      alt={getUserDisplayName(p)} 
                       className="w-12 h-12 rounded-xl border-2 border-white/10 group-hover:border-ipl-gold transition-colors object-cover" 
                     />
                     {league.id !== 'global-league' && p.remaining_powerups > 0 && (
@@ -171,7 +171,7 @@ export default function LeagueDetails() {
                   </div>
                   {league.is_admin && league.id !== 'global-league' && (
                     <button
-                      onClick={() => handleKick(p.id, p.name)}
+                      onClick={() => handleKick(p.id, getUserDisplayName(p))}
                       className="p-2.5 text-gray-500 hover:text-red-500 hover:bg-red-500/10 rounded-xl transition-all border border-transparent hover:border-red-500/20"
                       title="Remove Member"
                     >
