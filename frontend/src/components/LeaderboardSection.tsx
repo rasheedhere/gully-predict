@@ -398,11 +398,11 @@ export default function LeaderboardSection({ leagueId, leagueName, tournamentNam
             onClick={() => setSelectedUser(null)}
           />
           {/* Bottom Sheet Panel */}
-          <div className="w-full max-h-[80vh] bg-ipl-surface border-t border-white/10 rounded-t-[28px] shadow-2xl z-10 flex flex-col pb-[env(safe-area-inset-bottom)] animate-in slide-in-from-bottom duration-300">
+          <div className="w-full max-h-[80vh] bg-ipl-surface border-t border-white/10 rounded-t-[28px] shadow-2xl z-10 flex flex-col pb-[calc(4.5rem+env(safe-area-inset-bottom))] animate-in slide-in-from-bottom duration-300">
             {/* Drag handle */}
             <div className="w-12 h-1 bg-white/20 rounded-full mx-auto my-3 shrink-0" />
             {/* Scrollable details content */}
-            <div className="overflow-y-auto px-6 pb-20 pt-2 flex-1 scrollbar-hide">
+            <div className="overflow-y-auto px-6 pb-8 pt-2 flex-1 scrollbar-hide">
               {renderProgressionPanel(true)}
             </div>
           </div>
