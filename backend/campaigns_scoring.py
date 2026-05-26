@@ -126,6 +126,17 @@ async def calculate_campaign_scores(campaign_id: str, db: AsyncSession, match_id
 
     responded_user_ids = set()
 
+    # Load all matches to replace team placeholders in question texts
+    match_map = {}
+    if campaign.type == CampaignType.match:
+        from backend.models import Match
+        match_ids = {r.match_id for r in responses if r.match_id}
+        if match_id:
+            match_ids.add(match_id)
+        if match_ids:
+            matches_res = await db.execute(select(Match).where(Match.id.in_(list(match_ids))))
+            match_map = {m.id: m for m in matches_res.scalars().all()}
+
     for response in responses:
         answers = response.answers or {}  # {question_id: answer_value}
         m_id = response.match_id or match_id
@@ -163,18 +174,26 @@ async def calculate_campaign_scores(campaign_id: str, db: AsyncSession, match_id
             if override is None:
                 continue  # No correct answer set yet for this question
 
-            pts = score_answer(q, answer_value, correct_answer_override=override)
+            pts_base = score_answer(q, answer_value, correct_answer_override=override)
 
             # Apply powerup if this is a master match campaign
             current_multiplier = multiplier if q.allow_powerup else 1
-            if current_multiplier > 1 and pts > 0:
-                pts *= current_multiplier
+            pts = pts_base * current_multiplier if (current_multiplier > 1 and pts_base > 0) else pts_base
 
             total += pts
+
+            # Replace team placeholders in category name
+            category = q.question_text
+            match_obj = match_map.get(m_id)
+            if match_obj:
+                category = category.replace("{{Team1}}", match_obj.team1).replace("{{Team2}}", match_obj.team2)
+                category = category.replace("{{team1}}", match_obj.team1).replace("{{team2}}", match_obj.team2)
+
             breakdown_rules.append({
-                "category": q.question_text,
+                "question_id": q.id,
+                "category": category,
                 "key": q.key,
-                "points": pts,
+                "points": pts_base,
                 "predicted": answer_value,
                 "actual": override,
                 "was_boosted": current_multiplier > 1,

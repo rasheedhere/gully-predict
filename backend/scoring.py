@@ -279,22 +279,30 @@ async def calculate_match_scores(match_id: str, db: AsyncSession):
             # Respect allow_powerup flag (some questions like mid-tournament additions might exclude powerups)
             current_multiplier = multiplier if q.allow_powerup else 1
 
-            pts, status = _apply_rules(
+            pts_base, status = _apply_rules(
                 answer_value=answer_value,
                 correct_answer=correct_answer,
                 question_type=q.question_type,
                 scoring_rules=q.scoring_rules,
-                multiplier=current_multiplier,
+                multiplier=1,
             )
             if status == "skip":
                 continue
 
+            pts = pts_base * current_multiplier if (current_multiplier > 1 and pts_base > 0) else pts_base
             total_points += pts
+
+            category = q.question_text
+            if match:
+                category = category.replace("{{Team1}}", match.team1).replace("{{Team2}}", match.team2)
+                category = category.replace("{{team1}}", match.team1).replace("{{team2}}", match.team2)
+
             breakdown_rules.append({
-                "category": q.question_text,
+                "question_id": q.id,
+                "category": category,
                 "key": q.key,
                 "status": status,
-                "points": pts,
+                "points": pts_base,
                 "predicted": answer_value,
                 "actual": correct_answer,
                 "was_boosted": current_multiplier > 1,

@@ -136,6 +136,8 @@ def _serialize_campaign(campaign: Campaign, my_response: CampaignResponse | None
         points_map = {}
         if my_response.points_breakdown and "rules" in my_response.points_breakdown:
             for rule in my_response.points_breakdown["rules"]:
+                if rule.get("question_id"):
+                    points_map[rule["question_id"]] = rule.get("points", 0)
                 if rule.get("key"):
                     points_map[rule["key"]] = rule.get("points", 0)
                 points_map[rule.get("category")] = rule.get("points", 0)
@@ -145,7 +147,9 @@ def _serialize_campaign(campaign: Campaign, my_response: CampaignResponse | None
             ans_val = my_response.answers.get(q.id) if my_response.answers else None
             pts = None
             if my_response.total_points is not None:
-                pts = points_map.get(q.key) if q.key else None
+                pts = points_map.get(q.id)
+                if pts is None:
+                    pts = points_map.get(q.key) if q.key else None
                 if pts is None:
                     pts = points_map.get(q.question_text, 0)
             answers_map[q.id] = {
@@ -668,6 +672,8 @@ async def admin_get_campaign_responses(
         points_map = {}
         if response.points_breakdown and "rules" in response.points_breakdown:
             for rule in response.points_breakdown["rules"]:
+                if rule.get("question_id"):
+                    points_map[rule["question_id"]] = rule.get("points", 0)
                 if rule.get("key"):
                     points_map[rule["key"]] = rule.get("points", 0)
                 points_map[rule.get("category")] = rule.get("points", 0)
@@ -677,7 +683,9 @@ async def admin_get_campaign_responses(
             ans_val = response.answers.get(q.id) if response.answers else None
             pts = None
             if response.total_points is not None:
-                pts = points_map.get(q.key) if q.key else None
+                pts = points_map.get(q.id)
+                if pts is None:
+                    pts = points_map.get(q.key) if q.key else None
                 if pts is None:
                     pts = points_map.get(q.question_text, 0)
             answers_list.append({
