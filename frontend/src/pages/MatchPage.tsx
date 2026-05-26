@@ -830,22 +830,30 @@ export default function MatchPage() {
                                               </div>
                                             </div>
 
-                                            <div className="space-y-1.5 mt-1.5 bg-black/20 p-2 rounded-lg border border-white/[0.02]">
-                                              <div className="flex items-center justify-between text-xs">
-                                                <span className="text-gray-500 uppercase tracking-tighter text-[9px]">Predicted:</span>
-                                                <span className="font-display font-bold text-xs" style={getTeamColor(pred.answers[k]) !== '#666666' ? { color: getTeamColor(pred.answers[k]) } : { color: 'white' }}>
+                                            {isRuleCorrect ? (
+                                              <div className="mt-1.5 bg-black/20 py-2 px-3 rounded-lg border border-white/[0.02] flex items-center justify-center">
+                                                <span className="font-display font-extrabold text-sm tracking-wider uppercase" style={getTeamColor(pred.answers[k]) !== '#666666' ? { color: getTeamColor(pred.answers[k]) } : { color: 'white' }}>
                                                   {getTeamColor(pred.answers[k]) !== '#666666' ? getTeamShortName(pred.answers[k]) : pred.answers[k] || '-'}
                                                 </span>
                                               </div>
-                                              {(!isRuleCorrect && rule.actual !== undefined && rule.actual !== null) && (
-                                                <div className="flex items-center justify-between text-xs border-t border-white/5 pt-1.5 mt-1.5">
-                                                  <span className="text-gray-500 uppercase tracking-tighter text-[9px]">Actual:</span>
-                                                  <span className="font-display font-bold text-xs" style={getTeamColor(rule.actual) !== '#666666' ? { color: getTeamColor(rule.actual) } : { color: 'white' }}>
-                                                    {getTeamColor(rule.actual) !== '#666666' ? getTeamShortName(rule.actual) : rule.actual || '-'}
+                                            ) : (
+                                              <div className="space-y-1.5 mt-1.5 bg-black/20 p-2 rounded-lg border border-white/[0.02]">
+                                                <div className="flex items-center justify-between text-xs">
+                                                  <span className="text-gray-500 uppercase tracking-tighter text-[9px]">Predicted:</span>
+                                                  <span className="font-display font-bold text-xs" style={getTeamColor(pred.answers[k]) !== '#666666' ? { color: getTeamColor(pred.answers[k]) } : { color: 'white' }}>
+                                                    {getTeamColor(pred.answers[k]) !== '#666666' ? getTeamShortName(pred.answers[k]) : pred.answers[k] || '-'}
                                                   </span>
                                                 </div>
-                                              )}
-                                            </div>
+                                                {(rule.actual !== undefined && rule.actual !== null) && (
+                                                  <div className="flex items-center justify-between text-xs border-t border-white/5 pt-1.5 mt-1.5">
+                                                    <span className="text-gray-500 uppercase tracking-tighter text-[9px]">Actual:</span>
+                                                    <span className="font-display font-bold text-xs" style={getTeamColor(rule.actual) !== '#666666' ? { color: getTeamColor(rule.actual) } : { color: 'white' }}>
+                                                      {getTeamColor(rule.actual) !== '#666666' ? getTeamShortName(rule.actual) : rule.actual || '-'}
+                                                    </span>
+                                                  </div>
+                                                )}
+                                              </div>
+                                            )}
                                           </div>
                                         );
                                       })}
