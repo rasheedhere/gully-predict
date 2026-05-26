@@ -307,8 +307,8 @@ export default function MatchPage() {
           <div className="rounded-full border border-white/10 bg-white/5 backdrop-blur-md text-gray-300 font-display text-[9px] md:text-[10px] tracking-widest px-3 md:px-4 py-1.5 uppercase shadow-lg">
             Powerups: <span className="text-white font-bold">{powerupsLeft}/{totalPowerups}</span>
           </div>
-          <div className={`rounded-full border backdrop-blur-md font-display text-[9px] md:text-[10px] tracking-widest px-3 md:px-4 py-1.5 font-bold uppercase shadow-lg transition-all ${isLocked 
-            ? 'bg-ipl-live/10 border-ipl-live/30 text-ipl-live shadow-[0_0_15px_rgba(232,64,64,0.15)]' 
+          <div className={`rounded-full border backdrop-blur-md font-display text-[9px] md:text-[10px] tracking-widest px-3 md:px-4 py-1.5 font-bold uppercase shadow-lg transition-all ${isLocked
+            ? 'bg-ipl-live/10 border-ipl-live/30 text-ipl-live shadow-[0_0_15px_rgba(232,64,64,0.15)]'
             : 'bg-ipl-gold/10 border-ipl-gold/30 text-ipl-gold shadow-[0_0_15px_rgba(255,215,0,0.15)]'}`}>
             {isLocked ? 'Predictions Closed' : 'Predictions Open'}
           </div>
@@ -318,7 +318,7 @@ export default function MatchPage() {
         </p>
         <div className="flex items-start justify-center gap-4 md:gap-16 mt-6 md:mt-8">
           <div className="flex flex-col items-center gap-3 flex-1 min-w-0">
-            <div 
+            <div
               className="w-20 h-20 md:w-32 md:h-32 rounded-2xl md:rounded-3xl flex items-center justify-center border-2 shadow-2xl overflow-hidden p-2 md:p-3 bg-black/40 relative group shrink-0"
               style={{ borderColor: `${getTeamColor(match.team1)}50`, boxShadow: `0 0 40px ${getTeamColor(match.team1)}20` }}
             >
@@ -341,7 +341,7 @@ export default function MatchPage() {
           </div>
 
           <div className="flex flex-col items-center gap-3 flex-1 min-w-0">
-            <div 
+            <div
               className="w-20 h-20 md:w-32 md:h-32 rounded-2xl md:rounded-3xl flex items-center justify-center border-2 shadow-2xl overflow-hidden p-2 md:p-3 bg-black/40 relative group shrink-0"
               style={{ borderColor: `${getTeamColor(match.team2)}50`, boxShadow: `0 0 40px ${getTeamColor(match.team2)}20` }}
             >
@@ -517,7 +517,7 @@ export default function MatchPage() {
                   </label>
                   <span className="text-[10px] text-gray-500 font-display uppercase">Season Limit: {totalPowerups}</span>
                 </div>
-                 <div className={`flex bg-white/5 p-1 rounded-2xl border border-white/10 w-full ${isLocked ? 'pointer-events-none opacity-80' : ''}`}>
+                <div className={`flex bg-white/5 p-1 rounded-2xl border border-white/10 w-full ${isLocked ? 'pointer-events-none opacity-80' : ''}`}>
                   <label className={`flex-1 cursor-pointer select-none ${(powerupsLeft <= 0 && myPredictions?.use_powerup !== 'Yes') ? 'opacity-30 grayscale pointer-events-none' : ''}`}>
                     <input type="radio" value="Yes" {...register('use_powerup', { required: true })} className="peer sr-only" disabled={isLocked || (powerupsLeft <= 0 && myPredictions?.use_powerup !== 'Yes')} />
                     <div className="py-3 rounded-[12px] text-center font-display text-xs font-bold uppercase transition-all peer-checked:bg-ipl-gold peer-checked:text-black text-gray-400 select-none">
@@ -636,7 +636,7 @@ export default function MatchPage() {
                         return (
                           <div key={idx} className={`flex flex-col rounded-lg border transition-all ${isMyRow ? 'bg-ipl-gold/10 border-ipl-gold/50 shadow-[0_0_15px_rgba(244,196,48,0.15)]' : 'bg-white/5 border-white/10'}`}>
                             {/* Card Header (Always Visible) */}
-                            <div 
+                            <div
                               className={`flex items-center justify-between cursor-pointer ${isDesktop ? 'md:p-3.5 md:gap-4' : 'p-2 gap-2'}`}
                               onClick={toggleExpand}
                             >
@@ -750,7 +750,7 @@ export default function MatchPage() {
                                       <div className="bg-ipl-gold/10 border border-ipl-gold/30 rounded-xl p-3 flex justify-between items-center text-xs font-display text-ipl-gold font-bold uppercase tracking-wider shadow-inner">
                                         <span className="flex items-center gap-2">
                                           <Zap className="w-4 h-4 text-ipl-gold animate-pulse" />
-                                          2X Booster Applied (Winner, POTM, Powerplay Doubled)
+                                          2X Booster Applied
                                         </span>
                                         <span className="bg-ipl-gold text-black px-2 py-0.5 rounded text-[10px] font-black font-mono">
                                           x2
@@ -767,7 +767,11 @@ export default function MatchPage() {
                                           label = `${q.source_name}: ${label}`;
                                         }
 
-                                        const rule = pred.points_breakdown?.rules?.find((r: any) => r.key === k || r.question_id === q?.id);
+                                        const rule = pred.points_breakdown?.rules?.find((r: any) => 
+                                          (r.question_id && r.question_id === q?.question_id) || 
+                                          (r.key && r.key === q?.slug) ||
+                                          (r.key && r.key === k)
+                                        );
                                         if (!rule) {
                                           const isTeamMatch = getTeamColor(pred.answers[k]) !== '#666666';
                                           const valStyle = isTeamMatch ? { color: getTeamColor(pred.answers[k]) } : {};
@@ -792,12 +796,11 @@ export default function MatchPage() {
                                         return (
                                           <div
                                             key={k}
-                                            className={`flex flex-col justify-between p-3 md:p-3.5 rounded-xl border transition-all duration-300 relative overflow-hidden ${
-                                              isRuleCorrect ? 'bg-green-500/[0.03] border-green-500/20 hover:border-green-500/30' :
-                                              isRuleRange ? 'bg-blue-500/[0.03] border-blue-500/20 hover:border-blue-500/30' :
-                                              isRuleIncorrect ? 'bg-red-500/[0.03] border-red-500/20 hover:border-red-500/30' :
-                                              'bg-white/5 border-white/10'
-                                            }`}
+                                            className={`flex flex-col justify-between p-3 md:p-3.5 rounded-xl border transition-all duration-300 relative overflow-hidden ${isRuleCorrect ? 'bg-green-500/[0.03] border-green-500/20 hover:border-green-500/30' :
+                                                isRuleRange ? 'bg-blue-500/[0.03] border-blue-500/20 hover:border-blue-500/30' :
+                                                  isRuleIncorrect ? 'bg-red-500/[0.03] border-red-500/20 hover:border-red-500/30' :
+                                                    'bg-white/5 border-white/10'
+                                              }`}
                                           >
                                             <div className="flex items-start justify-between gap-2 mb-2 w-full">
                                               <span className="text-[9px] text-gray-400 font-display uppercase tracking-wider font-semibold truncate max-w-[70%]">
@@ -817,11 +820,10 @@ export default function MatchPage() {
                                                     <AlertCircle className="w-2.5 h-2.5 text-red-400" />
                                                   </span>
                                                 )}
-                                                <span className={`text-[9px] font-mono font-bold px-1.5 py-0.5 rounded ${
-                                                  rule.points > 0 ? 'bg-green-500/10 text-green-400 border border-green-500/20 shadow-sm shadow-green-950' :
-                                                  rule.points < 0 ? 'bg-red-500/10 text-red-400 border border-red-500/20 shadow-sm shadow-red-950' :
-                                                  'bg-white/5 text-gray-500 border border-white/10'
-                                                }`}>
+                                                <span className={`text-[9px] font-mono font-bold px-1.5 py-0.5 rounded ${rule.points > 0 ? 'bg-green-500/10 text-green-400 border border-green-500/20 shadow-sm shadow-green-950' :
+                                                    rule.points < 0 ? 'bg-red-500/10 text-red-400 border border-red-500/20 shadow-sm shadow-red-950' :
+                                                      'bg-white/5 text-gray-500 border border-white/10'
+                                                  }`}>
                                                   {rule.points > 0 ? '+' : ''}{rule.points} PTS
                                                   {rule.was_boosted && <span className="ml-0.5 text-[8px] text-ipl-gold">⚡</span>}
                                                 </span>
@@ -881,7 +883,7 @@ export default function MatchPage() {
                                               )}
                                             </span>
                                           )}
-                                          
+
                                           {editingId === `${pred.prediction_id}:${k}` ? (
                                             <div className="flex items-center gap-1 mt-1">
                                               <input

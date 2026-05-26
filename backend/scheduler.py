@@ -74,7 +74,9 @@ async def generate_ai_prediction(db, match: Match, ai_user: User):
     def _replace_placeholders(text: str, match: Match) -> str:
         if not text:
             return text
-        return text.replace("{{Team1}}", match.team1).replace("{{Team2}}", match.team2)
+        return (text
+                .replace("{{Team1}}", match.team1).replace("{{team1}}", match.team1).replace("{{TEAM1}}", match.team1)
+                .replace("{{Team2}}", match.team2).replace("{{team2}}", match.team2).replace("{{TEAM2}}", match.team2))
         
     t1_strength = TEAM_STRENGTHS.get(match.team1, DEFAULT_STRENGTH)
     t2_strength = TEAM_STRENGTHS.get(match.team2, DEFAULT_STRENGTH)

@@ -296,6 +296,7 @@ async def calculate_match_scores(match_id: str, db: AsyncSession):
             if match:
                 category = category.replace("{{Team1}}", match.team1).replace("{{Team2}}", match.team2)
                 category = category.replace("{{team1}}", match.team1).replace("{{team2}}", match.team2)
+                category = category.replace("{{TEAM1}}", match.team1).replace("{{TEAM2}}", match.team2)
 
             breakdown_rules.append({
                 "question_id": q.id,
