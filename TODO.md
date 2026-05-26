@@ -1,7 +1,7 @@
 # Project TODOs & Backlog
 
 ## Leaderboard Powerups Display
-**Status**: Backlog / Parked
+**Status**: Completed
 **Context**:
 Currently, the leaderboard only returns the global tournament powerup balance for users (`TournamentUserMapping.base_powerups - used`). However, Master Campaigns (like a "Playoffs" phase) can now define their own isolated `max_powerups` limit. We need a way to communicate these campaign-specific powerup balances to users viewing the leaderboard.
 

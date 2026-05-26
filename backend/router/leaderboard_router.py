@@ -79,22 +79,66 @@ async def fetch_leaderboard_data(db: AsyncSession, league_id: str):
     
     users_raw_data = result.all()
     
-    # Pre-fetch powerups used per user for this tournament
+    # Pre-fetch powerups used per user and campaign in this tournament
     powerups_used_res = await db.execute(
-        select(CampaignResponse.user_id, func.count(CampaignResponse.id))
+        select(
+            CampaignResponse.user_id,
+            CampaignResponse.campaign_id,
+            Campaign.title,
+            Campaign.max_powerups,
+            func.count(CampaignResponse.id)
+        )
         .join(Campaign, CampaignResponse.campaign_id == Campaign.id)
         .where(Campaign.tournament_id == tournament_id)
-        .where(Campaign.max_powerups.is_(None))
         .where(CampaignResponse.use_powerup == True)
-        .group_by(CampaignResponse.user_id)
+        .group_by(CampaignResponse.user_id, CampaignResponse.campaign_id, Campaign.title, Campaign.max_powerups)
     )
-    powerups_used_map = {uid: count for uid, count in powerups_used_res.all()}
+    
+    user_global_used = {}
+    user_campaign_used = {}
+    
+    for uid, cid, title, max_pw, count in powerups_used_res.all():
+        if max_pw is None:
+            user_global_used[uid] = user_global_used.get(uid, 0) + count
+        else:
+            user_campaign_used.setdefault(uid, {})[cid] = count
+
+    # Fetch all campaigns in this tournament that have a max_powerups limit and are not drafts
+    scoped_campaigns_res = await db.execute(
+        select(Campaign.id, Campaign.title, Campaign.max_powerups)
+        .where(Campaign.tournament_id == tournament_id)
+        .where(Campaign.max_powerups.is_not(None))
+        .where(Campaign.status != "draft")
+    )
+    scoped_campaigns = scoped_campaigns_res.all()
 
     # Map raw data to final user list
     users_data = []
     for row in users_raw_data:
-        used = powerups_used_map.get(row.id, 0)
-        remaining = max(0, row.base_powerups - used)
+        global_used = user_global_used.get(row.id, 0)
+        global_max = row.base_powerups if row.base_powerups is not None else 10
+        global_remaining = max(0, global_max - global_used)
+        
+        balances = [
+            {
+                "type": "global",
+                "name": "Global",
+                "remaining": global_remaining,
+                "max": global_max
+            }
+        ]
+        
+        for camp_id, camp_title, camp_max in scoped_campaigns:
+            camp_used = user_campaign_used.get(row.id, {}).get(camp_id, 0)
+            camp_remaining = max(0, camp_max - camp_used)
+            balances.append({
+                "type": "campaign",
+                "campaign_id": camp_id,
+                "name": camp_title,
+                "remaining": camp_remaining,
+                "max": camp_max
+            })
+            
         users_data.append({
             "id": row.id,
             "name": row.name,
@@ -103,7 +147,8 @@ async def fetch_leaderboard_data(db: AsyncSession, league_id: str):
             "avatar_url": row.avatar_url,
             "total_points": row.total_points,
             "base_points": row.base_points,
-            "remaining_powerups": remaining,
+            "remaining_powerups": global_remaining,
+            "powerup_balances": balances,
             "joined_at": row.joined_at
         })
     
@@ -272,6 +317,7 @@ async def fetch_leaderboard_data(db: AsyncSession, league_id: str):
             "base_points": u["base_points"],
             "matches_played": matches_played,
             "remaining_powerups": remaining_powerups or 0,
+            "powerup_balances": u.get("powerup_balances", []),
             "progression": progression,
             "campaign_scores": campaign_scores,
             "accuracy_pct": 0

@@ -119,9 +119,32 @@ export default function LeaderboardSection({ leagueId, leagueName, tournamentNam
                         </div>
                       </td>
                       <td className="p-2 md:p-4 text-center">
-                        <div className="flex flex-col items-center">
-                          <span className="text-base md:text-lg font-display text-ipl-live">{entry.remaining_powerups !== undefined ? entry.remaining_powerups : 10}</span>
-                          <span className="text-[7px] md:text-[8px] text-gray-500 uppercase tracking-widest leading-none">Left</span>
+                        <div className="flex items-center justify-center gap-2 md:gap-4">
+                          {entry.powerup_balances && entry.powerup_balances.length > 0 ? (
+                            entry.powerup_balances.map((bal: any, bIdx: number) => (
+                              <div
+                                key={bIdx}
+                                className="flex flex-col items-center shrink-0 min-w-[24px] md:min-w-[32px]"
+                                title={`${bal.name}: ${bal.remaining}/${bal.max} left`}
+                              >
+                                <span className={`text-xs md:text-sm font-display font-bold leading-none ${
+                                  bal.type === 'global' ? 'text-ipl-live' : 'text-purple-400 font-extrabold'
+                                }`}>
+                                  {bal.remaining}
+                                </span>
+                                <span className="text-[6px] md:text-[7px] text-gray-500 uppercase font-display tracking-tighter mt-0.5">
+                                  {bal.type === 'global' ? 'GLB' : bal.name.slice(0, 3)}
+                                </span>
+                              </div>
+                            ))
+                          ) : (
+                            <div className="flex flex-col items-center">
+                              <span className="text-base md:text-lg font-display text-ipl-live">
+                                {entry.remaining_powerups !== undefined ? entry.remaining_powerups : 10}
+                              </span>
+                              <span className="text-[7px] md:text-[8px] text-gray-500 uppercase tracking-widest leading-none">Left</span>
+                            </div>
+                          )}
                         </div>
                       </td>
                     </tr>
