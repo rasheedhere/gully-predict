@@ -141,7 +141,32 @@ async def get_match(
         .where(CampaignMatchResult.match_id == match_id, Campaign.is_master == True)
     )
     cmr = cmr_res.scalars().first()
-    results_map = cmr.correct_answers if cmr else {}
+    results_map = dict(cmr.correct_answers) if (cmr and cmr.correct_answers) else {}
+
+    # Query league campaign results the user has access to
+    if not current_user.is_guest:
+        league_cmr_res = await db.execute(
+            select(CampaignMatchResult, Campaign.id)
+            .join(Campaign, CampaignMatchResult.campaign_id == Campaign.id)
+            .join(League, League.id == Campaign.league_id)
+            .join(LeagueUserMapping, LeagueUserMapping.league_id == League.id)
+            .where(
+                League.tournament_id == m.tournament_id,
+                Campaign.type == "match",
+                Campaign.is_master == False,
+                LeagueUserMapping.user_id == current_user.id,
+                Campaign.status == "active",
+                CampaignMatchResult.match_id == match_id,
+                or_(
+                    Campaign.target_matches.any(Match.id == m.id),
+                    ~Campaign.target_matches.any()
+                ),
+            )
+        )
+        for league_cmr, campaign_id in league_cmr_res.all():
+            if league_cmr.correct_answers:
+                for q_id, val in league_cmr.correct_answers.items():
+                    results_map[f"league_{campaign_id}_{q_id}"] = val
 
     match_dict = {
         "id": m.id,
