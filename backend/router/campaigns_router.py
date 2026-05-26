@@ -189,6 +189,7 @@ def _serialize_campaign_admin(campaign: Campaign, cr_dict: dict = None) -> dict:
         "created_by": campaign.created_by,
         "starts_at": campaign.starts_at,
         "ends_at": campaign.ends_at,
+        "max_powerups": campaign.max_powerups,
         "non_participation_penalty": campaign.non_participation_penalty,
         "league_id": campaign.league_id,
         "target_match_ids": [tm.id for tm in campaign.target_matches] if hasattr(campaign, 'target_matches') and campaign.target_matches else [],
