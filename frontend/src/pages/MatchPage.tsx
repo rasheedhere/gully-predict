@@ -622,7 +622,7 @@ export default function MatchPage() {
                       }
 
                       return (
-                        <div className={`grid grid-cols-1 ${match.status === 'completed' && teamPower ? 'md:grid-cols-2' : ''} gap-4`}>
+                        <div className="grid grid-cols-1 gap-4">
                           {/* Prediction Count Split */}
                           <div className="flex justify-center items-center gap-6 md:gap-8 bg-white/5 rounded-lg md:rounded-xl p-3 md:p-4 border border-white/10 relative overflow-hidden group">
                             <div className="absolute -left-10 -bottom-10 opacity-[0.02] group-hover:opacity-[0.05] transition-opacity">
