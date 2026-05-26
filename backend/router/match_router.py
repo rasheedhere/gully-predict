@@ -787,18 +787,45 @@ async def get_all_community_predictions(
 
         display_name = user.alias if user.use_alias and user.alias else user.name
 
-        # Resolve points and breakdown based on league_id
-        score_info = leaderboard_map.get((uid, league_id))
-        if score_info is None and league_id is not None:
-            # Fallback to global (league_id=None) score for this match
-            score_info = leaderboard_map.get((uid, None))
+        # Resolve global scores and breakdown
+        global_score = leaderboard_map.get((uid, None))
+        global_points = global_score["points"] if (global_score and global_score["points"] is not None) else 0
+        global_rules = global_score["points_breakdown"].get("rules", []) if (global_score and global_score["points_breakdown"] and "rules" in global_score["points_breakdown"]) else []
 
-        if score_info:
-            points_awarded = score_info["points"]
-            points_breakdown = score_info["points_breakdown"]
+        league_points = 0
+        league_rules = []
+        has_league_score = False
+
+        if league_id is not None:
+            league_score = leaderboard_map.get((uid, league_id))
+            if league_score:
+                has_league_score = True
+                league_points = league_score["points"] if league_score["points"] is not None else 0
+                league_rules = league_score["points_breakdown"].get("rules", []) if (league_score and league_score["points_breakdown"] and "rules" in league_score["points_breakdown"]) else []
+
+        if league_id is not None:
+            # We want both global and league scores / breakdown combined
+            if global_score is None and not has_league_score:
+                points_awarded = None
+                points_breakdown = None
+            else:
+                points_awarded = global_points + league_points
+                combined_rules = []
+                combined_rules.extend(global_rules)
+                combined_rules.extend(league_rules)
+                global_powerup = global_score["points_breakdown"].get("powerup", {}) if (global_score and global_score["points_breakdown"]) else {}
+                points_breakdown = {
+                    "rules": combined_rules,
+                    "powerup": global_powerup
+                }
         else:
-            points_awarded = meta.get("points_awarded")
-            points_breakdown = meta.get("points_breakdown")
+            # Global/fallback tab
+            if global_score:
+                points_awarded = global_score["points"]
+                points_breakdown = global_score["points_breakdown"]
+            else:
+                points_awarded = meta.get("points_awarded")
+                points_breakdown = meta.get("points_breakdown")
 
         return {
             "prediction_id": meta.get("response_id"),
