@@ -150,8 +150,13 @@ export default function Layout() {
 
         {/* Mobile Menu */}
         {isMenuOpen && (
-          <div className="md:hidden bg-ipl-surface border-t border-white/10 p-4 space-y-2 shadow-lg absolute w-full left-0 animate-in slide-in-from-top-2 duration-300">
-            <Link to="/matchcenter" onClick={clMenu} className="block text-gray-300 hover:text-white font-medium flex items-center gap-3 px-4 py-3 bg-white/5 rounded-lg active:bg-white/10 transition-colors">
+          <>
+            <div 
+              className="md:hidden fixed inset-0 z-[-1] bg-black/60 backdrop-blur-sm" 
+              onClick={clMenu}
+            />
+            <div className="md:hidden bg-ipl-surface border-t border-white/10 p-4 space-y-2 shadow-lg absolute w-full left-0 animate-in slide-in-from-top-2 duration-300">
+              <Link to="/matchcenter" onClick={clMenu} className="block text-gray-300 hover:text-white font-medium flex items-center gap-3 px-4 py-3 bg-white/5 rounded-lg active:bg-white/10 transition-colors">
               <LayoutDashboard className="w-5 h-5 text-ipl-gold" />
               MATCH CENTER
             </Link>
@@ -182,6 +187,7 @@ export default function Layout() {
               LOGOUT
             </button>
           </div>
+          </>
         )}
       </nav>
 
