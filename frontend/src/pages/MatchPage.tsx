@@ -713,7 +713,7 @@ export default function MatchPage() {
                                   {(!winnerQId || pred.answers[winnerQId] === '🔒') ? (
                                     <span className="text-[10px] text-gray-500 font-display tracking-widest uppercase opacity-60 italic p-2">🔒 Predictions are hidden until match locks</span>
                                   ) : (
-                                    Object.keys(pred.answers || {}).filter(k => ![winnerQId, 'use_powerup'].includes(k)).map(k => {
+                                    Object.keys(questionMap || {}).filter(k => ![winnerQId, 'use_powerup'].includes(k)).map(k => {
                                       const q = questionMap?.[k];
                                       let label = q?.question_text || '';
                                       if (q?.source_name && q.source_name !== 'IPL Global') {

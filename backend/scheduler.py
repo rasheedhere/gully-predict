@@ -172,69 +172,98 @@ async def generate_ai_prediction(db, match: Match, ai_user: User):
 
 
 
-    # Build answers dict {question_id: answer_value}
-    answers = {}
-    t1, t2 = match.team1, match.team2
-    for q in master_cam.questions:
-        opts = [_replace_placeholders(o, match) for o in q.options] if q.options else []
-        qtype = q.question_type
-        text = _replace_placeholders(q.question_text, match).lower()
-        val = None
+    def generate_answers(campaign: Campaign) -> dict:
+        ans = {}
+        for q in campaign.questions:
+            opts = [_replace_placeholders(o, match) for o in q.options] if q.options else []
+            qtype = q.question_type
+            text = _replace_placeholders(q.question_text, match).lower()
+            val = None
 
-        if set(opts) == {t1, t2}:
-            if qtype == "toggle" and "dot ball" in text:
-                val = random.choice([t1, t2]) 
-            elif qtype == "dropdown":
-                if "six" in text:
-                    val = more_sixes_team or random.choice([t1, t2])
-                elif "four" in text:
-                    val = more_fours_team or random.choice([t1, t2])
+            if set(opts) == {t1, t2}:
+                if qtype == "toggle" and "dot ball" in text:
+                    val = random.choice([t1, t2]) 
+                elif qtype == "dropdown":
+                    if "six" in text:
+                        val = more_sixes_team or random.choice([t1, t2])
+                    elif "four" in text:
+                        val = more_fours_team or random.choice([t1, t2])
+                    else:
+                        val = random.choice([t1, t2])
                 else:
-                    val = random.choice([t1, t2])
-            else:
-                if "win" in text:
-                    val = match_winner  
-                else:
-                    val = random.choice([t1, t2])
-        elif qtype == "free_number" and ("powerplay" in text or "power play" in text):
-            if t1.lower() in text or "team1" in text:
-                val = str(team1_pp)
-            elif t2.lower() in text or "team2" in text:
-                val = str(team2_pp)
-        elif qtype == "free_text" and ("player" in text or "potm" in text or "man of" in text):
-            val = potm
+                    if "win" in text:
+                        val = match_winner  
+                    else:
+                        val = random.choice([t1, t2])
+            elif qtype == "free_number" and ("powerplay" in text or "power play" in text):
+                if t1.lower() in text or "team1" in text:
+                    val = str(team1_pp)
+                elif t2.lower() in text or "team2" in text:
+                    val = str(team2_pp)
+            elif qtype == "free_text" and ("player" in text or "potm" in text or "man of" in text):
+                val = potm
 
-        if val is not None:
-            answers[q.id] = val
+            if val is not None:
+                ans[q.id] = val
+        return ans
 
-    # Upsert CampaignResponse
-    resp_res = await db.execute(
-        select(CampaignResponse).where(
-            CampaignResponse.user_id == ai_user.id,
-            CampaignResponse.campaign_id == master_cam.id,
-            CampaignResponse.match_id == match.id,
+    master_answers = generate_answers(master_cam)
+
+    async def upsert_response(cid: str, ans: dict, pu: bool):
+        resp_res = await db.execute(
+            select(CampaignResponse).where(
+                CampaignResponse.user_id == ai_user.id,
+                CampaignResponse.campaign_id == cid,
+                CampaignResponse.match_id == match.id,
+            )
         )
-    )
-    response = resp_res.scalars().first()
-    if response:
-        response.answers = answers
-        response.use_powerup = use_powerup
-        response.is_auto_predicted = True
-    else:
-        response = CampaignResponse(
-            id=str(uuid.uuid4()),
-            user_id=ai_user.id,
-            campaign_id=master_cam.id,
-            match_id=match.id,
-            answers=answers,
-            use_powerup=use_powerup,
-            is_auto_predicted=True,
-        )
-        db.add(response)
+        response = resp_res.scalars().first()
+        if response:
+            response.answers = ans
+            response.use_powerup = pu
+            response.is_auto_predicted = True
+        else:
+            response = CampaignResponse(
+                id=str(uuid.uuid4()),
+                user_id=ai_user.id,
+                campaign_id=cid,
+                match_id=match.id,
+                answers=ans,
+                use_powerup=pu,
+                is_auto_predicted=True,
+            )
+            db.add(response)
+        return response
+
+    master_response = await upsert_response(master_cam.id, master_answers, use_powerup)
 
     # Deduct powerup if used (incrementing mapped usage)
-    if use_powerup and not getattr(response, "use_powerup", False):
+    if use_powerup and not getattr(master_response, "use_powerup", False):
         mapping.powerups_used += 1
+
+    # 2. Generate league-specific campaign answers
+    from backend.models import League, LeagueUserMapping
+    league_result = await db.execute(
+        select(Campaign)
+        .join(League, League.id == Campaign.league_id)
+        .join(LeagueUserMapping, LeagueUserMapping.league_id == League.id)
+        .options(selectinload(Campaign.questions))
+        .where(
+            League.tournament_id == match.tournament_id,
+            Campaign.type == "match",
+            Campaign.is_master == False,
+            LeagueUserMapping.user_id == ai_user.id,
+            Campaign.status == "active",
+            or_(
+                Campaign.target_matches.any(Match.id == match.id),
+                ~Campaign.target_matches.any()
+            ),
+        )
+    )
+    for c in league_result.scalars().all():
+        c_answers = generate_answers(c)
+        if c_answers:
+            await upsert_response(c.id, c_answers, False)
 
 
 async def auto_predict_daily_job():
