@@ -133,6 +133,9 @@ async def calculate_campaign_scores(campaign_id: str, db: AsyncSession, match_id
 
         total = 0
         breakdown_rules = []
+        multiplier = 1
+        if campaign.is_master and campaign.type == CampaignType.match:
+            multiplier = 2 if response.use_powerup else 1
 
         for q_id, q in question_map.items():
             answer_value = answers.get(q_id)
@@ -147,6 +150,12 @@ async def calculate_campaign_scores(campaign_id: str, db: AsyncSession, match_id
                 continue  # No correct answer set yet for this question
 
             pts = score_answer(q, answer_value, correct_answer_override=override)
+
+            # Apply powerup if this is a master match campaign
+            current_multiplier = multiplier if q.allow_powerup else 1
+            if current_multiplier > 1 and pts > 0:
+                pts *= current_multiplier
+
             total += pts
             breakdown_rules.append({
                 "category": q.question_text,
@@ -154,10 +163,18 @@ async def calculate_campaign_scores(campaign_id: str, db: AsyncSession, match_id
                 "points": pts,
                 "predicted": answer_value,
                 "actual": override,
+                "was_boosted": current_multiplier > 1,
             })
 
         response.total_points = total
-        response.points_breakdown = {"rules": breakdown_rules, "total": total}
+        if campaign.is_master and campaign.type == CampaignType.match:
+            response.points_breakdown = {
+                "rules": breakdown_rules,
+                "powerup": {"used": response.use_powerup, "multiplier": multiplier},
+                "total": total,
+            }
+        else:
+            response.points_breakdown = {"rules": breakdown_rules, "total": total}
         responded_user_ids.add(response.user_id)
 
         # Persist to LeaderboardEntry for league-scoped match campaigns OR any general campaigns
