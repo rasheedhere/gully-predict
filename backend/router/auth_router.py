@@ -124,19 +124,30 @@ async def auth_callback(request: Request, db: AsyncSession = Depends(get_db)):
         return RedirectResponse(url=f"{os.environ.get('FRONTEND_URL', 'http://localhost:5000')}/login?error=auth_failed")
 
 class VerifyTokenRequest(BaseModel):
-    access_token: str
+    access_token: str | None = None
+    credential: str | None = None
 
 @router.post("/auth/google/verify")
 async def verify_google_token(payload: VerifyTokenRequest, db: AsyncSession = Depends(get_db)):
-    """Verifies an access token sent from the frontend popup (via @react-oauth/google)"""
+    """Verifies a token sent from the frontend (@react-oauth/google)"""
     async with httpx.AsyncClient() as client:
-        response = await client.get(
-            "https://www.googleapis.com/oauth2/v3/userinfo",
-            headers={"Authorization": f"Bearer {payload.access_token}"}
-        )
-        if response.status_code != 200:
-            raise HTTPException(status_code=401, detail="Invalid Google token")
-        user_info = response.json()
+        if payload.credential:
+            # Verify ID Token (used by <GoogleLogin> iframe button)
+            response = await client.get(f"https://oauth2.googleapis.com/tokeninfo?id_token={payload.credential}")
+            if response.status_code != 200:
+                raise HTTPException(status_code=401, detail="Invalid Google credential")
+            user_info = response.json()
+        elif payload.access_token:
+            # Verify Access Token (used by useGoogleLogin popup)
+            response = await client.get(
+                "https://www.googleapis.com/oauth2/v3/userinfo",
+                headers={"Authorization": f"Bearer {payload.access_token}"}
+            )
+            if response.status_code != 200:
+                raise HTTPException(status_code=401, detail="Invalid Google access token")
+            user_info = response.json()
+        else:
+            raise HTTPException(status_code=400, detail="Must provide credential or access_token")
         
     email = user_info.get("email")
     if not email:

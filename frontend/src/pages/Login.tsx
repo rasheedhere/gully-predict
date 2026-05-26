@@ -3,6 +3,7 @@ import { useSearchParams, useNavigate, useLocation } from 'react-router-dom';
 import axios from 'axios';
 import { useAuthStore } from '../store/auth';
 import toast from 'react-hot-toast';
+import { GoogleLogin } from '@react-oauth/google';
 
 export default function Login() {
   const [searchParams] = useSearchParams();
@@ -17,16 +18,23 @@ export default function Login() {
 
   const devLoginEnabled = import.meta.env.VITE_DEV_LOGIN === 'true';
 
-  const handleLogin = () => {
-    localStorage.setItem('redirect_after_login', targetUrl);
-    
-    // If VITE_API_URL is explicitly provided (e.g. prod), use it.
-    // Otherwise fallback to relative /api which Vite proxies in dev.
-    const baseUrl = import.meta.env.VITE_API_URL 
-      ? import.meta.env.VITE_API_URL.replace(/\/$/, '') 
-      : '/api';
+  const handleGoogleSuccess = async (credentialResponse: any) => {
+    try {
+      const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api';
+      toast.loading('Authenticating...', { id: 'google-login' });
       
-    window.location.href = `${baseUrl}/auth/google`;
+      const { data } = await axios.post(`${API_URL}/auth/google/verify`, {
+        credential: credentialResponse.credential
+      });
+      
+      toast.success(`Welcome, ${data.user.alias || data.user.name}`, { id: 'google-login' });
+      setUser(data.user, data.token);
+      localStorage.setItem('redirect_after_login', targetUrl);
+      navigate(targetUrl);
+    } catch (err: any) {
+      toast.error('Authentication failed. Are you on the guest list?', { id: 'google-login' });
+      console.error('Google verification failed:', err);
+    }
   };
 
   const handleDevLogin = async (role: 'admin' | 'user' | 'guest' | 'league-admin') => {
@@ -67,13 +75,18 @@ export default function Login() {
             Sign in below to submit your predictions and access the leaderboard.
           </p>
 
-          <button
-            onClick={handleLogin}
-            className="w-full flex items-center justify-center gap-3 bg-white hover:bg-gray-100 text-black py-4 px-6 font-display uppercase tracking-widest transition-all hover:scale-[1.02] active:scale-95"
-          >
-            <img src="https://www.svgrepo.com/show/475656/google-color.svg" className="w-5 h-5" alt="Google" />
-            Sign in with Google
-          </button>
+          <div className="flex justify-center w-full bg-white hover:bg-gray-100 transition-all active:scale-95 py-1">
+            <GoogleLogin
+              onSuccess={handleGoogleSuccess}
+              onError={() => toast.error('Google sign-in was cancelled or failed.')}
+              useOneTap
+              theme="outline"
+              size="large"
+              width="300"
+              text="signin_with"
+              shape="rectangular"
+            />
+          </div>
 
           {devLoginEnabled && (
             <div className="mt-6 pt-6 border-t border-dashed border-white/10">
