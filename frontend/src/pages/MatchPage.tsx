@@ -3,7 +3,7 @@ import { useParams } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { useQueryClient } from '@tanstack/react-query';
 import { useMatch, useSubmitPrediction, useMyPredictions, useAllMatchPredictions } from '../api/hooks/useMatches';
-import { Trophy, Target, CheckCircle2, Edit2, Check, X, Sparkles, MapPin, ChevronDown, ChevronUp } from 'lucide-react';
+import { Trophy, Target, CheckCircle2, Edit2, Check, X, Sparkles, MapPin, ChevronDown, ChevronUp, HelpCircle, Zap, AlertCircle } from 'lucide-react';
 import { useAuthStore } from '../store/auth';
 import { apiClient } from '../api/client';
 import toast from 'react-hot-toast';
@@ -603,13 +603,13 @@ export default function MatchPage() {
                       </div>
                     </div>
 
-                    {/* Helper Function */}
                     {(() => {
                       const renderPredictionCard = (pred: any, idx: number, isDesktop = false) => {
                         const isMyRow = pred.user?.id === currentUser?.id;
                         const winnerAns = winnerQId ? pred.answers[winnerQId] : '🔒';
                         const teamWinnerShort = winnerAns === '🔒' ? '🔒' : getTeamShortName(winnerAns);
                         const isExpanded = expandedCardIds.has(pred.prediction_id);
+                        const isCompleted = match.status === 'completed';
 
                         const toggleExpand = () => {
                           setExpandedCardIds(prev => {
@@ -619,6 +619,19 @@ export default function MatchPage() {
                             return newSet;
                           });
                         };
+
+                        const keysToRender = (() => {
+                          const keys = Object.keys(questionMap || {}).filter(k => k !== 'use_powerup');
+                          if (isCompleted) {
+                            return keys.sort((a, b) => {
+                              if (a === winnerQId) return -1;
+                              if (b === winnerQId) return 1;
+                              return 0;
+                            });
+                          } else {
+                            return keys.filter(k => k !== winnerQId);
+                          }
+                        })();
 
                         return (
                           <div key={idx} className={`flex flex-col rounded-lg border transition-all ${isMyRow ? 'bg-ipl-gold/10 border-ipl-gold/50 shadow-[0_0_15px_rgba(244,196,48,0.15)]' : 'bg-white/5 border-white/10'}`}>
@@ -642,37 +655,53 @@ export default function MatchPage() {
                                       {getUserDisplayName(pred.user)}
                                     </span>
                                     {match.status === 'completed' && pred.points_awarded !== undefined && pred.points_awarded !== null && (
-                                      <div className="group-score relative">
-                                        <span className={`px-1.5 py-0.5 rounded text-[9px] md:text-[10px] font-bold font-mono cursor-help transition-all group-hover-score:bg-white/20 ${pred.points_awarded > 0 ? 'bg-green-500/20 text-green-400 border border-green-500/30' : pred.points_awarded < 0 ? 'bg-red-500/20 text-red-400 border border-red-500/30' : 'bg-white/10 text-gray-400 border border-white/20'}`}>
+                                      <div className="group relative flex items-center gap-1.5">
+                                        <span className={`px-1.5 py-0.5 rounded text-[9px] md:text-[10px] font-bold font-mono cursor-help transition-all group-hover:bg-white/20 ${pred.points_awarded > 0 ? 'bg-green-500/20 text-green-400 border border-green-500/30' : pred.points_awarded < 0 ? 'bg-red-500/20 text-red-400 border border-red-500/30' : 'bg-white/10 text-gray-400 border border-white/20'}`}>
                                           {pred.points_awarded > 0 ? '+' : ''}{pred.points_awarded} PTS
                                         </span>
+                                        {pred.points_breakdown?.rules && (
+                                          <HelpCircle className="w-3.5 h-3.5 text-gray-400 group-hover:text-ipl-gold transition-colors cursor-help shrink-0" />
+                                        )}
 
                                         {/* Breakdown Tooltip */}
                                         {pred.points_breakdown?.rules && (
-                                          <div className="absolute bottom-full left-0 mb-2 w-52 bg-[#0f172a] border border-white/10 rounded-lg shadow-2xl p-3 opacity-0 group-hover-score:opacity-100 pointer-events-none transition-all z-50">
+                                          <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-56 bg-[#0f172a] border border-white/10 rounded-lg shadow-2xl p-3 opacity-0 group-hover:opacity-100 pointer-events-none transition-all duration-200 z-50">
                                             <div className="space-y-1.5">
-                                              {/* Boostable Core Rules */}
-                                              {pred.points_breakdown.rules.filter((r: any) => !['More Sixes', 'More Fours'].includes(r.category)).map((rule: any, ri: number) => (
-                                                <div key={ri} className="flex justify-between items-center text-[8px] uppercase tracking-wider">
-                                                  <div className="flex items-center gap-1 min-w-0">
-                                                    {rule.was_boosted && <span className="text-ipl-gold shrink-0">⚡</span>}
-                                                    <span className="text-gray-500 truncate">{rule.category}</span>
+                                              <div className="text-[9px] font-display uppercase tracking-widest text-ipl-gold border-b border-white/5 pb-1 mb-1.5 font-bold">
+                                                Points Breakdown
+                                              </div>
+                                              {pred.points_breakdown.rules.map((rule: any, ri: number) => {
+                                                const isRuleCorrect = rule.status === 'correct' || rule.status === 'bingo';
+                                                const isRuleRange = rule.status === 'range';
+                                                return (
+                                                  <div key={ri} className="flex justify-between items-center text-[8px] uppercase tracking-wider">
+                                                    <div className="flex items-center gap-1.5 min-w-0">
+                                                      {rule.was_boosted && <span className="text-ipl-gold shrink-0">⚡</span>}
+                                                      {isRuleCorrect ? (
+                                                        <Check className="w-2.5 h-2.5 text-green-500 shrink-0" />
+                                                      ) : isRuleRange ? (
+                                                        <Target className="w-2.5 h-2.5 text-blue-400 shrink-0" />
+                                                      ) : (
+                                                        <X className="w-2.5 h-2.5 text-red-500/50 shrink-0" />
+                                                      )}
+                                                      <span className="text-gray-400 truncate">{rule.category}</span>
+                                                    </div>
+                                                    <span className={`font-mono font-bold ${rule.points > 0 ? 'text-green-400' : rule.points < 0 ? 'text-red-400' : 'text-gray-500'}`}>
+                                                      {rule.points > 0 ? '+' : ''}{rule.points}
+                                                    </span>
                                                   </div>
-                                                  <span className={rule.points > 0 ? 'text-green-400' : rule.points < 0 ? 'text-gray-400' : 'text-gray-400'}>
-                                                    {rule.points > 0 ? '+' : ''}{rule.points}
-                                                  </span>
-                                                </div>
-                                              ))}
+                                                );
+                                              })}
 
                                               {/* Multiplier Indicator */}
                                               {pred.points_breakdown.powerup?.used && (
-                                                <div className="py-1 my-1 border-y border-white/5 flex justify-between items-center text-[8px] uppercase tracking-widest font-bold text-ipl-gold">
-                                                  <span className="flex items-center gap-1">⚡ 2X Booster Applied</span>
+                                                <div className="py-1 mt-1 border-t border-white/5 flex justify-between items-center text-[8px] uppercase tracking-widest font-bold text-ipl-gold">
+                                                  <span className="flex items-center gap-1">⚡ 2X Booster</span>
                                                   <span className="bg-ipl-gold text-black px-1 rounded-sm">x2</span>
                                                 </div>
                                               )}
                                             </div>
-                                            <div className="absolute -bottom-1 left-4 w-2 h-2 bg-[#0f172a] border-r border-b border-white/10 rotate-45" />
+                                            <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-2 h-2 bg-[#0f172a] border-r border-b border-white/10 rotate-45" />
                                           </div>
                                         )}
                                       </div>
@@ -712,18 +741,123 @@ export default function MatchPage() {
                             {/* Accordion Content (Answers) */}
                             {isExpanded && (
                               <div className={`border-t border-white/5 ${isDesktop ? 'p-3.5 pt-2' : 'p-2 pt-1'}`}>
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-                                  {(!winnerQId || pred.answers[winnerQId] === '🔒') ? (
-                                    <span className="text-[10px] text-gray-500 font-display tracking-widest uppercase opacity-60 italic p-2">🔒 Predictions are hidden until match locks</span>
-                                  ) : (
-                                    Object.keys(questionMap || {}).filter(k => ![winnerQId, 'use_powerup'].includes(k)).map(k => {
+                                {(!winnerQId || pred.answers[winnerQId] === '🔒') ? (
+                                  <span className="text-[10px] text-gray-500 font-display tracking-widest uppercase opacity-60 italic p-2">🔒 Predictions are hidden until match locks</span>
+                                ) : isCompleted && pred.points_breakdown?.rules ? (
+                                  <div className="space-y-4 pt-1">
+                                    {/* Powerup Banner */}
+                                    {pred.points_breakdown.powerup?.used && (
+                                      <div className="bg-ipl-gold/10 border border-ipl-gold/30 rounded-xl p-3 flex justify-between items-center text-xs font-display text-ipl-gold font-bold uppercase tracking-wider shadow-inner">
+                                        <span className="flex items-center gap-2">
+                                          <Zap className="w-4 h-4 text-ipl-gold animate-pulse" />
+                                          2X Booster Applied (Winner, POTM, Powerplay Doubled)
+                                        </span>
+                                        <span className="bg-ipl-gold text-black px-2 py-0.5 rounded text-[10px] font-black font-mono">
+                                          x2
+                                        </span>
+                                      </div>
+                                    )}
+
+                                    {/* Dynamic Card Grid */}
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                                      {keysToRender.map(k => {
+                                        const q = questionMap?.[k];
+                                        let label = q?.question_text || '';
+                                        if (q?.source_name && q.source_name !== 'IPL Global') {
+                                          label = `${q.source_name}: ${label}`;
+                                        }
+
+                                        const rule = pred.points_breakdown?.rules?.find((r: any) => r.key === k || r.question_id === q?.id);
+                                        if (!rule) {
+                                          const isTeamMatch = getTeamColor(pred.answers[k]) !== '#666666';
+                                          const valStyle = isTeamMatch ? { color: getTeamColor(pred.answers[k]) } : {};
+                                          const displayVal = isTeamMatch ? getTeamShortName(pred.answers[k]) : pred.answers[k];
+
+                                          return (
+                                            <div key={k} className="flex flex-col justify-center bg-black/20 p-2.5 rounded-md border border-white/5">
+                                              <span className="text-[9px] text-gray-500 font-display uppercase tracking-widest mb-1 leading-tight">
+                                                {label}
+                                              </span>
+                                              <span className="text-sm md:text-base text-white font-display font-bold tracking-wide" style={valStyle}>
+                                                {displayVal || '-'}
+                                              </span>
+                                            </div>
+                                          );
+                                        }
+
+                                        const isRuleCorrect = rule.status === 'correct' || rule.status === 'bingo';
+                                        const isRuleRange = rule.status === 'range';
+                                        const isRuleIncorrect = rule.status === 'incorrect' || rule.status === 'miss';
+
+                                        return (
+                                          <div
+                                            key={k}
+                                            className={`flex flex-col justify-between p-3 md:p-3.5 rounded-xl border transition-all duration-300 relative overflow-hidden ${
+                                              isRuleCorrect ? 'bg-green-500/[0.03] border-green-500/20 hover:border-green-500/30' :
+                                              isRuleRange ? 'bg-blue-500/[0.03] border-blue-500/20 hover:border-blue-500/30' :
+                                              isRuleIncorrect ? 'bg-red-500/[0.03] border-red-500/20 hover:border-red-500/30' :
+                                              'bg-white/5 border-white/10'
+                                            }`}
+                                          >
+                                            <div className="flex items-start justify-between gap-2 mb-2 w-full">
+                                              <span className="text-[9px] text-gray-400 font-display uppercase tracking-wider font-semibold truncate max-w-[70%]">
+                                                {label}
+                                              </span>
+                                              <div className="flex items-center gap-1.5 shrink-0">
+                                                {isRuleCorrect ? (
+                                                  <span className="flex items-center justify-center w-4 h-4 rounded-full bg-green-500/10 border border-green-500/25">
+                                                    <Check className="w-2.5 h-2.5 text-green-400" />
+                                                  </span>
+                                                ) : isRuleRange ? (
+                                                  <span className="flex items-center justify-center w-4 h-4 rounded-full bg-blue-500/10 border border-blue-500/25">
+                                                    <Target className="w-2.5 h-2.5 text-blue-400" />
+                                                  </span>
+                                                ) : (
+                                                  <span className="flex items-center justify-center w-4 h-4 rounded-full bg-red-500/10 border border-red-500/25">
+                                                    <AlertCircle className="w-2.5 h-2.5 text-red-400" />
+                                                  </span>
+                                                )}
+                                                <span className={`text-[9px] font-mono font-bold px-1.5 py-0.5 rounded ${
+                                                  rule.points > 0 ? 'bg-green-500/10 text-green-400 border border-green-500/20 shadow-sm shadow-green-950' :
+                                                  rule.points < 0 ? 'bg-red-500/10 text-red-400 border border-red-500/20 shadow-sm shadow-red-950' :
+                                                  'bg-white/5 text-gray-500 border border-white/10'
+                                                }`}>
+                                                  {rule.points > 0 ? '+' : ''}{rule.points} PTS
+                                                  {rule.was_boosted && <span className="ml-0.5 text-[8px] text-ipl-gold">⚡</span>}
+                                                </span>
+                                              </div>
+                                            </div>
+
+                                            <div className="space-y-1.5 mt-1.5 bg-black/20 p-2 rounded-lg border border-white/[0.02]">
+                                              <div className="flex items-center justify-between text-xs">
+                                                <span className="text-gray-500 uppercase tracking-tighter text-[9px]">Predicted:</span>
+                                                <span className="font-display font-bold text-xs" style={getTeamColor(pred.answers[k]) !== '#666666' ? { color: getTeamColor(pred.answers[k]) } : { color: 'white' }}>
+                                                  {getTeamColor(pred.answers[k]) !== '#666666' ? getTeamShortName(pred.answers[k]) : pred.answers[k] || '-'}
+                                                </span>
+                                              </div>
+                                              {(!isRuleCorrect && rule.actual !== undefined && rule.actual !== null) && (
+                                                <div className="flex items-center justify-between text-xs border-t border-white/5 pt-1.5 mt-1.5">
+                                                  <span className="text-gray-500 uppercase tracking-tighter text-[9px]">Actual:</span>
+                                                  <span className="font-display font-bold text-xs" style={getTeamColor(rule.actual) !== '#666666' ? { color: getTeamColor(rule.actual) } : { color: 'white' }}>
+                                                    {getTeamColor(rule.actual) !== '#666666' ? getTeamShortName(rule.actual) : rule.actual || '-'}
+                                                  </span>
+                                                </div>
+                                              )}
+                                            </div>
+                                          </div>
+                                        );
+                                      })}
+                                    </div>
+                                  </div>
+                                ) : (
+                                  <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                                    {Object.keys(questionMap || {}).filter(k => ![winnerQId, 'use_powerup'].includes(k)).map(k => {
                                       const q = questionMap?.[k];
                                       let label = q?.question_text || '';
                                       if (q?.source_name && q.source_name !== 'IPL Global') {
                                         label = `${q.source_name}: ${label}`;
                                       }
 
-                                      // Color code if it matches a team name
                                       const isTeamMatch = getTeamColor(pred.answers[k]) !== '#666666';
                                       const valStyle = isTeamMatch ? { color: getTeamColor(pred.answers[k]) } : {};
                                       const displayVal = isTeamMatch ? getTeamShortName(pred.answers[k]) : pred.answers[k];
@@ -771,9 +905,9 @@ export default function MatchPage() {
                                           )}
                                         </div>
                                       );
-                                    })
-                                  )}
-                                </div>
+                                    })}
+                                  </div>
+                                )}
                               </div>
                             )}
                           </div>
