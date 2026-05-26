@@ -170,6 +170,59 @@ async def update_user_base_stats(user_id: str, payload: dict, db: AsyncSession =
 
 
 
+@router.put("/predictions/{response_id}")
+async def update_prediction(
+    response_id: str,
+    payload: dict,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    from backend.models import CampaignResponse, Campaign, LeagueAdminMapping
+    res = await db.execute(
+        select(CampaignResponse)
+        .options(selectinload(CampaignResponse.campaign))
+        .where(CampaignResponse.id == response_id)
+    )
+    c_resp = res.scalars().first()
+    if not c_resp:
+        raise HTTPException(status_code=404, detail="Prediction not found")
+
+    # Authorize: global admin OR league admin for this campaign's league
+    is_authorized = current_user.is_admin
+    if not is_authorized and c_resp.campaign and c_resp.campaign.league_id:
+        admin_res = await db.execute(
+            select(LeagueAdminMapping).where(
+                LeagueAdminMapping.league_id == c_resp.campaign.league_id,
+                LeagueAdminMapping.user_id == current_user.id
+            )
+        )
+        if admin_res.scalars().first():
+            is_authorized = True
+
+    if not is_authorized:
+        raise HTTPException(status_code=403, detail="Not authorized to edit this prediction")
+
+    # Merge answers
+    answers = dict(c_resp.answers or {})
+    answers.update(payload)
+    c_resp.answers = answers
+
+    # Ensure it gets re-scored
+    if c_resp.match_id:
+        from backend.scoring import calculate_match_scores
+        await calculate_match_scores(c_resp.match_id, db)
+    else:
+        from backend.campaigns_scoring import calculate_campaign_scores
+        await calculate_campaign_scores(db, c_resp.campaign_id)
+
+    # Invalidate cache
+    backend_cache.invalidate("leaderboard_*")
+    backend_cache.invalidate("analysis_*")
+    backend_cache.invalidate(f"user_pred_status:{c_resp.user_id}")
+
+    await db.commit()
+    return {"message": "Prediction updated"}
+
 @router.post("/trigger-ai-predictions")
 async def trigger_ai_predictions(db: AsyncSession = Depends(get_db), current_admin: User = Depends(get_current_admin)):
     from backend.scheduler import auto_predict_daily_job

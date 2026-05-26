@@ -252,10 +252,10 @@ export default function MatchPage() {
     });
   };
 
-  const handleAdminUpdate = async (predId: string) => {
+  const handleAdminUpdate = async (predId: string, questionKey: string) => {
     try {
       await apiClient.put(`/admin/predictions/${predId}`,
-        { player_of_the_match: editValue }
+        { [questionKey]: editValue }
       );
       setEditingId(null);
       toast.success('Prediction updated successfully');
@@ -726,58 +726,51 @@ export default function MatchPage() {
                                       const displayVal = isTeamMatch ? getTeamShortName(pred.answers[k]) : pred.answers[k];
 
                                       return (
-                                        <div key={k} className="flex flex-col justify-center bg-black/20 p-2.5 rounded-md border border-white/5">
+                                        <div key={k} className="flex flex-col justify-center bg-black/20 p-2.5 rounded-md border border-white/5 relative group">
                                           {label && (
-                                            <span className="text-[9px] text-gray-500 font-display uppercase tracking-widest mb-1 leading-tight">
-                                              {label}
+                                            <span className="text-[9px] text-gray-500 font-display uppercase tracking-widest mb-1 leading-tight flex justify-between items-center">
+                                              <span>{label}</span>
+                                              {currentUser?.is_admin && pred.prediction_id && editingId !== `${pred.prediction_id}:${k}` && (
+                                                <button
+                                                  onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    setEditingId(`${pred.prediction_id}:${k}`);
+                                                    setEditValue(pred.answers[k] || '');
+                                                  }}
+                                                  className="opacity-0 group-hover:opacity-100 text-gray-500 hover:text-ipl-gold transition-all"
+                                                >
+                                                  <Edit2 className="w-3 h-3" />
+                                                </button>
+                                              )}
                                             </span>
                                           )}
-                                          <span className="text-sm md:text-base text-white font-display font-bold tracking-wide" style={valStyle}>
-                                            {displayVal || '-'}
-                                          </span>
+                                          
+                                          {editingId === `${pred.prediction_id}:${k}` ? (
+                                            <div className="flex items-center gap-1 mt-1">
+                                              <input
+                                                value={editValue}
+                                                onChange={(e) => setEditValue(e.target.value)}
+                                                onClick={(e) => e.stopPropagation()}
+                                                className="bg-black/60 border border-white/20 text-white p-1 text-xs w-full focus:border-ipl-gold focus:outline-none font-mono rounded"
+                                                autoFocus
+                                              />
+                                              <button onClick={(e) => { e.stopPropagation(); handleAdminUpdate(pred.prediction_id, k); }} className="text-green-500 hover:bg-white/10 rounded p-1 shrink-0">
+                                                <Check className="w-3 h-3" />
+                                              </button>
+                                              <button onClick={(e) => { e.stopPropagation(); setEditingId(null); }} className="text-red-500 hover:bg-white/10 rounded p-1 shrink-0">
+                                                <X className="w-3 h-3" />
+                                              </button>
+                                            </div>
+                                          ) : (
+                                            <span className="text-sm md:text-base text-white font-display font-bold tracking-wide" style={valStyle}>
+                                              {displayVal || '-'}
+                                            </span>
+                                          )}
                                         </div>
                                       );
                                     })
                                   )}
                                 </div>
-                                
-                                {currentUser?.is_admin && (
-                                  <div className="flex items-center justify-end mt-3 border-t border-white/5 pt-2">
-                                    {editingId === pred.prediction_id ? (
-                                      <div className="flex items-center gap-1 justify-end">
-                                        <input
-                                          value={editValue}
-                                          onChange={(e) => setEditValue(e.target.value)}
-                                          className="bg-black/60 border border-white/20 text-white p-0.5 text-[8px] md:text-[10px] w-16 md:w-24 focus:border-ipl-gold focus:outline-none font-mono"
-                                          autoFocus
-                                        />
-                                        <button onClick={() => handleAdminUpdate(pred.prediction_id)} className="text-green-500 hover:bg-white/10 rounded p-0.5">
-                                          <Check className="w-2.5 h-2.5 md:w-3.5 md:h-3.5" />
-                                        </button>
-                                        <button onClick={() => setEditingId(null)} className="text-red-500 hover:bg-white/10 rounded p-0.5">
-                                          <X className="w-2.5 h-2.5 md:w-3.5 md:h-3.5" />
-                                        </button>
-                                      </div>
-                                    ) : (
-                                      <>
-                                        {/* Edit block removed since we are now fully dynamic. We can still let admins edit, but they might need to go to Admin panel for specific questions. */}
-                                        {pred.prediction_id && (
-                                          <button
-                                            onClick={() => {
-                                              // As a fallback, we could edit the first free_text answer if we want, but since it's dynamic, we might just edit the prediction's 'extra_answers' directly from the Admin panel instead.
-                                              console.log("Admin edit requested for", pred.prediction_id);
-                                            }}
-                                            className="text-gray-600 hover:text-ipl-gold transition-colors ml-1.5 flex items-center gap-1"
-                                            title="Edit prediction (Go to Admin Panel)"
-                                          >
-                                            <Edit2 className={`${isDesktop ? 'md:w-3.5 md:h-3.5' : 'w-2.5 h-2.5'}`} />
-                                            <span className="text-[8px] uppercase tracking-widest">Admin Edit</span>
-                                          </button>
-                                        )}
-                                      </>
-                                    )}
-                                  </div>
-                                )}
                               </div>
                             )}
                           </div>
