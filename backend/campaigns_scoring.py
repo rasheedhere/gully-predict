@@ -15,7 +15,7 @@ from backend.models import (
 )
 
 
-def score_answer(question: CampaignQuestion, answer_value, correct_answer_override=None) -> int:
+def score_answer(question: CampaignQuestion, answer_value, correct_answer_override=None) -> tuple[int, str]:
     """
     Score a single answer against a question's scoring rules.
     correct_answer_override comes from CampaignMatchResult.correct_answers.
@@ -25,7 +25,7 @@ def score_answer(question: CampaignQuestion, answer_value, correct_answer_overri
     q_type = question.question_type
 
     if correct is None:
-        return 0
+        return 0, "skip"
 
     exact_points = rules.get("exact_match_points", 0)
     wrong_points = rules.get("wrong_answer_points", 0)
@@ -36,33 +36,39 @@ def score_answer(question: CampaignQuestion, answer_value, correct_answer_overri
             user_val = float(answer_value)
             correct_val = float(correct)
         except (TypeError, ValueError):
-            return wrong_points
+            return wrong_points, "miss"
         diff = abs(user_val - correct_val)
         if diff == 0:
-            return exact_points
+            return exact_points, "bingo"
         if diff <= rules.get("range_delta", 5):
-            return within_range_points
-        return wrong_points
+            return within_range_points, "range"
+        return wrong_points, "miss"
 
     if q_type == QuestionType.multiple_choice:
         try:
             user_set = set(answer_value) if isinstance(answer_value, list) else {answer_value}
             correct_set = set(correct) if isinstance(correct, list) else {correct}
         except TypeError:
-            return wrong_points
+            return wrong_points, "incorrect"
 
         tiers = rules.get("multiple_choice_tiers", {})
         if tiers:
             correct_count = len(user_set.intersection(correct_set))
-            return tiers.get(str(correct_count), wrong_points)
+            pts = tiers.get(str(correct_count), wrong_points)
+            if user_set == correct_set:
+                return pts, "correct"
+            elif pts > wrong_points:
+                return pts, "range"
+            else:
+                return pts, "incorrect"
 
-        return exact_points if user_set == correct_set else wrong_points
+        return (exact_points, "correct") if user_set == correct_set else (wrong_points, "incorrect")
 
     # toggle, dropdown, free_text: string comparison
     user_str = str(answer_value).strip().strip('"').strip("'").lower() if answer_value is not None else ""
     correct_str = str(correct).strip().strip('"').strip("'").lower() if correct is not None else ""
 
-    return exact_points if user_str == correct_str else wrong_points
+    return (exact_points, "correct") if user_str == correct_str else (wrong_points, "incorrect")
 
 
 async def calculate_campaign_scores(campaign_id: str, db: AsyncSession, match_id: str = None) -> None:
@@ -174,7 +180,7 @@ async def calculate_campaign_scores(campaign_id: str, db: AsyncSession, match_id
             if override is None:
                 continue  # No correct answer set yet for this question
 
-            pts_base = score_answer(q, answer_value, correct_answer_override=override)
+            pts_base, status = score_answer(q, answer_value, correct_answer_override=override)
 
             # Apply powerup if this is a master match campaign
             current_multiplier = multiplier if q.allow_powerup else 1
@@ -194,6 +200,7 @@ async def calculate_campaign_scores(campaign_id: str, db: AsyncSession, match_id
                 "question_id": q.id,
                 "category": category,
                 "key": q.key,
+                "status": status,
                 "points": pts_base,
                 "predicted": answer_value,
                 "actual": override,
