@@ -1,6 +1,6 @@
 import { useLeaderboard } from '../api/hooks/useMatches';
 import { useAuthStore } from '../store/auth';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Trophy, History, X, Info, ChevronDown, ChevronUp, Zap, Target, Check, AlertCircle } from 'lucide-react';
 import { getUserDisplayName } from '../utils/userUtils';
 
@@ -9,6 +9,17 @@ export default function LeaderboardSection({ leagueId, leagueName, tournamentNam
   const { data: leaderboard, isLoading } = useLeaderboard(leagueId);
   const [selectedUser, setSelectedUser] = useState<any>(null);
   const [expandedMatch, setExpandedMatch] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (selectedUser) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+    }
+    return () => {
+      document.body.style.overflow = '';
+    };
+  }, [selectedUser]);
 
   const handleRowClick = (entry: any) => {
     setSelectedUser(entry);
@@ -380,7 +391,7 @@ export default function LeaderboardSection({ leagueId, leagueName, tournamentNam
 
       {/* Mobile iOS Bottom Sheet */}
       {selectedUser && (
-        <div className="lg:hidden fixed inset-0 z-50 flex items-end justify-center select-none">
+        <div className="lg:hidden fixed inset-0 z-[60] flex items-end justify-center select-none">
           {/* Backdrop overlay */}
           <div 
             className="absolute inset-0 bg-black/60 backdrop-blur-sm animate-in fade-in duration-300"
@@ -391,7 +402,7 @@ export default function LeaderboardSection({ leagueId, leagueName, tournamentNam
             {/* Drag handle */}
             <div className="w-12 h-1 bg-white/20 rounded-full mx-auto my-3 shrink-0" />
             {/* Scrollable details content */}
-            <div className="overflow-y-auto px-6 pb-6 pt-2 flex-1 scrollbar-hide">
+            <div className="overflow-y-auto px-6 pb-20 pt-2 flex-1 scrollbar-hide">
               {renderProgressionPanel(true)}
             </div>
           </div>
