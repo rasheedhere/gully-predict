@@ -30,14 +30,14 @@ export default function More() {
       </header>
 
       {/* User Profile Card */}
-      <button 
+      <button
         onClick={() => setIsProfileOpen(true)}
         className="w-full text-left bg-white/5 border border-white/10 rounded-[22px] p-4 flex items-center gap-4 active:scale-[0.98] active:bg-white/10 transition-all select-none duration-150"
       >
-        <img 
-          src={user.avatar || `https://ui-avatars.com/api/?name=${getUserDisplayName(user)}&background=0B0E1A&color=F4C430`} 
-          alt="avatar" 
-          className="w-14 h-14 rounded-2xl border border-white/20 object-cover shrink-0" 
+        <img
+          src={user.avatar || `https://ui-avatars.com/api/?name=${getUserDisplayName(user)}&background=0B0E1A&color=F4C430`}
+          alt="avatar"
+          className="w-14 h-14 rounded-2xl border border-white/20 object-cover shrink-0"
         />
         <div className="flex-1 min-w-0">
           <h2 className="text-lg font-display font-bold text-white leading-tight truncate">
@@ -54,7 +54,7 @@ export default function More() {
         <div className="space-y-2">
           <h3 className="text-[10px] font-display text-gray-500 uppercase tracking-[0.2em] px-4">Arena Tools</h3>
           <div className="bg-white/5 border border-white/10 rounded-[22px] overflow-hidden divide-y divide-white/5">
-            <button 
+            <button
               onClick={() => navigate('/campaigns')}
               className="w-full flex items-center gap-4 px-4 py-4 active:bg-white/10 transition-colors text-left"
             >
@@ -65,7 +65,7 @@ export default function More() {
               <ChevronRight className="w-4 h-4 text-gray-500 shrink-0" />
             </button>
 
-            <button 
+            <button
               onClick={() => navigate('/analysis')}
               className="w-full flex items-center gap-4 px-4 py-4 active:bg-white/10 transition-colors text-left"
             >
@@ -83,7 +83,7 @@ export default function More() {
           <div className="space-y-2 animate-in fade-in duration-300">
             <h3 className="text-[10px] font-display text-gray-500 uppercase tracking-[0.2em] px-4">Management</h3>
             <div className="bg-white/5 border border-white/10 rounded-[22px] overflow-hidden">
-              <button 
+              <button
                 onClick={() => navigate('/admin')}
                 className="w-full flex items-center gap-4 px-4 py-4 active:bg-white/10 transition-colors text-left"
               >
@@ -101,7 +101,7 @@ export default function More() {
         <div className="space-y-2">
           <h3 className="text-[10px] font-display text-gray-500 uppercase tracking-[0.2em] px-4">Account</h3>
           <div className="bg-white/5 border border-white/10 rounded-[22px] overflow-hidden divide-y divide-white/5">
-            <button 
+            <button
               onClick={() => setIsProfileOpen(true)}
               className="w-full flex items-center gap-4 px-4 py-4 active:bg-white/10 transition-colors text-left"
             >
@@ -112,7 +112,7 @@ export default function More() {
               <ChevronRight className="w-4 h-4 text-gray-500 shrink-0" />
             </button>
 
-            <button 
+            <button
               onClick={handleLogout}
               className="w-full flex items-center gap-4 px-4 py-4 active:bg-red-500/10 transition-colors text-left text-red-500"
             >
@@ -128,14 +128,14 @@ export default function More() {
 
       {/* App Version Info */}
       <footer className="text-center pt-4 opacity-30">
-        <p className="text-[9px] font-mono tracking-widest uppercase">Gully Predict PWA v2.0</p>
-        <p className="text-[8px] font-mono text-gray-500 mt-1">Built with iOS HIG Standards</p>
+        <p className="text-[9px] font-mono tracking-widest uppercase">Gully Predict - Gully to Glory!</p>
+        <p className="text-[8px] font-mono text-gray-500 mt-1">All rights reserved to Gully Predict</p>
       </footer>
 
       {/* Profile Edit Overlay */}
-      <ProfileModal 
-        isOpen={isProfileOpen} 
-        onClose={() => setIsProfileOpen(false)} 
+      <ProfileModal
+        isOpen={isProfileOpen}
+        onClose={() => setIsProfileOpen(false)}
       />
     </div>
   );
