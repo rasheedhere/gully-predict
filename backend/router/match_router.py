@@ -16,7 +16,7 @@ from backend.models import (
     Campaign, CampaignQuestion, CampaignResponse,
     LeagueUserMapping, League, CampaignMatchResult,
     TournamentUserMapping, CampaignTargetMatch,
-    SystemEventType, TournamentMatchAnswer,
+    SystemEventType, TournamentMatchAnswer, LeaderboardEntry,
 )
 from backend.utils.cache import backend_cache
 from backend.utils.events import dispatch_event
@@ -759,26 +759,54 @@ async def get_all_community_predictions(
     )
     users_map = {u.id: u for u in users_res.scalars().all()}
 
-    def format_prediction(uid: str) -> Optional[dict]:
+    # Load LeaderboardEntry rows to retrieve correct points/breakdowns per user per league for this match
+    lb_result = await db.execute(
+        select(LeaderboardEntry).where(LeaderboardEntry.match_id == match_id)
+    )
+    lb_entries = lb_result.scalars().all()
+    
+    # Map (user_id, league_id) -> {"points": points, "points_breakdown": points_breakdown}
+    leaderboard_map = {}
+    for entry in lb_entries:
+        leaderboard_map[(entry.user_id, entry.league_id)] = {
+            "points": entry.points,
+            "points_breakdown": entry.points_breakdown
+        }
+
+    def format_prediction(uid: str, league_id: Optional[str] = None) -> Optional[dict]:
         user = users_map.get(uid)
         if not user:
             return None
         meta = user_meta.get(uid, {})
         answers = user_answers.get(uid, {})
-        answers["use_powerup"] = "Yes" if meta.get("use_powerup", False) else "No"
+        answers_copy = dict(answers)
+        answers_copy["use_powerup"] = "Yes" if meta.get("use_powerup", False) else "No"
 
         if not locked:
-            answers = {k: "🔒" for k in answers}
+            answers_copy = {k: "🔒" for k in answers_copy}
 
         display_name = user.alias if user.use_alias and user.alias else user.name
+
+        # Resolve points and breakdown based on league_id
+        score_info = leaderboard_map.get((uid, league_id))
+        if score_info is None and league_id is not None:
+            # Fallback to global (league_id=None) score for this match
+            score_info = leaderboard_map.get((uid, None))
+
+        if score_info:
+            points_awarded = score_info["points"]
+            points_breakdown = score_info["points_breakdown"]
+        else:
+            points_awarded = meta.get("points_awarded")
+            points_breakdown = meta.get("points_breakdown")
 
         return {
             "prediction_id": meta.get("response_id"),
             "user": {"id": user.id, "name": display_name, "avatar_url": user.avatar_url},
-            "answers": answers,
+            "answers": answers_copy,
             "is_auto_predicted": meta.get("is_auto_predicted", False),
-            "points_awarded": meta.get("points_awarded"),
-            "points_breakdown": meta.get("points_breakdown"),
+            "points_awarded": points_awarded,
+            "points_breakdown": points_breakdown,
         }
 
     # Segment by leagues the current user belongs to
@@ -797,14 +825,14 @@ async def get_all_community_predictions(
                 .where(LeagueUserMapping.league_id == league.id)
             )
             member_ids = set(members_res.scalars().all())
-            preds = [p for uid in member_ids if (p := format_prediction(uid)) is not None]
+            preds = [p for uid in member_ids if (p := format_prediction(uid, league_id=league.id)) is not None]
             response_data.append({
                 "league": {"id": league.id, "name": league.name},
                 "predictions": preds,
             })
     else:
         # Fallback to global
-        preds = [p for uid in all_user_ids if (p := format_prediction(uid)) is not None]
+        preds = [p for uid in all_user_ids if (p := format_prediction(uid, league_id=None)) is not None]
         response_data.append({
             "league": {"id": "global", "name": "IPL Global"},
             "predictions": preds,
