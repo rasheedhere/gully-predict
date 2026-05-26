@@ -4,6 +4,8 @@ from fastapi import APIRouter, Request, Depends, HTTPException, status
 from fastapi.responses import RedirectResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
+from pydantic import BaseModel
+import httpx
 
 from backend.database import get_db
 from backend.models import User, AllowlistedEmail, League, LeagueAdminMapping, LeagueUserMapping, SystemEventType
@@ -120,6 +122,109 @@ async def auth_callback(request: Request, db: AsyncSession = Depends(get_db)):
         print(f"Error Detail: {str(e)}")
         traceback.print_exc()
         return RedirectResponse(url=f"{os.environ.get('FRONTEND_URL', 'http://localhost:5000')}/login?error=auth_failed")
+
+class VerifyTokenRequest(BaseModel):
+    access_token: str
+
+@router.post("/auth/google/verify")
+async def verify_google_token(payload: VerifyTokenRequest, db: AsyncSession = Depends(get_db)):
+    """Verifies an access token sent from the frontend popup (via @react-oauth/google)"""
+    async with httpx.AsyncClient() as client:
+        response = await client.get(
+            "https://www.googleapis.com/oauth2/v3/userinfo",
+            headers={"Authorization": f"Bearer {payload.access_token}"}
+        )
+        if response.status_code != 200:
+            raise HTTPException(status_code=401, detail="Invalid Google token")
+        user_info = response.json()
+        
+    email = user_info.get("email")
+    if not email:
+        raise HTTPException(status_code=400, detail="Missing email in token")
+        
+    # 1. Check Allowlist or Existing User
+    allowlisted_entry = None
+    cached_allowlist = backend_cache.get("allowlist")
+    if cached_allowlist:
+        for entry in cached_allowlist:
+            if entry.email == email:
+                allowlisted_entry = entry
+                break
+    else:
+        result = await db.execute(select(AllowlistedEmail).where(AllowlistedEmail.email == email))
+        allowlisted_entry = result.scalars().first()
+        
+    user_result = await db.execute(select(User).where(User.email == email))
+    existing_user = user_result.scalars().first()
+
+    if not allowlisted_entry and not existing_user:
+        raise HTTPException(status_code=403, detail="ACCESS DENIED: Not on the guest list")
+        
+    is_guest_allowed = allowlisted_entry.is_guest if allowlisted_entry else (existing_user.is_guest if existing_user else False)
+        
+    # 2. Upsert User
+    google_id = user_info.get("sub")
+    name = user_info.get("name")
+    avatar_url = user_info.get("picture")
+    
+    result = await db.execute(select(User).where(User.email == email))
+    user = result.scalars().first()
+    
+    if not user:
+        alias = generate_random_alias()
+        while (await db.execute(select(User).where(User.alias == alias))).scalars().first():
+            alias = generate_random_alias()
+
+        user = User(
+            id=str(uuid.uuid4()),
+            google_id=google_id,
+            email=email,
+            name=name,
+            alias=alias,
+            use_alias=False,
+            avatar_url=avatar_url,
+            is_guest=is_guest_allowed
+        )
+        db.add(user)
+        await db.commit()
+        await db.refresh(user)
+    else:
+        if user.is_guest != is_guest_allowed:
+            user.is_guest = is_guest_allowed
+            await db.commit()
+            await db.refresh(user)
+            
+    # 3. Issue JWT Session Token
+    jwt_token = create_access_token(data={"sub": user.id})
+    
+    await dispatch_event(
+        db,
+        event_type=SystemEventType.login,
+        user_id=user.id,
+        message=f"{user.name} logged in via Google (PWA flow)."
+    )
+    await db.commit()
+    
+    is_league_admin = False
+    if not user.is_admin:
+        res = await db.execute(select(LeagueAdminMapping).where(LeagueAdminMapping.user_id == user.id))
+        is_league_admin = res.scalars().first() is not None
+        
+    return {
+        "token": jwt_token,
+        "user": {
+            "id": user.id,
+            "email": user.email,
+            "name": user.name,
+            "alias": user.alias,
+            "use_alias": user.use_alias,
+            "avatar": user.avatar_url,
+            "is_admin": user.is_admin,
+            "is_guest": user.is_guest,
+            "is_telegram_admin": user.is_telegram_admin,
+            "is_league_admin": is_league_admin or user.is_admin,
+        }
+    }
 
 @router.get("/auth/dev-login")
 @router.post("/auth/dev-login")

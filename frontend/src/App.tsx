@@ -14,6 +14,7 @@ import LeagueAdmin from './pages/LeagueAdmin';
 import Activity from './pages/Activity';
 import Layout from './components/Layout';
 import Hub from './pages/Hub';
+import PWAInstallBanner from './components/PWAInstallBanner';
 
 import AuthCallback from './pages/AuthCallback';
 
@@ -22,6 +23,7 @@ import { Toaster } from 'react-hot-toast';
 function App() {
   return (
     <BrowserRouter>
+      <PWAInstallBanner />
       <Toaster 
         position="top-center"
         toastOptions={{

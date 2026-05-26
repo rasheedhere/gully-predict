@@ -3,6 +3,7 @@ import { useSearchParams, useNavigate, useLocation } from 'react-router-dom';
 import axios from 'axios';
 import { useAuthStore } from '../store/auth';
 import toast from 'react-hot-toast';
+import { useGoogleLogin } from '@react-oauth/google';
 
 export default function Login() {
   const [searchParams] = useSearchParams();
@@ -17,10 +18,31 @@ export default function Login() {
 
   const devLoginEnabled = import.meta.env.VITE_DEV_LOGIN === 'true';
 
+  const login = useGoogleLogin({
+    onSuccess: async (tokenResponse) => {
+      try {
+        const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api';
+        toast.loading('Authenticating...', { id: 'google-login' });
+        const { data } = await axios.post(`${API_URL}/auth/google/verify`, {
+          access_token: tokenResponse.access_token
+        });
+        toast.success(`Welcome, ${data.user.alias || data.user.name}`, { id: 'google-login' });
+        setUser(data.user, data.token);
+        navigate(targetUrl);
+      } catch (err: any) {
+        toast.error('Authentication failed. Are you on the guest list?', { id: 'google-login' });
+        console.error('Google verification failed:', err);
+      }
+    },
+    onError: (error) => {
+      console.error('Google Sign-In Error:', error);
+      toast.error('Google sign-in was cancelled or failed.');
+    }
+  });
+
   const handleLogin = () => {
     localStorage.setItem('redirect_after_login', targetUrl);
-    const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api';
-    window.location.href = `${API_URL}/auth/google`;
+    login();
   };
 
   const handleDevLogin = async (role: 'admin' | 'user' | 'guest' | 'league-admin') => {
