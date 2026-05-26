@@ -744,9 +744,11 @@ async def get_all_community_predictions(
         if not locked:
             answers = {k: "🔒" for k in answers}
 
+        display_name = user.alias if user.use_alias and user.alias else user.name
+
         return {
             "prediction_id": meta.get("response_id"),
-            "user": {"id": user.id, "name": user.name, "avatar_url": user.avatar_url},
+            "user": {"id": user.id, "name": display_name, "avatar_url": user.avatar_url},
             "answers": answers,
             "is_auto_predicted": meta.get("is_auto_predicted", False),
             "points_awarded": meta.get("points_awarded"),

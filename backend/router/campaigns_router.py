@@ -804,15 +804,18 @@ async def get_all_community_predictions(
     )
     users_map = {u.id: u for u in users_res.scalars().all()}
 
-    def format_prediction(uid: str):
+    def format_prediction(uid: str) -> Optional[dict]:
         user = users_map.get(uid)
         if not user:
             return None
         meta = user_meta.get(uid, {})
         answers = user_answers.get(uid, {})
+        
+        display_name = user.alias if user.use_alias and user.alias else user.name
+
         return {
             "prediction_id": meta.get("response_id"),
-            "user": {"id": user.id, "name": user.name, "avatar_url": user.avatar_url},
+            "user": {"id": user.id, "name": display_name, "avatar_url": user.avatar_url},
             "answers": answers,
             "is_auto_predicted": meta.get("is_auto_predicted", False),
             "points_awarded": meta.get("points_awarded"),
