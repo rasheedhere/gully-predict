@@ -49,16 +49,22 @@
     @apply active:scale-[0.98] active:bg-white/10 active:opacity-90 select-none transition-all duration-150;
   }
 
-  /* Hide scrollbars globally on mobile/PWA for a native look */
-  @media (max-width: 768px) {
-    ::-webkit-scrollbar {
-      display: none !important;
-      width: 0 !important;
-      height: 0 !important;
-    }
-    * {
-      -ms-overflow-style: none !important;
-      scrollbar-width: none !important;
-    }
+}
+
+/* Hide scrollbars globally on mobile/PWA for a native look */
+@media (max-width: 768px) {
+  ::-webkit-scrollbar {
+    display: none !important;
+    width: 0 !important;
+    height: 0 !important;
+  }
+  *::-webkit-scrollbar {
+    display: none !important;
+    width: 0 !important;
+    height: 0 !important;
+  }
+  * {
+    -ms-overflow-style: none !important;
+    scrollbar-width: none !important;
   }
 }
