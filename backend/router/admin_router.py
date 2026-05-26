@@ -4,6 +4,7 @@ from pydantic import BaseModel
 from typing import List
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
+from sqlalchemy.orm import selectinload
 from backend.database import get_db
 from backend.models import User, AllowlistedEmail, Match, LeagueAdminMapping, TournamentUserMapping
 from backend.dependencies import get_current_admin, get_current_user
