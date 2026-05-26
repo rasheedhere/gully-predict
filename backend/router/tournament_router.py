@@ -357,13 +357,22 @@ async def set_tournament_match_answers(
             correct_answers=payload.correct_answers,
         )
         db.add(row)
+
+    # Sync to match fields for audit and consistency
+    match.status = MatchStatus.completed
+    match.reported_by = current_user.id
+    match.report_method = "manual"
+    match.raw_result_json = payload.correct_answers
+
     await db.flush()
 
     # Score ALL match campaigns in this tournament that are linked to this match
-    from backend.models import CampaignType, CampaignStatus as CS
+    from backend.models import CampaignType, CampaignStatus as CS, CampaignMatchResult
     from backend.campaigns_scoring import calculate_campaign_scores
+    import uuid
+
     campaigns_res = await db.execute(
-        select(Campaign).where(
+        select(Campaign).options(selectinload(Campaign.questions), selectinload(Campaign.target_matches)).where(
             Campaign.tournament_id == tournament_id,
             Campaign.type == CampaignType.match,
             Campaign.status == CS.active,
@@ -374,12 +383,62 @@ async def set_tournament_match_answers(
         )
     )
     campaigns = campaigns_res.scalars().all()
+
+    # Sync correct answers to CampaignMatchResult for the master campaign
+    master_campaign = None
+    fallback_master = None
+    for mc in campaigns:
+        if mc.is_master:
+            if mc.target_matches:
+                if any(tm.id == match_id for tm in mc.target_matches):
+                    master_campaign = mc
+                    break
+            else:
+                fallback_master = mc
+
+    if not master_campaign:
+        master_campaign = fallback_master
+
+    if master_campaign:
+        correct_answers_by_id = {}
+        for q in master_campaign.questions:
+            if q.key and q.key in payload.correct_answers:
+                correct_answers_by_id[q.id] = payload.correct_answers[q.key]
+        
+        if correct_answers_by_id:
+            cmr_res = await db.execute(
+                select(CampaignMatchResult).where(
+                    CampaignMatchResult.match_id == match_id,
+                    CampaignMatchResult.campaign_id == master_campaign.id
+                )
+            )
+            cmr = cmr_res.scalars().first()
+            if not cmr:
+                cmr = CampaignMatchResult(
+                    id=str(uuid.uuid4()),
+                    campaign_id=master_campaign.id,
+                    match_id=match_id,
+                    correct_answers=correct_answers_by_id
+                )
+                db.add(cmr)
+            else:
+                cmr.correct_answers = correct_answers_by_id
+            await db.flush()
+
+    # Score league and extra match campaigns
     for campaign in campaigns:
         await calculate_campaign_scores(campaign.id, db, match_id=match_id)
 
-    # Also update leaderboard cache
-    from backend.scoring import update_leaderboard_cache
-    await update_leaderboard_cache(db, tournament_id)
+    # Re-calculate match scores for the master campaign (updates global LeaderboardEntry and cache)
+    from backend.scoring import calculate_match_scores
+    await calculate_match_scores(match_id, db)
+
+    # Invalidate cache for leaderboards & podiums
+    from backend.utils.cache import backend_cache
+    backend_cache.invalidate("leaderboard_*")
+    backend_cache.invalidate("analysis_*")
+    backend_cache.invalidate("match_podiums")
+    backend_cache.invalidate(f"match_leaderboard_{match_id}")
 
     return {
         "message": f"Answers saved. Scored {len(campaigns)} campaign(s).",
