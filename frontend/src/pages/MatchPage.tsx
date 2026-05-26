@@ -623,26 +623,6 @@ export default function MatchPage() {
 
                       return (
                         <div className="grid grid-cols-1 gap-4">
-                          {/* Prediction Count Split */}
-                          <div className="flex justify-center items-center gap-6 md:gap-8 bg-white/5 rounded-lg md:rounded-xl p-3 md:p-4 border border-white/10 relative overflow-hidden group">
-                            <div className="absolute -left-10 -bottom-10 opacity-[0.02] group-hover:opacity-[0.05] transition-opacity">
-                              <Users className="w-28 h-28 text-white" />
-                            </div>
-                            <div className="flex flex-col items-center">
-                              <span className="text-[9px] md:text-[10px] text-gray-400 font-display uppercase tracking-widest leading-none mb-1">{getTeamShortName(match.team1)} Predictors</span>
-                              <span className="text-xl md:text-3xl font-display leading-none drop-shadow-md font-bold" style={{ color: getTeamColor(match.team1) }}>
-                                {allPredictions.filter((p: any) => winnerQId && p.answers[winnerQId] === match.team1).length}
-                              </span>
-                            </div>
-                            <div className="h-6 md:h-10 w-[1px] md:w-[2px] bg-white/20 rounded-full" />
-                            <div className="flex flex-col items-center">
-                              <span className="text-[9px] md:text-[10px] text-gray-400 font-display uppercase tracking-widest leading-none mb-1">{getTeamShortName(match.team2)} Predictors</span>
-                              <span className="text-xl md:text-3xl font-display leading-none drop-shadow-md font-bold" style={{ color: getTeamColor(match.team2) }}>
-                                {allPredictions.filter((p: any) => winnerQId && p.answers[winnerQId] === match.team2).length}
-                              </span>
-                            </div>
-                          </div>
-
                           {/* Team Power Split (Only post match conclusion) */}
                           {match.status === 'completed' && teamPower && (
                             <div className="flex flex-col justify-center bg-white/5 rounded-lg md:rounded-xl p-3 md:p-4 border border-white/10 relative overflow-hidden group">
@@ -691,6 +671,26 @@ export default function MatchPage() {
                               </div>
                             </div>
                           )}
+
+                          {/* Prediction Count Split */}
+                          <div className="flex justify-center items-center gap-6 md:gap-8 bg-white/5 rounded-lg md:rounded-xl p-3 md:p-4 border border-white/10 relative overflow-hidden group">
+                            <div className="absolute -left-10 -bottom-10 opacity-[0.02] group-hover:opacity-[0.05] transition-opacity">
+                              <Users className="w-28 h-28 text-white" />
+                            </div>
+                            <div className="flex flex-col items-center">
+                              <span className="text-[9px] md:text-[10px] text-gray-400 font-display uppercase tracking-widest leading-none mb-1">{getTeamShortName(match.team1)} Predictors</span>
+                              <span className="text-xl md:text-3xl font-display leading-none drop-shadow-md font-bold" style={{ color: getTeamColor(match.team1) }}>
+                                {allPredictions.filter((p: any) => winnerQId && p.answers[winnerQId] === match.team1).length}
+                              </span>
+                            </div>
+                            <div className="h-6 md:h-10 w-[1px] md:w-[2px] bg-white/20 rounded-full" />
+                            <div className="flex flex-col items-center">
+                              <span className="text-[9px] md:text-[10px] text-gray-400 font-display uppercase tracking-widest leading-none mb-1">{getTeamShortName(match.team2)} Predictors</span>
+                              <span className="text-xl md:text-3xl font-display leading-none drop-shadow-md font-bold" style={{ color: getTeamColor(match.team2) }}>
+                                {allPredictions.filter((p: any) => winnerQId && p.answers[winnerQId] === match.team2).length}
+                              </span>
+                            </div>
+                          </div>
                         </div>
                       );
                     })()}
