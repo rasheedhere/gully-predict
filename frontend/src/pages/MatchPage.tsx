@@ -3,7 +3,7 @@ import { useParams } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { useQueryClient } from '@tanstack/react-query';
 import { useMatch, useSubmitPrediction, useMyPredictions, useAllMatchPredictions } from '../api/hooks/useMatches';
-import { Trophy, Target, CheckCircle2, Edit2, Check, X, Sparkles, MapPin, ChevronDown, ChevronUp, HelpCircle, Zap, AlertCircle } from 'lucide-react';
+import { Trophy, Target, CheckCircle2, Edit2, Check, X, Sparkles, MapPin, ChevronDown, ChevronUp, HelpCircle, Zap, AlertCircle, Users } from 'lucide-react';
 import { useAuthStore } from '../store/auth';
 import { apiClient } from '../api/client';
 import toast from 'react-hot-toast';
@@ -586,22 +586,114 @@ export default function MatchPage() {
                   </div>
                 ) : (
                   <div className="flex flex-col gap-4 md:gap-6">
-                    {/* Stats Header */}
-                    <div className="flex justify-center items-center gap-6 md:gap-8 bg-white/5 rounded-lg md:rounded-xl p-3 md:p-4 border border-white/10">
-                      <div className="flex flex-col items-center">
-                        <span className="text-[9px] md:text-[10px] text-gray-400 font-display uppercase tracking-widest leading-none mb-1">{getTeamShortName(match.team1)}</span>
-                        <span className="text-xl md:text-3xl font-display leading-none drop-shadow-md" style={{ color: getTeamColor(match.team1) }}>
-                          {allPredictions.filter((p: any) => winnerQId && p.answers[winnerQId] === match.team1).length}
-                        </span>
-                      </div>
-                      <div className="h-6 md:h-10 w-[1px] md:w-[2px] bg-white/20 rounded-full" />
-                      <div className="flex flex-col items-center">
-                        <span className="text-[9px] md:text-[10px] text-gray-400 font-display uppercase tracking-widest leading-none mb-1">{getTeamShortName(match.team2)}</span>
-                        <span className="text-xl md:text-3xl font-display leading-none drop-shadow-md" style={{ color: getTeamColor(match.team2) }}>
-                          {allPredictions.filter((p: any) => winnerQId && p.answers[winnerQId] === match.team2).length}
-                        </span>
-                      </div>
-                    </div>
+                    {/* Stats Grid */}
+                    {(() => {
+                      // Calculate Team Power split for this view (global or league)
+                      let teamPower = null;
+                      if (match.status === 'completed' && winnerQId) {
+                        let ptsTeam1 = 0;
+                        let ptsTeam2 = 0;
+                        allPredictions.forEach((p: any) => {
+                          const pick = p.answers?.[winnerQId];
+                          const points = p.points_awarded ?? 0;
+                          if (pick === match.team1) {
+                            ptsTeam1 += Math.max(0, points);
+                          } else if (pick === match.team2) {
+                            ptsTeam2 += Math.max(0, points);
+                          }
+                        });
+                        const totalPts = ptsTeam1 + ptsTeam2;
+                        if (totalPts > 0) {
+                          const pct1 = Math.round((ptsTeam1 / totalPts) * 100);
+                          teamPower = {
+                            team1Pct: pct1,
+                            team2Pct: 100 - pct1,
+                            team1Pts: ptsTeam1,
+                            team2Pts: ptsTeam2,
+                          };
+                        } else {
+                          teamPower = {
+                            team1Pct: 50,
+                            team2Pct: 50,
+                            team1Pts: 0,
+                            team2Pts: 0,
+                          };
+                        }
+                      }
+
+                      return (
+                        <div className={`grid grid-cols-1 ${match.status === 'completed' && teamPower ? 'md:grid-cols-2' : ''} gap-4`}>
+                          {/* Prediction Count Split */}
+                          <div className="flex justify-center items-center gap-6 md:gap-8 bg-white/5 rounded-lg md:rounded-xl p-3 md:p-4 border border-white/10 relative overflow-hidden group">
+                            <div className="absolute -left-10 -bottom-10 opacity-[0.02] group-hover:opacity-[0.05] transition-opacity">
+                              <Users className="w-28 h-28 text-white" />
+                            </div>
+                            <div className="flex flex-col items-center">
+                              <span className="text-[9px] md:text-[10px] text-gray-400 font-display uppercase tracking-widest leading-none mb-1">{getTeamShortName(match.team1)} Predictors</span>
+                              <span className="text-xl md:text-3xl font-display leading-none drop-shadow-md font-bold" style={{ color: getTeamColor(match.team1) }}>
+                                {allPredictions.filter((p: any) => winnerQId && p.answers[winnerQId] === match.team1).length}
+                              </span>
+                            </div>
+                            <div className="h-6 md:h-10 w-[1px] md:w-[2px] bg-white/20 rounded-full" />
+                            <div className="flex flex-col items-center">
+                              <span className="text-[9px] md:text-[10px] text-gray-400 font-display uppercase tracking-widest leading-none mb-1">{getTeamShortName(match.team2)} Predictors</span>
+                              <span className="text-xl md:text-3xl font-display leading-none drop-shadow-md font-bold" style={{ color: getTeamColor(match.team2) }}>
+                                {allPredictions.filter((p: any) => winnerQId && p.answers[winnerQId] === match.team2).length}
+                              </span>
+                            </div>
+                          </div>
+
+                          {/* Team Power Split (Only post match conclusion) */}
+                          {match.status === 'completed' && teamPower && (
+                            <div className="flex flex-col justify-center bg-white/5 rounded-lg md:rounded-xl p-3 md:p-4 border border-white/10 relative overflow-hidden group">
+                              <div className="flex justify-between items-center text-[9px] md:text-[10px] font-display uppercase tracking-widest text-ipl-gold mb-2 font-black">
+                                <span>TEAM POWER SPLIT</span>
+                                <span className="text-gray-500 font-normal">Points Earned by Supporters</span>
+                              </div>
+                              
+                              {/* Progress Bar Split */}
+                              <div className="relative w-full h-3 md:h-4 bg-white/10 rounded-full overflow-hidden flex">
+                                <div 
+                                  className="h-full transition-all duration-1000" 
+                                  style={{ 
+                                    width: `${teamPower.team1Pct}%`, 
+                                    backgroundColor: getTeamColor(match.team1),
+                                    boxShadow: `inset 0 0 10px rgba(0,0,0,0.3)`
+                                  }} 
+                                />
+                                <div 
+                                  className="h-full transition-all duration-1000" 
+                                  style={{ 
+                                    width: `${teamPower.team2Pct}%`, 
+                                    backgroundColor: getTeamColor(match.team2),
+                                    boxShadow: `inset 0 0 10px rgba(0,0,0,0.3)`
+                                  }} 
+                                />
+                                {/* Glowing separator line */}
+                                <div 
+                                  className="absolute top-0 bottom-0 w-[2px] bg-white/80 shadow-[0_0_8px_rgba(255,255,255,0.8)]"
+                                  style={{ left: `${teamPower.team1Pct}%` }}
+                                />
+                              </div>
+                              
+                              {/* Percentages and Totals Labels */}
+                              <div className="flex justify-between items-center mt-2 text-[10px] md:text-xs font-display font-black tracking-wider uppercase">
+                                <div className="flex items-center gap-1.5" style={{ color: getTeamColor(match.team1) }}>
+                                  <span>{getTeamShortName(match.team1)}</span>
+                                  <span className="text-white text-xs md:text-sm">{teamPower.team1Pct}%</span>
+                                  <span className="text-gray-500 text-[8px] md:text-[9px] font-normal font-mono">({teamPower.team1Pts} pts)</span>
+                                </div>
+                                <div className="flex items-center gap-1.5" style={{ color: getTeamColor(match.team2) }}>
+                                  <span className="text-gray-500 text-[8px] md:text-[9px] font-normal font-mono">({teamPower.team2Pts} pts)</span>
+                                  <span className="text-white text-xs md:text-sm">{teamPower.team2Pct}%</span>
+                                  <span>{getTeamShortName(match.team2)}</span>
+                                </div>
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })()}
 
                     {(() => {
                       const renderPredictionCard = (pred: any, idx: number, isDesktop = false) => {
