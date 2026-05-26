@@ -719,16 +719,18 @@ export default function MatchPage() {
                                       <span className={`${isDesktop ? 'md:text-[9px]' : 'text-[8px]'} font-bold text-ipl-live tracking-tighter uppercase`}>⚡</span>
                                     </div>
                                   )}
-                                  <span
-                                    className={`font-bold rounded leading-none uppercase tracking-widest border ${isDesktop ? 'md:text-[10px] md:px-2 md:py-1' : 'text-[9px] px-1.5 py-0.5'} ${winnerAns === '🔒' ? 'bg-white/5 border-white/10 text-gray-500' : ''}`}
-                                    style={winnerAns !== '🔒' ? {
-                                      backgroundColor: `${getTeamColor(winnerAns)}15`,
-                                      borderColor: `${getTeamColor(winnerAns)}40`,
-                                      color: getTeamColor(winnerAns)
-                                    } : {}}
-                                  >
-                                    {isDesktop && winnerAns !== '🔒' ? getTeamShortName(winnerAns) : teamWinnerShort}
-                                  </span>
+                                  {!isDesktop && (
+                                    <span
+                                      className={`font-bold rounded leading-none uppercase tracking-widest border text-[9px] px-1.5 py-0.5 ${winnerAns === '🔒' ? 'bg-white/5 border-white/10 text-gray-500' : ''}`}
+                                      style={winnerAns !== '🔒' ? {
+                                        backgroundColor: `${getTeamColor(winnerAns)}15`,
+                                        borderColor: `${getTeamColor(winnerAns)}40`,
+                                        color: getTeamColor(winnerAns)
+                                      } : {}}
+                                    >
+                                      {teamWinnerShort}
+                                    </span>
+                                  )}
                                   {isExpanded ? (
                                     <ChevronUp className="w-3 h-3 md:w-4 md:h-4 text-gray-500" />
                                   ) : (
