@@ -1007,7 +1007,7 @@ export default function MatchPage() {
                         return (
                           <div
                             key={q.key}
-                            className="flex items-center gap-2 px-2.5 py-1 hover:bg-white/[0.04] transition-colors"
+                            className="flex items-center gap-2 px-2.5 hover:bg-white/[0.04] transition-colors"
                           >
                             <div className="shrink-0 w-5 flex items-center justify-center">
                               {getQuestionIcon(q.question_text)}
@@ -1071,11 +1071,21 @@ export default function MatchPage() {
                                 >
                                   {/* Predictor Column */}
                                   <td
-                                    className={`sticky left-0 z-10 px-1 py-1.5 md:p-3 border-r border-white/10 transition-colors shadow-[2px_0_5px_rgba(0,0,0,0.15)] min-w-[60px] max-w-[60px] w-[60px] md:min-w-[200px] md:max-w-[200px] md:w-[200px] overflow-hidden ${isMyRow
+                                    className={`sticky left-0 z-10 px-1 py-1.5 md:p-3 border-r border-white/10 transition-colors shadow-[2px_0_5px_rgba(0,0,0,0.15)] min-w-[60px] max-w-[60px] w-[60px] md:min-w-[200px] md:max-w-[200px] md:w-[200px] select-none ${pred.points_breakdown?.rules ? 'cursor-pointer active:brightness-150' : ''} ${isMyRow
                                       ? 'bg-[#181a24] shadow-[inset_3px_0_0_#F4C430]'
                                       : 'bg-[#0f1220] group-hover:bg-[#141724]'
                                       }`}
                                     title={getUserDisplayName(pred.user)}
+                                    onClick={() => {
+                                      if (pred.points_breakdown?.rules) {
+                                        setSelectedBreakdown({
+                                          predictorName: getUserDisplayName(pred.user),
+                                          points: pred.points_awarded ?? 0,
+                                          rules: pred.points_breakdown.rules,
+                                          powerupUsed: pred.points_breakdown?.powerup?.used
+                                        });
+                                      }
+                                    }}
                                   >
                                     <div className="flex items-center justify-center md:justify-between gap-1 md:gap-2 w-full">
                                       <div className="flex items-center gap-1.5 md:gap-2.5 min-w-0 justify-center md:justify-start w-full md:w-auto">
@@ -1114,17 +1124,6 @@ export default function MatchPage() {
                                           {/* Points Badge Overlay - bottom of avatar */}
                                           {match.status === 'completed' && pred.points_awarded !== undefined && pred.points_awarded !== null && (
                                             <span
-                                              onClick={(e) => {
-                                                e.stopPropagation();
-                                                if (pred.points_breakdown?.rules) {
-                                                  setSelectedBreakdown({
-                                                    predictorName: getUserDisplayName(pred.user),
-                                                    points: pred.points_awarded,
-                                                    rules: pred.points_breakdown.rules,
-                                                    powerupUsed: pred.points_breakdown.powerup?.used
-                                                  });
-                                                }
-                                              }}
                                               className="absolute -bottom-1.5 -left-1 px-1 py-0.5 rounded-full text-[6.5px] font-mono font-black border border-ipl-navy cursor-pointer shadow-md select-none leading-none text-white"
                                               style={{
                                                 backgroundColor: pred.points_awarded > 0
