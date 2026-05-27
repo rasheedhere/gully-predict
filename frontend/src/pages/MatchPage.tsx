@@ -3,11 +3,11 @@ import { useParams } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { useQueryClient } from '@tanstack/react-query';
 import { useMatch, useSubmitPrediction, useMyPredictions, useAllMatchPredictions } from '../api/hooks/useMatches';
-import { Trophy, Target, CheckCircle2, Edit2, Check, X, Sparkles, MapPin, ChevronDown, ChevronUp, HelpCircle, Zap, AlertCircle, Users } from 'lucide-react';
+import { Trophy, Target, CheckCircle2, Edit2, Check, X, Sparkles, MapPin, ChevronDown, HelpCircle, Lock, User } from 'lucide-react';
 import { useAuthStore } from '../store/auth';
 import { apiClient } from '../api/client';
 import toast from 'react-hot-toast';
-import { getTeamColor, getTeamShortName } from '../utils/teamColors';
+import { getTeamColor, getTeamShortName, getAccessibleTeamTextColor } from '../utils/teamColors';
 import { getUserDisplayName } from '../utils/userUtils';
 import { getTeamLogo } from '../utils/teamLogos';
 
@@ -19,7 +19,7 @@ export default function MatchPage() {
   const [editValue, setEditValue] = useState('');
   const [hasAutoPredicted, setHasAutoPredicted] = useState(false);
   const [showAutoPredictConfirm, setShowAutoPredictConfirm] = useState(false);
-  const [expandedCardIds, setExpandedCardIds] = useState<Set<string>>(new Set());
+  const [selectedBreakdown, setSelectedBreakdown] = useState<{ predictorName: string; points: number; rules: any[]; powerupUsed?: boolean } | null>(null);
   const { register, handleSubmit, reset, setValue, formState: { errors } } = useForm();
 
   const { data, isLoading, error } = useMatch(id || '');
@@ -107,13 +107,7 @@ export default function MatchPage() {
     return groups;
   }, [questions]);
 
-  const questionMap = useMemo(() => {
-    const map: Record<string, any> = {};
-    questions.forEach((q: any) => {
-      map[q.key] = q;
-    });
-    return map;
-  }, [questions]);
+
 
   if (isLoading) return <div className="text-white text-center font-display tracking-widest mt-20 animate-pulse">LOADING MATCH...</div>;
   if (error || !data || !match) return <div className="text-ipl-live text-center font-display tracking-widest mt-20">FAILED TO LOAD MATCH</div>;
@@ -300,9 +294,296 @@ export default function MatchPage() {
     }
   };
 
+  // --- Redesigned Community Reveal Custom Icons & Helpers ---
+  const getQuestionIcon = (text: string) => {
+    const t = text.toLowerCase();
+    if (t.includes('powerplay') || t.includes('power play') || t.includes('pp')) {
+      return <img src="/icons/pp_score_icon.png" alt="PP Score" className="w-8 h-8 object-contain transition-transform group-hover:scale-110 duration-300" />;
+    }
+    if (t.includes('player') || t.includes('potm') || t.includes('man of')) {
+      return <Trophy className="w-8 h-8 text-ipl-gold transition-transform group-hover:scale-110 duration-300" />;
+    }
+    if (t.includes('six')) {
+      return <img src="/icons/more_sixes_icon.png" alt="More Sixes" className="w-8 h-8 object-contain transition-transform group-hover:scale-110 duration-300" />;
+    }
+    if (t.includes('four')) {
+      return <img src="/icons/more_fours_icon.png" alt="More Fours" className="w-8 h-8 object-contain transition-transform group-hover:scale-110 duration-300" />;
+    }
+    if (t.includes('dot')) {
+      return <img src="/icons/dot_ball_icon.png" alt="Dot Balls" className="w-8 h-8 object-contain transition-transform group-hover:scale-110 duration-300" />;
+    }
+    return <Target className="w-8 h-8 text-ipl-gold transition-transform group-hover:scale-110 duration-300" />;
+  };
+
+  const getShortQuestionText = (text: string) => {
+    if (!text) return '';
+    let s = text;
+    if (match) {
+      if (match.team1) {
+        s = s.replace(new RegExp(match.team1.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&'), 'gi'), getTeamShortName(match.team1));
+      }
+      if (match.team2) {
+        s = s.replace(new RegExp(match.team2.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&'), 'gi'), getTeamShortName(match.team2));
+      }
+    }
+    s = s.replace(/powerplay/gi, 'PP');
+    s = s.replace(/power play/gi, 'PP');
+    s = s.replace(/player of the match/gi, 'POTM');
+    s = s.replace(/most dot balls/gi, 'MOST DOT BALLS');
+    s = s.replace(/more sixes/gi, 'MORE SIXES');
+    s = s.replace(/more fours/gi, 'MORE FOURS');
+    s = s.replace(/\?/g, '');
+    return s.toUpperCase();
+  };
+
+  const getContrastColor = (hexColor: string) => {
+    if (!hexColor || hexColor.startsWith('var')) return 'white';
+    const hex = hexColor.replace('#', '');
+    if (hex.length !== 6) return 'white';
+    const r = parseInt(hex.substring(0, 2), 16);
+    const g = parseInt(hex.substring(2, 4), 16);
+    const b = parseInt(hex.substring(4, 6), 16);
+    const yiq = ((r * 299) + (g * 587) + (b * 114)) / 1000;
+    return (yiq >= 128) ? 'black' : 'white';
+  };
+
+  const getHeaderIcon = (text: string) => {
+    if (!text) return <Target className="w-[18px] h-[18px] text-ipl-gold" />;
+    const t = text.toLowerCase();
+    if (t.includes('winner') || t.includes('win the match')) {
+      return <Trophy className="w-[18px] h-[18px] text-ipl-gold" />;
+    }
+    if (t.includes('player of the match') || t.includes('potm')) {
+      return <Trophy className="w-[18px] h-[18px] text-ipl-gold" />;
+    }
+    if (t.includes('powerplay') || t.includes('power play')) {
+      return <img src="/icons/pp_score_icon.png" alt="PP" className="w-[18px] h-[18px] object-contain" />;
+    }
+    if (t.includes('sixes')) {
+      return <img src="/icons/more_sixes_icon.png" alt="Sixes" className="w-[18px] h-[18px] object-contain" />;
+    }
+    if (t.includes('fours')) {
+      return <img src="/icons/more_fours_icon.png" alt="Fours" className="w-[18px] h-[18px] object-contain" />;
+    }
+    if (t.includes('dot')) {
+      return <img src="/icons/dot_ball_icon.png" alt="Dot" className="w-[18px] h-[18px] object-contain" />;
+    }
+    return <Target className="w-[18px] h-[18px] text-ipl-gold" />;
+  };
+
+  const getHeaderSubLabel = (text: string) => {
+    if (!text) return '';
+    const t = text.toLowerCase();
+    
+    if (match) {
+      if (match.team1 && t.includes(match.team1.toLowerCase())) {
+        return getTeamShortName(match.team1);
+      }
+      if (match.team2 && t.includes(match.team2.toLowerCase())) {
+        return getTeamShortName(match.team2);
+      }
+    }
+    
+    if (t.includes('sixes')) return '6S';
+    if (t.includes('fours')) return '4S';
+    if (t.includes('dot')) return 'DOT';
+    if (t.includes('potm') || t.includes('player of the match')) return 'POTM';
+    return '';
+  };
+
+  const getMajorityGuess = (predictions: any[], qKey: string) => {
+    if (!predictions || predictions.length === 0) {
+      return { guess: '-', count: 0, total: 0, pct: 0, isTie: false, countDetails: '0/0' };
+    }
+    const counts: Record<string, number> = {};
+    let validTotal = 0;
+    predictions.forEach(p => {
+      const ans = p.answers?.[qKey];
+      if (ans !== undefined && ans !== null && ans !== '🔒' && ans !== '') {
+        counts[ans] = (counts[ans] || 0) + 1;
+        validTotal++;
+      }
+    });
+
+    if (validTotal === 0) {
+      return { guess: '-', count: 0, total: 0, pct: 0, isTie: false, countDetails: `0/${predictions.length}` };
+    }
+
+    let maxCount = 0;
+    let winners: string[] = [];
+
+    Object.entries(counts).forEach(([val, count]) => {
+      if (count > maxCount) {
+        maxCount = count;
+        winners = [val];
+      } else if (count === maxCount) {
+        winners.push(val);
+      }
+    });
+
+    if (winners.length > 1) {
+      const sortedWinners = winners.map(w => getTeamShortName(w)).join(' & ');
+      return {
+        guess: sortedWinners,
+        count: maxCount,
+        total: predictions.length,
+        pct: Math.round((maxCount / predictions.length) * 100),
+        isTie: true,
+        countDetails: `${maxCount}/${predictions.length} EACH`
+      };
+    }
+
+    return {
+      guess: getTeamShortName(winners[0]),
+      count: maxCount,
+      total: predictions.length,
+      pct: Math.round((maxCount / predictions.length) * 100),
+      isTie: false,
+      countDetails: `${maxCount}/${predictions.length}`
+    };
+  };
+
+  const getCellColorByQuestion = (val: any, qText: string) => {
+    const valStr = String(val);
+    const colorVal = getAccessibleTeamTextColor(valStr);
+    if (colorVal && colorVal !== '#ffffff') {
+      return { color: colorVal, fontWeight: 'black' as const };
+    }
+    
+    // Check if the question text contains a team name (e.g. "SRH Power Play Score")
+    const qWords = qText.split(/\s+/);
+    for (const word of qWords) {
+      const cleanWord = word.replace(/[^a-zA-Z]/g, '');
+      const colorQ = getAccessibleTeamTextColor(cleanWord);
+      if (colorQ && colorQ !== '#ffffff') {
+        return { color: colorQ, fontWeight: 'bold' as const };
+      }
+    }
+    return { color: '#ffffff' };
+  };
+
+  const getHeaderStyle = (text: string) => {
+    const words = text.split(/\s+/);
+    for (const word of words) {
+      const cleanWord = word.replace(/[^a-zA-Z]/g, '');
+      const color = getAccessibleTeamTextColor(cleanWord);
+      if (color && color !== '#ffffff') {
+        return { color };
+      }
+    }
+    return { color: '#a0aec0' };
+  };
+
+  const generateCommunityInsight = (predictions: any[], questionsList: any[], team1: string, team2: string) => {
+    if (!predictions || predictions.length === 0) return '';
+    
+    const total = predictions.length;
+    const t1Short = getTeamShortName(team1);
+    const t2Short = getTeamShortName(team2);
+
+    // Find winner question majority
+    const winnerQ = questionsList.find((q: any) => {
+      const opts = q.options || [];
+      return opts.length === 2 && opts.includes(team1) && opts.includes(team2);
+    });
+
+    let winnerWinner = '';
+    let winnerCount = 0;
+    if (winnerQ) {
+      const maj = getMajorityGuess(predictions, winnerQ.key);
+      winnerWinner = maj.guess;
+      winnerCount = maj.count;
+    }
+
+    // Now look for other questions
+    let sixesWinner = '';
+    let sixesCount = 0;
+    let foursWinner = '';
+    let foursCount = 0;
+    
+    questionsList.forEach((q: any) => {
+      const text = q.question_text.toLowerCase();
+      const maj = getMajorityGuess(predictions, q.key);
+      
+      if (text.includes('sixes')) {
+        sixesWinner = maj.guess;
+        sixesCount = maj.count;
+      } else if (text.includes('fours')) {
+        foursWinner = maj.guess;
+        foursCount = maj.count;
+      }
+    });
+
+    // Calculate average PP predictions
+    let t1PPSum = 0;
+    let t1PPCount = 0;
+    let t2PPSum = 0;
+    let t2PPCount = 0;
+    
+    questionsList.forEach((q: any) => {
+      const text = q.question_text.toLowerCase();
+      if (text.includes('powerplay') || text.includes('power play') || text.includes('pp')) {
+        predictions.forEach(p => {
+          const ans = parseFloat(p.answers?.[q.key]);
+          if (!isNaN(ans)) {
+            if (text.includes(team1.toLowerCase()) || text.includes(t1Short.toLowerCase())) {
+              t1PPSum += ans;
+              t1PPCount++;
+            } else if (text.includes(team2.toLowerCase()) || text.includes(t2Short.toLowerCase())) {
+              t2PPSum += ans;
+              t2PPCount++;
+            }
+          }
+        });
+      }
+    });
+
+    const t1PPAvg = t1PPCount > 0 ? t1PPSum / t1PPCount : 0;
+    const t2PPAvg = t2PPCount > 0 ? t2PPSum / t2PPCount : 0;
+
+    let part1 = '';
+    if (winnerWinner === t1Short) {
+      part1 = `${t1Short} FANS ARE CONFIDENT! ${winnerCount} OUT OF ${total} PREDICT A ${t1Short} WIN`;
+    } else if (winnerWinner === t2Short) {
+      part1 = `${t2Short} FANS ARE CONFIDENT! ${winnerCount} OUT OF ${total} PREDICT A ${t2Short} WIN`;
+    } else {
+      part1 = `OPINIONS ARE SPLIT ON THE MATCH OUTCOME`;
+    }
+
+    const supportsT1: string[] = [];
+    const supportsT2: string[] = [];
+
+    if (sixesWinner === t1Short && sixesCount > total / 2) supportsT1.push('sixes');
+    if (sixesWinner === t2Short && sixesCount > total / 2) supportsT2.push('sixes');
+    if (foursWinner === t1Short && foursCount > total / 2) supportsT1.push('fours');
+    if (foursWinner === t2Short && foursCount > total / 2) supportsT2.push('fours');
+    if (t1PPAvg > t2PPAvg + 2) supportsT1.push('power play expectations');
+    if (t2PPAvg > t1PPAvg + 2) supportsT2.push('power play expectations');
+
+    let part2 = '';
+    if (winnerWinner === t1Short) {
+      if (supportsT2.length > 0) {
+        part2 = `, BUT ${t2Short} FANS LEAD IN ${supportsT2.join(' & ')}!`;
+      } else {
+        part2 = `, WITH WIDE SUPPORT FOR ${t1Short} ACROSS OTHER CATEGORIES TOO!`;
+      }
+    } else if (winnerWinner === t2Short) {
+      if (supportsT1.length > 0) {
+        part2 = `, BUT ${t1Short} FANS LEAD IN ${supportsT1.join(' & ')}!`;
+      } else {
+        part2 = `, WITH WIDE SUPPORT FOR ${t2Short} ACROSS OTHER CATEGORIES TOO!`;
+      }
+    } else {
+      part2 = `! SIXES, FOURS AND POWER PLAY PREDICTIONS ARE HIGHLY COMPETITIVE.`;
+    }
+
+    return `${part1}${part2}`.toUpperCase();
+  };
+
   return (
-    <div className="space-y-8 max-w-[1600px] mx-auto w-full px-2 md:px-6 pb-20">
-      <div className="glass-panel p-4 md:p-8 text-center border-b-[4px] border-ipl-gold relative overflow-hidden">
+    <div className="w-full max-w-full px-2 md:px-6 pb-20 space-y-0 md:space-y-8 max-md:glass-panel max-md:p-4 max-md:border-b-[4px] max-md:border-ipl-gold max-md:rounded-2xl">
+      {/* Desktop Match Card Header */}
+      <div className="hidden md:block text-center relative overflow-hidden md:glass-panel md:p-8 md:border-b-[4px] md:border-ipl-gold">
         <div className="flex justify-between items-center w-full mb-4 md:mb-0 relative md:absolute md:top-4 md:left-0 md:w-full md:px-4 z-10 px-1">
           <div className="rounded-full border border-white/10 bg-white/5 backdrop-blur-md text-gray-300 font-display text-[9px] md:text-[10px] tracking-widest px-3 md:px-4 py-1.5 uppercase shadow-lg">
             Powerups: <span className="text-white font-bold">{powerupsLeft}/{totalPowerups}</span>
@@ -365,8 +646,69 @@ export default function MatchPage() {
         </p>
       </div>
 
+      {/* Mobile-optimized Compact Match Header */}
+      <div className="md:hidden flex flex-col items-center gap-2.5 w-full pb-4 border-b border-white/10">
+        {/* Team Matchup Row */}
+        <div className="flex items-center justify-center gap-3 w-full px-2 mt-1">
+          {/* Team 1 Logo & Shortname */}
+          <div className="flex items-center gap-2 flex-1 justify-end min-w-0">
+            <span className="text-base font-display font-bold truncate" style={{ color: getTeamColor(match.team1) }}>
+              {getTeamShortName(match.team1)}
+            </span>
+            <div
+              className="w-10 h-10 rounded-xl flex items-center justify-center border bg-black/40 p-1 shrink-0"
+              style={{ borderColor: `${getTeamColor(match.team1)}40`, boxShadow: `0 0 15px ${getTeamColor(match.team1)}15` }}
+            >
+              {getTeamLogo(match.team1) ? (
+                <img src={getTeamLogo(match.team1)!} alt={match.team1} className="w-full h-full object-contain" />
+              ) : (
+                <span className="text-xs font-display text-white">{getTeamShortName(match.team1)}</span>
+              )}
+            </div>
+          </div>
+
+          {/* VS Separator */}
+          <span className="text-gray-500 font-display text-sm italic tracking-wider opacity-60">VS</span>
+
+          {/* Team 2 Logo & Shortname */}
+          <div className="flex items-center gap-2 flex-1 justify-start min-w-0">
+            <div
+              className="w-10 h-10 rounded-xl flex items-center justify-center border bg-black/40 p-1 shrink-0"
+              style={{ borderColor: `${getTeamColor(match.team2)}40`, boxShadow: `0 0 15px ${getTeamColor(match.team2)}15` }}
+            >
+              {getTeamLogo(match.team2) ? (
+                <img src={getTeamLogo(match.team2)!} alt={match.team2} className="w-full h-full object-contain" />
+              ) : (
+                <span className="text-xs font-display text-white">{getTeamShortName(match.team2)}</span>
+              )}
+            </div>
+            <span className="text-base font-display font-bold truncate" style={{ color: getTeamColor(match.team2) }}>
+              {getTeamShortName(match.team2)}
+            </span>
+          </div>
+        </div>
+
+        {/* Metadata Text Row */}
+        <div className="flex items-center justify-center gap-1.5 text-[9px] font-display uppercase tracking-wider text-gray-400 bg-white/5 border border-white/5 py-1 px-3 rounded-full w-fit">
+          <span className="font-bold text-white">M{matchNumber}</span>
+          <span className="text-white/20">•</span>
+          <span className="flex items-center gap-0.5 truncate max-w-[120px]">
+            <MapPin className="w-2.5 h-2.5 text-ipl-gold shrink-0" />
+            <span className="truncate">{match.venue}</span>
+          </span>
+          <span className="text-white/20">•</span>
+          <span className="flex items-center gap-0.5 text-gray-300">
+            ⚡ <span className="font-bold text-white">{powerupsLeft}/{totalPowerups}</span>
+          </span>
+          <span className="text-white/20">•</span>
+          <span className={`font-bold ${isLocked ? 'text-ipl-live' : 'text-ipl-gold'}`}>
+            {isLocked ? 'CLOSED' : 'OPEN'}
+          </span>
+        </div>
+      </div>
+
       {match.status === 'completed' && (
-        <div className="glass-panel p-8 border-t-4 border-t-ipl-gold shadow-[0_20px_50px_rgba(244,196,48,0.1)] animate-in fade-in slide-in-from-top-4 duration-1000">
+        <div className="md:glass-panel md:p-8 md:border-t-4 md:border-t-ipl-gold md:shadow-[0_20px_50px_rgba(244,196,48,0.1)] md:animate-in md:fade-in md:slide-in-from-top-4 md:duration-1000 max-md:py-6 max-md:border-b max-md:border-white/10">
           <div className="flex items-center gap-3 mb-8">
             <div className="p-2 bg-ipl-gold/10 rounded-lg">
               <Trophy className="w-6 h-6 text-ipl-gold" />
@@ -376,7 +718,7 @@ export default function MatchPage() {
 
           <div className="grid grid-cols-2 md:grid-cols-3 gap-3 md:gap-6">
             <div
-              className="bg-white/5 p-4 md:p-6 border relative overflow-hidden group transition-all col-span-2 md:col-span-1"
+              className="bg-white/5 p-3 md:p-6 border relative overflow-hidden group transition-all col-span-2 md:col-span-1 rounded-2xl"
               style={{
                 borderColor: match?.results?.[winnerQId] ? `${getTeamColor(match.results[winnerQId])}40` : 'rgba(255,255,255,0.1)',
                 boxShadow: match?.results?.[winnerQId] ? `0 0 20px ${getTeamColor(match.results[winnerQId])}15` : 'none'
@@ -385,10 +727,10 @@ export default function MatchPage() {
               <div className="absolute -right-4 -bottom-4 opacity-5 group-hover:opacity-10 transition-opacity">
                 <CheckCircle2 className="w-24 h-24 text-ipl-gold" />
               </div>
-              <label className="block text-[10px] font-display text-ipl-gold uppercase tracking-[0.2em] mb-4">Official Winner</label>
-              <div className="text-3xl font-display tracking-widest uppercase flex items-center gap-4">
+              <label className="block text-[9px] md:text-[10px] font-display text-ipl-gold uppercase tracking-[0.2em] mb-2 md:mb-4">Official Winner</label>
+              <div className="text-2xl md:text-3xl font-display tracking-widest uppercase flex items-center gap-3 md:gap-4">
                 {match?.results?.[winnerQId] && getTeamLogo(match.results[winnerQId]) && (
-                  <img src={getTeamLogo(match.results[winnerQId])!} alt="" className="w-10 h-10 object-contain" />
+                  <img src={getTeamLogo(match.results[winnerQId])!} alt="" className="w-8 h-8 md:w-10 md:h-10 object-contain" />
                 )}
                 <span style={{
                   color: match?.results?.[winnerQId] ? getTeamColor(match.results[winnerQId]) : 'white',
@@ -401,21 +743,24 @@ export default function MatchPage() {
 
             {Object.keys(match?.results || {}).filter(k => k !== winnerQId).map(k => {
               const q = questions.find((q: any) => q.key === k);
-              let label = q?.question_text || 'Result';
-              if (label.length > 25) label = label.substring(0, 25) + '...';
+              const label = q ? getShortQuestionText(q.question_text) : 'Result';
 
               const val = match.results[k];
-              const isTeamMatch = getTeamColor(val) !== '#666666';
-              const valStyle = isTeamMatch ? { color: getTeamColor(val) } : { color: 'white' };
+              const teamColorVal = getAccessibleTeamTextColor(val);
+              const isTeamMatch = teamColorVal !== '#ffffff';
+              const valStyle = isTeamMatch ? { color: teamColorVal } : { color: 'white' };
+              const displayVal = getTeamShortName(val);
+              const isLongValue = displayVal.length > 8;
+              const valFontClass = isLongValue ? "text-[13px] md:text-lg leading-tight" : "text-base md:text-2xl";
 
               return (
-                <div key={k} className="bg-white/5 p-4 md:p-6 border border-white/10 relative overflow-hidden group flex flex-col justify-center items-center">
+                <div key={k} className="bg-white/5 p-2.5 md:p-5 border border-white/10 relative overflow-hidden group flex flex-col justify-center items-center rounded-2xl">
                   <div className="absolute -right-4 -bottom-4 opacity-5 group-hover:opacity-10 transition-opacity">
                     <Target className="w-24 h-24 text-ipl-gold" />
                   </div>
-                  <label className="block text-[8px] md:text-[10px] font-display text-ipl-gold uppercase tracking-[0.2em] mb-2 text-center">{label}</label>
-                  <div className="text-xl md:text-2xl font-display tracking-wide uppercase text-center" style={valStyle}>
-                    {val}
+                  <label className="block text-[7.5px] md:text-[10px] font-display text-ipl-gold uppercase tracking-[0.2em] mb-1.5 md:mb-2.5 text-center">{label}</label>
+                  <div className={`font-display tracking-wide uppercase text-center ${valFontClass}`} style={valStyle}>
+                    {displayVal}
                   </div>
                 </div>
               );
@@ -444,7 +789,7 @@ export default function MatchPage() {
 
 
       {!isLocked && (
-        <div className="glass-panel p-4 md:p-8">
+        <div className="md:glass-panel md:p-8 max-md:py-6 max-md:border-b max-md:border-white/10">
           <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6 md:mb-8 border-b-2 border-white/5 pb-4">
             <div className="flex items-center gap-3 md:gap-4 w-full md:w-auto">
               <h2 className="text-xl md:text-2xl font-display text-white">YOUR PREDICTIONS</h2>
@@ -552,9 +897,9 @@ export default function MatchPage() {
           )}
         </div>
       )}
-      <div className="space-y-12">
+      <div className="space-y-6 md:space-y-12 max-md:space-y-0">
         {!leagueSections || leagueSections.length === 0 ? (
-          <div className="glass-panel p-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
+          <div className="md:glass-panel md:p-8 animate-in fade-in slide-in-from-bottom-4 duration-700 max-md:py-10 max-md:border-b max-md:border-white/10 last:max-md:border-b-0">
             <div className="text-center py-10 text-gray-500 font-display tracking-widest text-[10px] uppercase">
               NO PREDICTIONS FOUND FOR THIS MATCH
             </div>
@@ -563,514 +908,355 @@ export default function MatchPage() {
           leagueSections.map((section: any) => {
             const allPredictions = section.predictions;
             const sortedPredictions = getSortedPredictions(allPredictions);
+
+            // Filter relevant questions for this league section (exclude powerup and winner Q since it is shown as badge next to name)
+            const relevantQuestions = questions.filter((q: any) => 
+              q.key !== 'use_powerup' && 
+              q.key !== winnerQId &&
+              (!q.league_id || q.league_id === section.league.id)
+            );
+            // Count predictors for each team
+            const t1Predictors = allPredictions.filter((p: any) => winnerQId && p.answers[winnerQId] === match.team1).length;
+            const t2Predictors = allPredictions.filter((p: any) => winnerQId && p.answers[winnerQId] === match.team2).length;
+
             return (
-              <div key={section.league.id} className="glass-panel p-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
-                <div className="flex items-center gap-3 mb-8 border-b-2 border-white/5 pb-4">
-                  <h2 className="text-2xl font-display text-white italic tracking-tighter">
-                    {section.league.name === 'IPL Global' ? (
-                      <>MATCH {matchNumber} <span className="text-ipl-gold">REVEAL</span></>
-                    ) : (
-                      <>{section.league.name} <span className="text-ipl-gold">| COMMUNITY REVEAL</span></>
-                    )}
-                  </h2>
-                  {isLocked ? (
-                    <span className="bg-ipl-live/20 text-ipl-live text-[10px] px-2 py-1 rounded font-display animate-pulse uppercase tracking-tighter">Live Guesses</span>
-                  ) : (
-                    <span className="bg-ipl-gold/20 text-ipl-gold text-[10px] px-2 py-1 rounded font-display uppercase tracking-tighter">Guesses Hidden</span>
-                  )}
+              <div key={section.league.id} className="md:glass-panel md:p-8 animate-in fade-in slide-in-from-bottom-4 duration-700 space-y-4 md:space-y-6 max-md:py-4 max-md:border-b max-md:border-white/10 last:max-md:border-b-0">
+                
+                {/* Header */}
+                <div className="flex flex-col gap-2 md:gap-4">
+                  <div className="text-center py-0.5 md:py-2">
+                    <h2 className="text-xs md:text-2xl font-display font-black text-white italic tracking-tighter uppercase">
+                      {section.league.name === 'IPL Global' ? (
+                        <>GLOBAL <span className="text-ipl-gold">| REVEAL</span></>
+                      ) : (
+                        <>{section.league.name} <span className="text-ipl-gold">| REVEAL</span></>
+                      )}
+                    </h2>
+                  </div>
+
+                  {/* Team Predictors Count Bar */}
+                  <div className="flex items-center justify-between gap-1.5 md:gap-4 bg-black/40 border border-white/10 rounded-xl md:rounded-2xl p-1 md:p-2 select-none">
+                    {/* Team 1 Predictors */}
+                    <div 
+                      className="flex-1 flex items-center justify-between px-2.5 py-1.5 md:px-6 md:py-3.5 rounded-lg md:rounded-xl transition-all duration-300"
+                      style={{ 
+                        backgroundColor: `${getTeamColor(match.team1)}15`, 
+                        border: `1px solid ${getTeamColor(match.team1)}40` 
+                      }}
+                    >
+                      <span className="text-[8px] md:text-xs font-display font-bold uppercase tracking-wider" style={{ color: getTeamColor(match.team1) }}>
+                        {getTeamShortName(match.team1)} PREDICTORS
+                      </span>
+                      <span className="text-xs md:text-xl font-display font-black" style={{ color: getTeamColor(match.team1) }}>
+                        {isLocked ? t1Predictors : '?'}
+                      </span>
+                    </div>
+
+                    {/* Live Guesses Pill */}
+                    <div className="shrink-0">
+                      {isLocked ? (
+                        <span className="bg-ipl-gold text-black text-[7px] md:text-[10px] font-display font-bold uppercase tracking-widest px-2 py-1 rounded-full shadow-[0_0_15px_rgba(255,215,0,0.3)] animate-pulse">
+                          Live
+                        </span>
+                      ) : (
+                        <span className="bg-white/5 border border-white/10 text-gray-500 text-[7px] md:text-[10px] font-display font-bold uppercase tracking-widest px-2 py-1 rounded-full">
+                          Hidden
+                        </span>
+                      )}
+                    </div>
+
+                    {/* Team 2 Predictors */}
+                    <div 
+                      className="flex-1 flex items-center justify-between px-2.5 py-1.5 md:px-6 md:py-3.5 rounded-lg md:rounded-xl transition-all duration-300"
+                      style={{ 
+                        backgroundColor: `${getTeamColor(match.team2)}15`, 
+                        border: `1px solid ${getTeamColor(match.team2)}40` 
+                      }}
+                    >
+                      <span className="text-[8px] md:text-xs font-display font-bold uppercase tracking-wider" style={{ color: getTeamColor(match.team2) }}>
+                        {getTeamShortName(match.team2)} PREDICTORS
+                      </span>
+                      <span className="text-xs md:text-xl font-display font-black" style={{ color: getTeamColor(match.team2) }}>
+                        {isLocked ? t2Predictors : '?'}
+                      </span>
+                    </div>
+                  </div>
                 </div>
 
-                {!allPredictions || allPredictions.length === 0 ? (
+                {!isLocked ? (
+                  /* Locked State Placeholder */
+                  <div className="flex flex-col items-center justify-center py-16 text-center bg-black/20 rounded-2xl border border-white/5">
+                    <div className="p-4 bg-ipl-gold/10 rounded-full border border-ipl-gold/20 mb-4 animate-pulse">
+                      <Lock className="w-8 h-8 text-ipl-gold" />
+                    </div>
+                    <h3 className="text-lg font-display text-white mb-1 uppercase tracking-wider font-bold">Predictions Locked</h3>
+                    <p className="text-gray-500 font-display text-[10px] tracking-widest max-w-sm mx-auto leading-relaxed uppercase">
+                      Guesses will be revealed 30 minutes before match kickoff.
+                    </p>
+                  </div>
+                ) : !allPredictions || allPredictions.length === 0 ? (
                   <div className="text-center py-10 text-gray-500 font-display tracking-widest text-[10px] uppercase">
                     NO PREDICTIONS FOUND FOR THIS LEAGUE
                   </div>
                 ) : (
-                  <div className="flex flex-col gap-4 md:gap-6">
-                    {/* Stats Grid */}
-                    {(() => {
-                      // Calculate Team Power split for this view (global or league)
-                      let teamPower = null;
-                      if (match.status === 'completed' && winnerQId) {
-                        let ptsTeam1 = 0;
-                        let ptsTeam2 = 0;
-                        allPredictions.forEach((p: any) => {
-                          const pick = p.answers?.[winnerQId];
-                          const points = p.points_awarded ?? 0;
-                          if (pick === match.team1) {
-                            ptsTeam1 += Math.max(0, points);
-                          } else if (pick === match.team2) {
-                            ptsTeam2 += Math.max(0, points);
-                          }
-                        });
-                        const totalPts = ptsTeam1 + ptsTeam2;
-                        if (totalPts > 0) {
-                          const pct1 = Math.round((ptsTeam1 / totalPts) * 100);
-                          teamPower = {
-                            team1Pct: pct1,
-                            team2Pct: 100 - pct1,
-                            team1Pts: ptsTeam1,
-                            team2Pts: ptsTeam2,
-                          };
-                        } else {
-                          teamPower = {
-                            team1Pct: 50,
-                            team2Pct: 50,
-                            team1Pts: 0,
-                            team2Pts: 0,
-                          };
-                        }
-                      }
-
-                      return (
-                        <div className="grid grid-cols-1 gap-4">
-                          {/* Team Power Split (Only post match conclusion) */}
-                          {match.status === 'completed' && teamPower && (
-                            <div className="flex flex-col justify-center bg-white/5 rounded-lg md:rounded-xl p-3 md:p-4 border border-white/10 relative overflow-hidden group">
-                              <div className="flex justify-between items-center text-[9px] md:text-[10px] font-display uppercase tracking-widest text-ipl-gold mb-2 font-black">
-                                <span>TEAM POWER SPLIT</span>
-                                <span className="text-gray-500 font-normal">Points Earned by Supporters</span>
-                              </div>
-                              
-                              {/* Progress Bar Split */}
-                              <div className="relative w-full h-3 md:h-4 bg-white/10 rounded-full overflow-hidden flex">
-                                <div 
-                                  className="h-full transition-all duration-1000" 
-                                  style={{ 
-                                    width: `${teamPower.team1Pct}%`, 
-                                    backgroundColor: getTeamColor(match.team1),
-                                    boxShadow: `inset 0 0 10px rgba(0,0,0,0.3)`
-                                  }} 
-                                />
-                                <div 
-                                  className="h-full transition-all duration-1000" 
-                                  style={{ 
-                                    width: `${teamPower.team2Pct}%`, 
-                                    backgroundColor: getTeamColor(match.team2),
-                                    boxShadow: `inset 0 0 10px rgba(0,0,0,0.3)`
-                                  }} 
-                                />
-                                {/* Glowing separator line */}
-                                <div 
-                                  className="absolute top-0 bottom-0 w-[2px] bg-white/80 shadow-[0_0_8px_rgba(255,255,255,0.8)]"
-                                  style={{ left: `${teamPower.team1Pct}%` }}
-                                />
-                              </div>
-                              
-                              {/* Percentages and Totals Labels */}
-                              <div className="flex justify-between items-center mt-2 text-[10px] md:text-xs font-display font-black tracking-wider uppercase">
-                                <div className="flex items-center gap-1.5" style={{ color: getTeamColor(match.team1) }}>
-                                  <span>{getTeamShortName(match.team1)}</span>
-                                  <span className="text-white text-xs md:text-sm">{teamPower.team1Pct}%</span>
-                                  <span className="text-gray-500 text-[8px] md:text-[9px] font-normal font-mono">({teamPower.team1Pts} pts)</span>
-                                </div>
-                                <div className="flex items-center gap-1.5" style={{ color: getTeamColor(match.team2) }}>
-                                  <span className="text-gray-500 text-[8px] md:text-[9px] font-normal font-mono">({teamPower.team2Pts} pts)</span>
-                                  <span className="text-white text-xs md:text-sm">{teamPower.team2Pct}%</span>
-                                  <span>{getTeamShortName(match.team2)}</span>
-                                </div>
-                              </div>
-                            </div>
-                          )}
-
-                          {/* Prediction Count Split */}
-                          <div className="flex justify-center items-center gap-6 md:gap-8 bg-white/5 rounded-lg md:rounded-xl p-3 md:p-4 border border-white/10 relative overflow-hidden group">
-                            <div className="absolute -left-10 -bottom-10 opacity-[0.02] group-hover:opacity-[0.05] transition-opacity">
-                              <Users className="w-28 h-28 text-white" />
-                            </div>
-                            <div className="flex flex-col items-center">
-                              <span className="text-[9px] md:text-[10px] text-gray-400 font-display uppercase tracking-widest leading-none mb-1">{getTeamShortName(match.team1)} Predictors</span>
-                              <span className="text-xl md:text-3xl font-display leading-none drop-shadow-md font-bold" style={{ color: getTeamColor(match.team1) }}>
-                                {allPredictions.filter((p: any) => winnerQId && p.answers[winnerQId] === match.team1).length}
-                              </span>
-                            </div>
-                            <div className="h-6 md:h-10 w-[1px] md:w-[2px] bg-white/20 rounded-full" />
-                            <div className="flex flex-col items-center">
-                              <span className="text-[9px] md:text-[10px] text-gray-400 font-display uppercase tracking-widest leading-none mb-1">{getTeamShortName(match.team2)} Predictors</span>
-                              <span className="text-xl md:text-3xl font-display leading-none drop-shadow-md font-bold" style={{ color: getTeamColor(match.team2) }}>
-                                {allPredictions.filter((p: any) => winnerQId && p.answers[winnerQId] === match.team2).length}
-                              </span>
-                            </div>
-                          </div>
-                        </div>
-                      );
-                    })()}
-
-                    {(() => {
-                      const renderPredictionCard = (pred: any, idx: number, isDesktop = false) => {
-                        const isMyRow = pred.user?.id === currentUser?.id;
-                        const winnerAns = winnerQId ? pred.answers[winnerQId] : '🔒';
-                        const teamWinnerShort = winnerAns === '🔒' ? '🔒' : getTeamShortName(winnerAns);
-                        const isExpanded = expandedCardIds.has(pred.prediction_id);
-                        const isCompleted = match.status === 'completed';
-
-                        const toggleExpand = () => {
-                          setExpandedCardIds(prev => {
-                            const newSet = new Set(prev);
-                            if (newSet.has(pred.prediction_id)) newSet.delete(pred.prediction_id);
-                            else newSet.add(pred.prediction_id);
-                            return newSet;
-                          });
-                        };
-
-                        const keysToRender = (() => {
-                          const keys = Object.keys(questionMap || {}).filter(k => k !== 'use_powerup');
-                          if (isCompleted) {
-                            return keys.sort((a, b) => {
-                              if (a === winnerQId) return -1;
-                              if (b === winnerQId) return 1;
-                              return 0;
-                            });
-                          } else {
-                            return keys.filter(k => k !== winnerQId);
-                          }
-                        })();
-
+                  <div className="space-y-4 md:space-y-6">
+                    {/* Consensus Stats */}
+                    <div className="flex flex-col divide-y divide-white/5 border border-white/10 rounded-xl overflow-hidden bg-black/20">
+                      {relevantQuestions.map((q: any) => {
+                        const stats = getMajorityGuess(allPredictions, q.key);
                         return (
-                          <div key={idx} className={`flex flex-col rounded-lg border transition-all ${isMyRow ? 'bg-ipl-gold/10 border-ipl-gold/50 shadow-[0_0_15px_rgba(244,196,48,0.15)]' : 'bg-white/5 border-white/10'}`}>
-                            {/* Card Header (Always Visible) */}
-                            <div
-                              className={`flex items-center justify-between cursor-pointer ${isDesktop ? 'md:p-3.5 md:gap-4' : 'p-2 gap-2'}`}
-                              onClick={toggleExpand}
-                            >
-                              <div className="flex items-center gap-2 md:gap-3">
-                                <div className="relative shrink-0">
-                                  <img src={pred.user.avatar_url || 'https://via.placeholder.com/32'} className={`${isDesktop ? 'md:w-9 md:h-9' : 'w-7 h-7'} rounded-full border object-cover ${isMyRow ? 'border-ipl-gold' : 'border-white/10'}`} alt={getUserDisplayName(pred.user)} />
-                                  {isMyRow && (
-                                    <div className={`absolute -top-1 -right-1 bg-ipl-gold rounded-full border border-ipl-navy flex items-center justify-center ${isDesktop ? 'md:w-3.5 md:h-3.5' : 'w-2.5 h-2.5'}`}>
-                                      <Check className={`${isDesktop ? 'md:w-2 md:h-2' : 'w-1.5 h-1.5'} text-black`} />
-                                    </div>
-                                  )}
-                                </div>
-                                <div className="flex flex-col">
-                                  <div className="flex items-center gap-1 md:gap-2">
-                                    <span className={`${isDesktop ? 'md:text-[13px] md:font-black' : 'text-xs font-bold'} tracking-tight leading-none ${isMyRow ? 'text-ipl-gold' : 'text-white'}`}>
-                                      {getUserDisplayName(pred.user)}
-                                    </span>
-                                    {match.status === 'completed' && pred.points_awarded !== undefined && pred.points_awarded !== null && (
-                                      <div className="group relative flex items-center gap-1.5">
-                                        <span className={`px-1.5 py-0.5 rounded text-[9px] md:text-[10px] font-bold font-mono cursor-help transition-all group-hover:bg-white/20 ${pred.points_awarded > 0 ? 'bg-green-500/20 text-green-400 border border-green-500/30' : pred.points_awarded < 0 ? 'bg-red-500/20 text-red-400 border border-red-500/30' : 'bg-white/10 text-gray-400 border border-white/20'}`}>
-                                          {pred.points_awarded > 0 ? '+' : ''}{pred.points_awarded} PTS
-                                        </span>
-                                        {pred.points_breakdown?.rules && (
-                                          <HelpCircle className="w-3.5 h-3.5 text-gray-400 group-hover:text-ipl-gold transition-colors cursor-help shrink-0" />
-                                        )}
-
-                                        {/* Breakdown Tooltip */}
-                                        {pred.points_breakdown?.rules && (
-                                          <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-56 bg-[#0f172a] border border-white/10 rounded-lg shadow-2xl p-3 opacity-0 group-hover:opacity-100 pointer-events-none transition-all duration-200 z-50">
-                                            <div className="space-y-1.5">
-                                              <div className="text-[9px] font-display uppercase tracking-widest text-ipl-gold border-b border-white/5 pb-1 mb-1.5 font-bold">
-                                                Points Breakdown
-                                              </div>
-                                              {pred.points_breakdown.rules.map((rule: any, ri: number) => {
-                                                const isRuleCorrect = rule.status === 'correct' || rule.status === 'bingo';
-                                                const isRuleRange = rule.status === 'range';
-                                                return (
-                                                  <div key={ri} className="flex justify-between items-center text-[8px] uppercase tracking-wider">
-                                                    <div className="flex items-center gap-1.5 min-w-0">
-                                                      {rule.was_boosted && <span className="text-ipl-gold shrink-0">⚡</span>}
-                                                      {isRuleCorrect ? (
-                                                        <Check className="w-2.5 h-2.5 text-green-500 shrink-0" />
-                                                      ) : isRuleRange ? (
-                                                        <Target className="w-2.5 h-2.5 text-blue-400 shrink-0" />
-                                                      ) : (
-                                                        <X className="w-2.5 h-2.5 text-red-500/50 shrink-0" />
-                                                      )}
-                                                      <span className="text-gray-400 truncate">{rule.category}</span>
-                                                    </div>
-                                                    <span className={`font-mono font-bold ${rule.points > 0 ? 'text-green-400' : rule.points < 0 ? 'text-red-400' : 'text-gray-500'}`}>
-                                                      {rule.points > 0 ? '+' : ''}{rule.points}
-                                                    </span>
-                                                  </div>
-                                                );
-                                              })}
-
-                                              {/* Multiplier Indicator */}
-                                              {pred.points_breakdown.powerup?.used && (
-                                                <div className="py-1 mt-1 border-t border-white/5 flex justify-between items-center text-[8px] uppercase tracking-widest font-bold text-ipl-gold">
-                                                  <span className="flex items-center gap-1">⚡ 2X Booster</span>
-                                                  <span className="bg-ipl-gold text-black px-1 rounded-sm">x2</span>
-                                                </div>
-                                              )}
-                                            </div>
-                                            <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-2 h-2 bg-[#0f172a] border-r border-b border-white/10 rotate-45" />
-                                          </div>
-                                        )}
-                                      </div>
-                                    )}
-                                    {pred.is_auto_predicted && (
-                                      <Sparkles className={`${isDesktop ? 'md:w-3 md:h-3' : 'w-2 h-2'} text-[#7B2FF7]`} />
-                                    )}
-                                  </div>
-                                </div>
-                              </div>
-                              <div className="flex flex-col items-end gap-1">
-                                <div className="flex items-center gap-1.5 md:gap-2">
-                                  {pred.answers.use_powerup === 'Yes' && (
-                                    <div className={`flex items-center bg-ipl-live/10 border border-ipl-live/20 rounded leading-none ${isDesktop ? 'md:px-1.5 md:py-1' : 'px-1 py-0.5'}`}>
-                                      <span className={`${isDesktop ? 'md:text-[9px]' : 'text-[8px]'} font-bold text-ipl-live tracking-tighter uppercase`}>⚡</span>
-                                    </div>
-                                  )}
-                                  {!isDesktop && (
-                                    <span
-                                      className={`font-bold rounded leading-none uppercase tracking-widest border text-[9px] px-1.5 py-0.5 ${winnerAns === '🔒' ? 'bg-white/5 border-white/10 text-gray-500' : ''}`}
-                                      style={winnerAns !== '🔒' ? {
-                                        backgroundColor: `${getTeamColor(winnerAns)}15`,
-                                        borderColor: `${getTeamColor(winnerAns)}40`,
-                                        color: getTeamColor(winnerAns)
-                                      } : {}}
-                                    >
-                                      {teamWinnerShort}
-                                    </span>
-                                  )}
-                                  {isExpanded ? (
-                                    <ChevronUp className="w-3 h-3 md:w-4 md:h-4 text-gray-500" />
-                                  ) : (
-                                    <ChevronDown className="w-3 h-3 md:w-4 md:h-4 text-gray-500" />
-                                  )}
-                                </div>
-                              </div>
+                          <div 
+                            key={q.key} 
+                            className="flex items-center gap-2.5 px-3 py-2 hover:bg-white/[0.04] transition-colors"
+                          >
+                            <div className="shrink-0 w-5 flex items-center justify-center">
+                              {getQuestionIcon(q.question_text)}
                             </div>
+                            <span className="text-[9px] text-gray-400 font-display uppercase tracking-wide font-bold flex-1 min-w-0 truncate">
+                              {getShortQuestionText(q.question_text)}
+                            </span>
+                            <span 
+                              className="text-[11px] font-display font-extrabold uppercase tracking-wide shrink-0"
+                              style={getCellColorByQuestion(stats.guess, q.question_text)}
+                            >
+                              {stats.guess}
+                            </span>
+                            <span className="text-[8px] text-gray-500 font-mono font-bold bg-black/40 px-1.5 py-0.5 rounded border border-white/5 shrink-0 leading-none">
+                              {stats.countDetails}
+                            </span>
+                          </div>
+                        );
+                      })}
+                    </div>
 
-                            {/* Accordion Content (Answers) */}
-                            {isExpanded && (
-                              <div className={`border-t border-white/5 ${isDesktop ? 'p-3.5 pt-2' : 'p-2 pt-1'}`}>
-                                {(!winnerQId || pred.answers[winnerQId] === '🔒') ? (
-                                  <span className="text-[10px] text-gray-500 font-display tracking-widest uppercase opacity-60 italic p-2">🔒 Predictions are hidden until match locks</span>
-                                ) : isCompleted && pred.points_breakdown?.rules ? (
-                                  <div className="space-y-4 pt-1">
-                                    {/* Powerup Banner */}
-                                    {pred.points_breakdown.powerup?.used && (
-                                      <div className="bg-ipl-gold/10 border border-ipl-gold/30 rounded-xl p-3 flex justify-between items-center text-xs font-display text-ipl-gold font-bold uppercase tracking-wider shadow-inner">
-                                        <span className="flex items-center gap-2">
-                                          <Zap className="w-4 h-4 text-ipl-gold animate-pulse" />
-                                          2X Booster Applied
-                                        </span>
-                                        <span className="bg-ipl-gold text-black px-2 py-0.5 rounded text-[10px] font-black font-mono">
-                                          x2
-                                        </span>
-                                      </div>
-                                    )}
+                    {/* Predictors Grid Table */}
+                    <div className="border border-white/10 rounded-2xl bg-black/20 overflow-hidden">
+                      <div className="overflow-x-auto scrollbar-thin scrollbar-thumb-white/10 scrollbar-track-transparent">
+                        <table className="w-full text-left border-collapse">
+                          <thead>
+                            <tr className="bg-[#0f1220] border-b border-white/10">
+                              <th 
+                                className="sticky left-0 bg-[#0f1220] z-20 px-1.5 py-2 md:p-3 text-[10px] md:text-xs font-display font-black text-gray-400 uppercase tracking-normal md:tracking-widest min-w-[60px] max-w-[60px] w-[60px] md:min-w-[200px] md:max-w-[200px] md:w-[200px] border-r border-white/10 shadow-[2px_0_5px_rgba(0,0,0,0.3)]"
+                                title="Predictor"
+                              ><span className="hidden md:inline">PREDICTOR</span><User className="md:hidden w-4 h-4 mx-auto text-gray-400" /></th>
+                              {relevantQuestions.map((q: any) => {
+                                const iconImg = getHeaderIcon(q.question_text);
+                                const subLabel = getHeaderSubLabel(q.question_text);
+                                const style = getHeaderStyle(q.question_text);
+                                const isLongAnswer = q.answer_type === 'player_name' || q.answer_type === 'free_text' || q.answer_type === 'text';
+                                const widthClass = isLongAnswer
+                                  ? "min-w-[85px] max-w-[85px] w-[85px] md:min-w-[140px] md:max-w-[140px] md:w-[140px]"
+                                  : "min-w-[60px] max-w-[60px] w-[60px] md:min-w-[120px] md:max-w-[120px] md:w-[120px]";
+                                return (
+                                  <th 
+                                    key={q.key} 
+                                    className={`px-0.5 py-1.5 md:p-3 text-[10px] md:text-xs font-display font-black text-center uppercase tracking-normal md:tracking-widest ${widthClass}`}
+                                    title={q.question_text}
+                                  ><span className="hidden md:inline" style={style}>{getShortQuestionText(q.question_text)}</span><div className="md:hidden flex flex-col items-center gap-0">{iconImg}{subLabel && (<span className="text-[7px] font-bold tracking-tighter" style={style}>{subLabel}</span>)}</div></th>
+                                );
+                              })}
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {sortedPredictions.map((pred: any) => {
+                              const isMyRow = pred.user?.id === currentUser?.id;
+                              const winnerAns = winnerQId ? pred.answers[winnerQId] : '🔒';
+                              const teamWinnerShort = winnerAns === '🔒' ? '🔒' : getTeamShortName(winnerAns);
 
-                                    {/* Dynamic Card Grid */}
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-                                      {keysToRender.map(k => {
-                                        const q = questionMap?.[k];
-                                        let label = q?.question_text || '';
-                                        if (q?.source_name && q.source_name !== 'IPL Global') {
-                                          label = `${q.source_name}: ${label}`;
-                                        }
-
-                                        const rule = pred.points_breakdown?.rules?.find((r: any) => 
-                                          (r.question_id && r.question_id === q?.question_id) || 
-                                          (r.key && r.key === q?.slug) ||
-                                          (r.key && r.key === k)
-                                        );
-                                        if (!rule) {
-                                          const isTeamMatch = getTeamColor(pred.answers[k]) !== '#666666';
-                                          const valStyle = isTeamMatch ? { color: getTeamColor(pred.answers[k]) } : {};
-                                          const displayVal = isTeamMatch ? getTeamShortName(pred.answers[k]) : pred.answers[k];
-
-                                          return (
-                                            <div key={k} className="flex flex-col justify-center bg-black/20 p-2.5 rounded-md border border-white/5">
-                                              <span className="text-[9px] text-gray-500 font-display uppercase tracking-widest mb-1 leading-tight">
-                                                {label}
-                                              </span>
-                                              <span className="text-sm md:text-base text-white font-display font-bold tracking-wide" style={valStyle}>
-                                                {displayVal || '-'}
-                                              </span>
-                                            </div>
-                                          );
-                                        }
-
-                                        const isRuleCorrect = rule.status === 'correct' || rule.status === 'bingo';
-                                        const isRuleRange = rule.status === 'range';
-                                        const isRuleIncorrect = rule.status === 'incorrect' || rule.status === 'miss';
-
-                                        return (
-                                          <div
-                                            key={k}
-                                            className={`flex flex-col justify-between p-3 md:p-3.5 rounded-xl border transition-all duration-300 relative overflow-hidden ${isRuleCorrect ? 'bg-green-500/[0.03] border-green-500/20 hover:border-green-500/30' :
-                                                isRuleRange ? 'bg-blue-500/[0.03] border-blue-500/20 hover:border-blue-500/30' :
-                                                  isRuleIncorrect ? 'bg-red-500/[0.03] border-red-500/20 hover:border-red-500/30' :
-                                                    'bg-white/5 border-white/10'
-                                              }`}
-                                          >
-                                            <div className="flex items-start justify-between gap-2 mb-2 w-full">
-                                              <span className="text-[9px] text-gray-400 font-display uppercase tracking-wider font-semibold truncate max-w-[70%]">
-                                                {label}
-                                              </span>
-                                              <div className="flex items-center gap-1.5 shrink-0">
-                                                {isRuleCorrect ? (
-                                                  <span className="flex items-center justify-center w-4 h-4 rounded-full bg-green-500/10 border border-green-500/25">
-                                                    <Check className="w-2.5 h-2.5 text-green-400" />
-                                                  </span>
-                                                ) : isRuleRange ? (
-                                                  <span className="flex items-center justify-center w-4 h-4 rounded-full bg-blue-500/10 border border-blue-500/25">
-                                                    <Target className="w-2.5 h-2.5 text-blue-400" />
-                                                  </span>
-                                                ) : (
-                                                  <span className="flex items-center justify-center w-4 h-4 rounded-full bg-red-500/10 border border-red-500/25">
-                                                    <AlertCircle className="w-2.5 h-2.5 text-red-400" />
-                                                  </span>
-                                                )}
-                                                <span className={`text-[9px] font-mono font-bold px-1.5 py-0.5 rounded ${rule.points > 0 ? 'bg-green-500/10 text-green-400 border border-green-500/20 shadow-sm shadow-green-950' :
-                                                    rule.points < 0 ? 'bg-red-500/10 text-red-400 border border-red-500/20 shadow-sm shadow-red-950' :
-                                                      'bg-white/5 text-gray-500 border border-white/10'
-                                                  }`}>
-                                                  {rule.points > 0 ? '+' : ''}{rule.points} PTS
-                                                  {rule.was_boosted && <span className="ml-0.5 text-[8px] text-ipl-gold">⚡</span>}
-                                                </span>
-                                              </div>
-                                            </div>
-
-                                            {isRuleCorrect ? (
-                                              <div className="mt-1.5 bg-black/20 py-2 px-3 rounded-lg border border-white/[0.02] flex items-center justify-center">
-                                                <span className="font-display font-extrabold text-sm tracking-wider uppercase" style={getTeamColor(pred.answers[k]) !== '#666666' ? { color: getTeamColor(pred.answers[k]) } : { color: 'white' }}>
-                                                  {getTeamColor(pred.answers[k]) !== '#666666' ? getTeamShortName(pred.answers[k]) : pred.answers[k] || '-'}
-                                                </span>
-                                              </div>
-                                            ) : (
-                                              <div className="space-y-1.5 mt-1.5 bg-black/20 p-2 rounded-lg border border-white/[0.02]">
-                                                <div className="flex items-center justify-between text-xs">
-                                                  <span className="text-gray-500 uppercase tracking-tighter text-[9px]">Predicted:</span>
-                                                  <span className="font-display font-bold text-xs" style={getTeamColor(pred.answers[k]) !== '#666666' ? { color: getTeamColor(pred.answers[k]) } : { color: 'white' }}>
-                                                    {getTeamColor(pred.answers[k]) !== '#666666' ? getTeamShortName(pred.answers[k]) : pred.answers[k] || '-'}
-                                                  </span>
-                                                </div>
-                                                {(rule.actual !== undefined && rule.actual !== null) && (
-                                                  <div className="flex items-center justify-between text-xs border-t border-white/5 pt-1.5 mt-1.5">
-                                                    <span className="text-gray-500 uppercase tracking-tighter text-[9px]">Actual:</span>
-                                                    <span className="font-display font-bold text-xs" style={getTeamColor(rule.actual) !== '#666666' ? { color: getTeamColor(rule.actual) } : { color: 'white' }}>
-                                                      {getTeamColor(rule.actual) !== '#666666' ? getTeamShortName(rule.actual) : rule.actual || '-'}
-                                                    </span>
-                                                  </div>
-                                                )}
-                                              </div>
-                                            )}
-                                          </div>
-                                        );
-                                      })}
-                                    </div>
-                                  </div>
-                                ) : (
-                                  <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-                                    {Object.keys(questionMap || {}).filter(k => ![winnerQId, 'use_powerup'].includes(k)).map(k => {
-                                      const q = questionMap?.[k];
-                                      let label = q?.question_text || '';
-                                      if (q?.source_name && q.source_name !== 'IPL Global') {
-                                        label = `${q.source_name}: ${label}`;
-                                      }
-
-                                      const isTeamMatch = getTeamColor(pred.answers[k]) !== '#666666';
-                                      const valStyle = isTeamMatch ? { color: getTeamColor(pred.answers[k]) } : {};
-                                      const displayVal = isTeamMatch ? getTeamShortName(pred.answers[k]) : pred.answers[k];
-
-                                      return (
-                                        <div key={k} className="flex flex-col justify-center bg-black/20 p-2.5 rounded-md border border-white/5 relative group">
-                                          {label && (
-                                            <span className="text-[9px] text-gray-500 font-display uppercase tracking-widest mb-1 leading-tight flex justify-between items-center">
-                                              <span>{label}</span>
-                                              {currentUser?.is_admin && pred.prediction_id && editingId !== `${pred.prediction_id}:${k}` && (
-                                                <button
-                                                  onClick={(e) => {
-                                                    e.stopPropagation();
-                                                    setEditingId(`${pred.prediction_id}:${k}`);
-                                                    setEditValue(pred.answers[k] || '');
-                                                  }}
-                                                  className="opacity-0 group-hover:opacity-100 text-gray-500 hover:text-ipl-gold transition-all"
-                                                >
-                                                  <Edit2 className="w-3 h-3" />
-                                                </button>
-                                              )}
+                              return (
+                                <tr 
+                                  key={pred.user.id} 
+                                  className={`group border-b border-white/5 last:border-0 hover:bg-white/[0.02] transition-colors ${
+                                    isMyRow ? 'bg-ipl-gold/5 shadow-[inset_4px_0_0_rgba(244,196,48,0.2)]' : ''
+                                  }`}
+                                >
+                                  {/* Predictor Column */}
+                                  <td 
+                                    className={`sticky left-0 z-10 px-1.5 py-2 md:p-3 border-r border-white/10 transition-colors shadow-[2px_0_5px_rgba(0,0,0,0.15)] min-w-[60px] max-w-[60px] w-[60px] md:min-w-[200px] md:max-w-[200px] md:w-[200px] overflow-hidden ${
+                                      isMyRow 
+                                        ? 'bg-[#181a24] shadow-[inset_3px_0_0_#F4C430]' 
+                                        : 'bg-[#0f1220] group-hover:bg-[#141724]'
+                                    }`}
+                                    title={getUserDisplayName(pred.user)}
+                                  >
+                                    <div className="flex items-center justify-center md:justify-between gap-1 md:gap-2 w-full">
+                                      <div className="flex items-center gap-1.5 md:gap-2.5 min-w-0 justify-center md:justify-start w-full md:w-auto">
+                                        <div className="relative shrink-0">
+                                          {(() => {
+                                            const borderTeamColor = winnerAns !== '🔒' ? getAccessibleTeamTextColor(winnerAns) : (isMyRow ? '#F4C430' : 'rgba(255,255,255,0.1)');
+                                            return (
+                                              <img 
+                                                src={pred.user.avatar_url || `https://ui-avatars.com/api/?name=${pred.user.name}&background=0B0E1A&color=F4C430`} 
+                                                className="w-6 h-6 md:w-8 md:h-8 rounded-full border-[3px] md:border-[4px] object-cover"
+                                                style={{
+                                                  borderColor: borderTeamColor,
+                                                  boxShadow: winnerAns !== '🔒' ? `0 0 8px ${borderTeamColor}80` : 'none'
+                                                }}
+                                                alt={getUserDisplayName(pred.user)}
+                                              />
+                                            );
+                                          })()}
+                                          {pred.answers.use_powerup === 'Yes' && (
+                                            <span 
+                                              className="absolute -top-1.5 -right-1.5 bg-ipl-gold text-black rounded-full w-3.5 h-3.5 flex items-center justify-center font-black text-[8px] shadow-[0_0_8px_rgba(255,215,0,0.5)] border border-ipl-navy"
+                                              title="2X Booster Applied"
+                                            >
+                                              ⚡
+                                            </span>
+                                          )}
+                                          {pred.is_auto_predicted && (
+                                            <span 
+                                              className="md:hidden absolute -bottom-1 -left-1 bg-[#7B2FF7] text-white rounded-full w-3.5 h-3.5 flex items-center justify-center font-black text-[8px] shadow-[0_0_8px_rgba(123,47,247,0.5)] border border-ipl-navy"
+                                              title="AI Auto Predicted"
+                                            >
+                                              <Sparkles className="w-2 h-2 shrink-0" />
                                             </span>
                                           )}
 
-                                          {editingId === `${pred.prediction_id}:${k}` ? (
-                                            <div className="flex items-center gap-1 mt-1">
-                                              <input
-                                                value={editValue}
-                                                onChange={(e) => setEditValue(e.target.value)}
-                                                onClick={(e) => e.stopPropagation()}
-                                                className="bg-black/60 border border-white/20 text-white p-1 text-xs w-full focus:border-ipl-gold focus:outline-none font-mono rounded"
-                                                autoFocus
-                                              />
-                                              <button onClick={(e) => { e.stopPropagation(); handleAdminUpdate(pred.prediction_id, k); }} className="text-green-500 hover:bg-white/10 rounded p-1 shrink-0">
-                                                <Check className="w-3 h-3" />
-                                              </button>
-                                              <button onClick={(e) => { e.stopPropagation(); setEditingId(null); }} className="text-red-500 hover:bg-white/10 rounded p-1 shrink-0">
-                                                <X className="w-3 h-3" />
-                                              </button>
-                                            </div>
-                                          ) : (
-                                            <span className="text-sm md:text-base text-white font-display font-bold tracking-wide" style={valStyle}>
-                                              {displayVal || '-'}
+                                          {/* Points Badge Overlay - bottom of avatar */}
+                                          {match.status === 'completed' && pred.points_awarded !== undefined && pred.points_awarded !== null && (
+                                            <span 
+                                              onClick={(e) => {
+                                                e.stopPropagation();
+                                                if (pred.points_breakdown?.rules) {
+                                                  setSelectedBreakdown({
+                                                    predictorName: getUserDisplayName(pred.user),
+                                                    points: pred.points_awarded,
+                                                    rules: pred.points_breakdown.rules,
+                                                    powerupUsed: pred.points_breakdown.powerup?.used
+                                                  });
+                                                }
+                                              }}
+                                              className="absolute -bottom-1.5 -left-1 px-1 py-0.5 rounded-full text-[6.5px] font-mono font-black border border-ipl-navy cursor-pointer shadow-md select-none leading-none text-white"
+                                              style={{
+                                                backgroundColor: pred.points_awarded > 0 
+                                                  ? '#10B981' 
+                                                  : pred.points_awarded < 0 
+                                                    ? '#EF4444' 
+                                                    : '#4B5563',
+                                                borderColor: '#0B0E1A'
+                                              }}
+                                            >
+                                              {pred.points_awarded > 0 ? '+' : ''}{pred.points_awarded}
+                                            </span>
+                                          )}
+
+                                        </div>
+                                        <div className="hidden md:flex flex-col min-w-0">
+                                          <span className={`text-[11px] md:text-xs font-bold leading-tight truncate ${
+                                            isMyRow ? 'text-ipl-gold font-extrabold' : 'text-white'
+                                          }`}>
+                                            {getUserDisplayName(pred.user)}
+                                          </span>
+                                          {pred.is_auto_predicted && (
+                                            <span className="text-[7px] md:text-[8px] text-[#7B2FF7] font-bold flex items-center gap-0.5 mt-0.5 select-none leading-none">
+                                              <Sparkles className="w-1.5 h-1.5 md:w-2 md:h-2 shrink-0" /> AI AUTO
                                             </span>
                                           )}
                                         </div>
-                                      );
-                                    })}
-                                  </div>
-                                )}
-                              </div>
-                            )}
-                          </div>
-                        );
-                      };
+                                      </div>
 
-                      return (
-                        <>
-                          {/* MOBILE ONLY: Compact Cards */}
-                          <div className="grid grid-cols-1 md:hidden gap-1.5">
-                            {sortedPredictions.map((pred: any, idx: number) => renderPredictionCard(pred, idx, false))}
-                          </div>
+                                      {/* Right side: Winner Badge & Points Indicator */}
+                                      <div className="flex items-center gap-0.5 md:gap-1.5 shrink-0">
+                                        {winnerQId && winnerAns !== '🔒' && (
+                                          <span 
+                                            className="hidden md:inline-block px-1.5 py-0.5 rounded text-[7px] md:text-[8px] font-black uppercase tracking-wider border border-white/10 select-none leading-none shadow-[0_1px_3px_rgba(0,0,0,0.3)]"
+                                            style={{
+                                              backgroundColor: getTeamColor(winnerAns),
+                                              color: getContrastColor(getTeamColor(winnerAns))
+                                            }}
+                                          >
+                                            {teamWinnerShort}
+                                          </span>
+                                        )}
 
-                          {/* DESKTOP ONLY: Side-by-Side Teams */}
-                          <div className="hidden md:grid md:grid-cols-2 gap-6 mt-2">
-                            <div className="space-y-4">
-                              <div className="flex items-center gap-3 mb-2 px-1">
-                                <div className="w-2 h-6 rounded-full" style={{ backgroundColor: getTeamColor(match.team1) }} />
-                                <span className="text-xs font-display uppercase tracking-widest text-white font-black">
-                                  {match.team1} SUPPORTERS
-                                </span>
-                              </div>
-                              <div className="space-y-2">
-                                {sortedPredictions.filter(p => winnerQId && p.answers[winnerQId] === match.team1).map((pred: any, idx: number) => renderPredictionCard(pred, idx, true))}
-                                {sortedPredictions.filter(p => winnerQId && p.answers[winnerQId] === match.team1).length === 0 && (
-                                  <div className="p-8 border border-dashed border-white/10 rounded-lg text-center text-[10px] text-gray-600 uppercase">No supporters yet</div>
-                                )}
-                              </div>
-                            </div>
-                            <div className="space-y-4">
-                              <div className="flex items-center gap-3 mb-2 px-1">
-                                <div className="w-2 h-6 rounded-full" style={{ backgroundColor: getTeamColor(match.team2) }} />
-                                <span className="text-xs font-display uppercase tracking-widest text-white font-black">
-                                  {match.team2} SUPPORTERS
-                                </span>
-                              </div>
-                              <div className="space-y-2">
-                                {sortedPredictions.filter(p => winnerQId && p.answers[winnerQId] === match.team2).map((pred: any, idx: number) => renderPredictionCard(pred, idx, true))}
-                                {sortedPredictions.filter(p => winnerQId && p.answers[winnerQId] === match.team2).length === 0 && (
-                                  <div className="p-8 border border-dashed border-white/10 rounded-lg text-center text-[10px] text-gray-600 uppercase">No supporters yet</div>
-                                )}
-                              </div>
-                            </div>
-                            {sortedPredictions.some(p => winnerQId && p.answers[winnerQId] !== match.team1 && p.answers[winnerQId] !== match.team2) && (
-                              <div className="col-span-2 mt-8 space-y-4">
-                                <div className="flex items-center gap-2 mb-2 px-1 justify-center border-t border-white/5 pt-8">
-                                  <span className="text-[11px] font-display uppercase tracking-widest text-gray-600 font-bold">
-                                    OTHER PREDICTIONS
-                                  </span>
-                                </div>
-                                <div className="grid grid-cols-2 gap-3">
-                                  {sortedPredictions.filter(p => winnerQId && p.answers[winnerQId] !== match.team1 && p.answers[winnerQId] !== match.team2).map((pred: any, idx: number) => renderPredictionCard(pred, idx, true))}
-                                </div>
-                              </div>
-                            )}
-                          </div>
-                        </>
-                      );
-                    })()}
+
+                                      </div>
+                                    </div>
+                                  </td>
+
+                                  {/* Answer Columns */}
+                                  {relevantQuestions.map((q: any) => {
+                                    const val = pred.answers[q.key];
+                                    const isEditing = editingId === `${pred.prediction_id}:${q.key}`;
+                                    const isLongAnswer = q.answer_type === 'player_name' || q.answer_type === 'free_text' || q.answer_type === 'text';
+                                    const widthClass = isLongAnswer
+                                      ? "min-w-[85px] max-w-[85px] w-[85px] md:min-w-[140px] md:max-w-[140px] md:w-[140px]"
+                                      : "min-w-[60px] max-w-[60px] w-[60px] md:min-w-[120px] md:max-w-[120px] md:w-[120px]";
+                                    const cellTextClass = isLongAnswer
+                                      ? "whitespace-normal break-words text-[9px] md:text-xs leading-none"
+                                      : "whitespace-nowrap text-xs md:text-sm";
+
+                                    return (
+                                      <td key={q.key} className={`px-1 py-2 md:p-3 text-center border-b border-white/5 ${cellTextClass} ${widthClass}`}>
+                                        {isEditing ? (
+                                          <div className="flex items-center gap-1 justify-center" onClick={(e) => e.stopPropagation()}>
+                                            <input
+                                              value={editValue}
+                                              onChange={(e) => setEditValue(e.target.value)}
+                                              className="bg-black/60 border border-white/20 text-white px-2 py-1 text-xs w-20 focus:border-ipl-gold focus:outline-none font-mono rounded"
+                                              autoFocus
+                                            />
+                                            <button 
+                                              onClick={() => handleAdminUpdate(pred.prediction_id, q.key)} 
+                                              className="text-green-500 hover:bg-white/10 rounded p-0.5 shrink-0"
+                                            >
+                                              <Check className="w-3.5 h-3.5" />
+                                            </button>
+                                            <button 
+                                              onClick={() => setEditingId(null)} 
+                                              className="text-red-500 hover:bg-white/10 rounded p-0.5 shrink-0"
+                                            >
+                                              <X className="w-3.5 h-3.5" />
+                                            </button>
+                                          </div>
+                                        ) : (
+                                          <div className="group flex items-center justify-center gap-1.5 relative w-full">
+                                            <span style={getCellColorByQuestion(val, q.question_text)} className="w-full text-center">
+                                              {val !== '🔒' ? getTeamShortName(val) || '-' : '🔒'}
+                                            </span>
+                                            {currentUser?.is_admin && pred.prediction_id && val !== '🔒' && (
+                                              <button
+                                                onClick={(e) => {
+                                                  e.stopPropagation();
+                                                  setEditingId(`${pred.prediction_id}:${q.key}`);
+                                                  setEditValue(val || '');
+                                                }}
+                                                className="opacity-0 group-hover:opacity-100 text-gray-500 hover:text-ipl-gold transition-all shrink-0 ml-1 absolute right-0 bg-[#0f1220]/80 p-0.5 rounded"
+                                                title="Edit prediction value"
+                                              >
+                                                <Edit2 className="w-3 h-3" />
+                                              </button>
+                                            )}
+                                          </div>
+                                        )}
+                                      </td>
+                                    );
+                                  })}
+                                </tr>
+                              );
+                            })}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+
+                    {/* Community Insight */}
+                    {generateCommunityInsight(allPredictions, questions, match.team1, match.team2) && (
+                      <div className="glass-panel p-4 bg-gradient-to-r from-ipl-gold/5 via-white/5 to-transparent border border-ipl-gold/10 rounded-2xl flex items-start gap-4">
+                        <div className="p-2.5 bg-ipl-gold/10 rounded-xl border border-ipl-gold/20 shrink-0">
+                          <Trophy className="w-5 h-5 text-ipl-gold animate-pulse" />
+                        </div>
+                        <div className="space-y-1">
+                          <h4 className="text-xs font-display font-black text-ipl-gold uppercase tracking-wider">
+                            Community Insight
+                          </h4>
+                          <p className="text-[11px] md:text-xs font-display text-gray-300 font-bold uppercase tracking-wide leading-relaxed">
+                            {generateCommunityInsight(allPredictions, questions, match.team1, match.team2)}
+                          </p>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 )}
               </div>
@@ -1127,6 +1313,95 @@ export default function MatchPage() {
                 Yes, Proceed
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Points Breakdown Bottom Overlay */}
+      {selectedBreakdown && (
+        <div className="fixed inset-0 z-50 flex items-end justify-center">
+          {/* Backdrop */}
+          <div
+            className="absolute inset-0 bg-black/75 backdrop-blur-sm animate-in fade-in duration-200"
+            onClick={() => setSelectedBreakdown(null)}
+          />
+          {/* Drawer Panel */}
+          <div className="relative w-full max-w-md bg-[#0f172a]/95 backdrop-blur-md border-t border-white/10 rounded-t-3xl shadow-2xl p-6 pb-8 animate-in slide-in-from-bottom duration-300">
+            {/* Drawer handle pull-bar */}
+            <div className="w-12 h-1 bg-white/20 rounded-full mx-auto mb-5" />
+
+            {/* Header */}
+            <div className="flex justify-between items-center mb-6">
+              <div>
+                <span className="text-[10px] font-display uppercase tracking-widest text-ipl-gold font-bold">
+                  Points Breakdown
+                </span>
+                <h3 className="text-white font-display text-base tracking-tight mt-0.5">
+                  {selectedBreakdown.predictorName}
+                </h3>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className={`px-2.5 py-1 rounded font-mono font-bold text-sm ${
+                  selectedBreakdown.points > 0 
+                    ? 'bg-green-500/20 text-green-400 border border-green-500/30' 
+                    : selectedBreakdown.points < 0 
+                      ? 'bg-red-500/20 text-red-400 border border-red-500/30' 
+                      : 'bg-white/10 text-gray-400 border border-white/20'
+                }`}>
+                  {selectedBreakdown.points > 0 ? '+' : ''}{selectedBreakdown.points} PTS
+                </span>
+                <button 
+                  onClick={() => setSelectedBreakdown(null)}
+                  className="p-1.5 hover:bg-white/5 rounded-full text-gray-400 hover:text-white transition-colors"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+            </div>
+
+            {/* Rules Breakdown List */}
+            <div className="space-y-3 max-h-[300px] overflow-y-auto pr-1">
+              {selectedBreakdown.rules.map((rule: any, idx: number) => {
+                const isRuleCorrect = rule.status === 'correct' || rule.status === 'bingo';
+                const isRuleRange = rule.status === 'range';
+                return (
+                  <div key={idx} className="flex justify-between items-center bg-white/5 border border-white/5 p-3 rounded-xl">
+                    <div className="flex items-center gap-3 min-w-0">
+                      {rule.was_boosted && <span className="text-ipl-gold shrink-0 text-xs">⚡</span>}
+                      <div className="shrink-0">
+                        {isRuleCorrect ? (
+                          <Check className="w-4 h-4 text-green-400" />
+                        ) : isRuleRange ? (
+                          <Target className="w-4 h-4 text-blue-400" />
+                        ) : (
+                          <X className="w-4 h-4 text-red-400 opacity-60" />
+                        )}
+                      </div>
+                      <span className="text-gray-200 font-display text-xs uppercase tracking-wide truncate">
+                        {rule.category}
+                      </span>
+                    </div>
+                    <span className={`font-mono font-bold text-xs ${
+                      rule.points > 0 ? 'text-green-400' : rule.points < 0 ? 'text-red-400' : 'text-gray-500'
+                    }`}>
+                      {rule.points > 0 ? '+' : ''}{rule.points}
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* Powerup Footer */}
+            {selectedBreakdown.powerupUsed && (
+              <div className="mt-4 p-3 bg-ipl-gold/10 border border-ipl-gold/20 rounded-xl flex justify-between items-center">
+                <span className="text-xs font-display uppercase tracking-widest font-bold text-ipl-gold">
+                  ⚡ 2X Booster Active
+                </span>
+                <span className="bg-ipl-gold text-black font-mono font-black text-xs px-2 py-0.5 rounded">
+                  x2 Multiplier
+                </span>
+              </div>
+            )}
           </div>
         </div>
       )}

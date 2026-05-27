@@ -11,6 +11,56 @@ export const teamColors: Record<string, string> = {
   LSG: '#00ADEF',
 };
 
+export const accessibleTeamColors: Record<string, string> = {
+  MI: '#60A5FA',
+  CSK: '#F4C430',
+  RCB: '#F87171',
+  KKR: '#C084FC',
+  DC: '#60A5FA',
+  RR: '#F472B6',
+  PBKS: '#F87171',
+  SRH: '#FB923C',
+  GT: '#2DD4BF',
+  LSG: '#38BDF8',
+};
+
+export const getAccessibleTeamTextColor = (teamName: any) => {
+  if (teamName === undefined || teamName === null) return '#ffffff';
+  const teamStr = String(teamName);
+  const normalized = teamStr.trim().toUpperCase();
+  
+  // 1. Direct lookup
+  if (accessibleTeamColors[normalized]) return accessibleTeamColors[normalized];
+  
+  // 2. Initials lookup
+  const words = teamStr.trim().split(/\s+/);
+  if (words.length > 1) {
+    const initials = words.map(w => w[0]).join('').toUpperCase();
+    if (accessibleTeamColors[initials]) return accessibleTeamColors[initials];
+  }
+  
+  // 3. Partial match
+  const teamMapping: Record<string, string> = {
+    'MUMBAI': 'MI',
+    'CHENNAI': 'CSK',
+    'BANGALORE': 'RCB',
+    'BENGALURU': 'RCB',
+    'KOLKATA': 'KKR',
+    'DELHI': 'DC',
+    'RAJASTHAN': 'RR',
+    'PUNJAB': 'PBKS',
+    'HYDERABAD': 'SRH',
+    'GUJARAT': 'GT',
+    'LUCKNOW': 'LSG'
+  };
+  
+  for (const [key, value] of Object.entries(teamMapping)) {
+    if (normalized.includes(key)) return accessibleTeamColors[value];
+  }
+  
+  return '#ffffff';
+};
+
 export const getTeamColor = (teamName: any) => {
   if (teamName === undefined || teamName === null) return '#ffffff';
   const teamStr = String(teamName);
