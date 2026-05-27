@@ -3,7 +3,7 @@ import { useParams } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { useQueryClient } from '@tanstack/react-query';
 import { useMatch, useSubmitPrediction, useMyPredictions, useAllMatchPredictions } from '../api/hooks/useMatches';
-import { Trophy, Target, CheckCircle2, Edit2, Check, X, Sparkles, MapPin, ChevronDown, HelpCircle, Lock, User } from 'lucide-react';
+import { Trophy, Target, CheckCircle2, Edit2, Check, X, Sparkles, MapPin, ChevronDown, Lock, User } from 'lucide-react';
 import { useAuthStore } from '../store/auth';
 import { apiClient } from '../api/client';
 import toast from 'react-hot-toast';
@@ -374,7 +374,7 @@ export default function MatchPage() {
   const getHeaderSubLabel = (text: string) => {
     if (!text) return '';
     const t = text.toLowerCase();
-    
+
     if (match) {
       if (match.team1 && t.includes(match.team1.toLowerCase())) {
         return getTeamShortName(match.team1);
@@ -383,7 +383,7 @@ export default function MatchPage() {
         return getTeamShortName(match.team2);
       }
     }
-    
+
     if (t.includes('sixes')) return '6S';
     if (t.includes('fours')) return '4S';
     if (t.includes('dot')) return 'DOT';
@@ -449,7 +449,7 @@ export default function MatchPage() {
     if (colorVal && colorVal !== '#ffffff') {
       return { color: colorVal, fontWeight: 'black' as const };
     }
-    
+
     // Check if the question text contains a team name (e.g. "SRH Power Play Score")
     const qWords = qText.split(/\s+/);
     for (const word of qWords) {
@@ -476,7 +476,7 @@ export default function MatchPage() {
 
   const generateCommunityInsight = (predictions: any[], questionsList: any[], team1: string, team2: string) => {
     if (!predictions || predictions.length === 0) return '';
-    
+
     const total = predictions.length;
     const t1Short = getTeamShortName(team1);
     const t2Short = getTeamShortName(team2);
@@ -500,11 +500,11 @@ export default function MatchPage() {
     let sixesCount = 0;
     let foursWinner = '';
     let foursCount = 0;
-    
+
     questionsList.forEach((q: any) => {
       const text = q.question_text.toLowerCase();
       const maj = getMajorityGuess(predictions, q.key);
-      
+
       if (text.includes('sixes')) {
         sixesWinner = maj.guess;
         sixesCount = maj.count;
@@ -519,7 +519,7 @@ export default function MatchPage() {
     let t1PPCount = 0;
     let t2PPSum = 0;
     let t2PPCount = 0;
-    
+
     questionsList.forEach((q: any) => {
       const text = q.question_text.toLowerCase();
       if (text.includes('powerplay') || text.includes('power play') || text.includes('pp')) {
@@ -910,8 +910,8 @@ export default function MatchPage() {
             const sortedPredictions = getSortedPredictions(allPredictions);
 
             // Filter relevant questions for this league section (exclude powerup and winner Q since it is shown as badge next to name)
-            const relevantQuestions = questions.filter((q: any) => 
-              q.key !== 'use_powerup' && 
+            const relevantQuestions = questions.filter((q: any) =>
+              q.key !== 'use_powerup' &&
               q.key !== winnerQId &&
               (!q.league_id || q.league_id === section.league.id)
             );
@@ -921,7 +921,7 @@ export default function MatchPage() {
 
             return (
               <div key={section.league.id} className="md:glass-panel md:p-8 animate-in fade-in slide-in-from-bottom-4 duration-700 space-y-4 md:space-y-6 max-md:py-4 max-md:border-b max-md:border-white/10 last:max-md:border-b-0">
-                
+
                 {/* Header */}
                 <div className="flex flex-col gap-2 md:gap-4">
                   <div className="text-center py-0.5 md:py-2">
@@ -937,11 +937,11 @@ export default function MatchPage() {
                   {/* Team Predictors Count Bar */}
                   <div className="flex items-center justify-between gap-1.5 md:gap-4 bg-black/40 border border-white/10 rounded-xl md:rounded-2xl p-1 md:p-2 select-none">
                     {/* Team 1 Predictors */}
-                    <div 
+                    <div
                       className="flex-1 flex items-center justify-between px-2.5 py-1.5 md:px-6 md:py-3.5 rounded-lg md:rounded-xl transition-all duration-300"
-                      style={{ 
-                        backgroundColor: `${getTeamColor(match.team1)}15`, 
-                        border: `1px solid ${getTeamColor(match.team1)}40` 
+                      style={{
+                        backgroundColor: `${getTeamColor(match.team1)}15`,
+                        border: `1px solid ${getTeamColor(match.team1)}40`
                       }}
                     >
                       <span className="text-[8px] md:text-xs font-display font-bold uppercase tracking-wider" style={{ color: getTeamColor(match.team1) }}>
@@ -966,11 +966,11 @@ export default function MatchPage() {
                     </div>
 
                     {/* Team 2 Predictors */}
-                    <div 
+                    <div
                       className="flex-1 flex items-center justify-between px-2.5 py-1.5 md:px-6 md:py-3.5 rounded-lg md:rounded-xl transition-all duration-300"
-                      style={{ 
-                        backgroundColor: `${getTeamColor(match.team2)}15`, 
-                        border: `1px solid ${getTeamColor(match.team2)}40` 
+                      style={{
+                        backgroundColor: `${getTeamColor(match.team2)}15`,
+                        border: `1px solid ${getTeamColor(match.team2)}40`
                       }}
                     >
                       <span className="text-[8px] md:text-xs font-display font-bold uppercase tracking-wider" style={{ color: getTeamColor(match.team2) }}>
@@ -1005,8 +1005,8 @@ export default function MatchPage() {
                       {relevantQuestions.map((q: any) => {
                         const stats = getMajorityGuess(allPredictions, q.key);
                         return (
-                          <div 
-                            key={q.key} 
+                          <div
+                            key={q.key}
                             className="flex items-center gap-2.5 px-3 py-2 hover:bg-white/[0.04] transition-colors"
                           >
                             <div className="shrink-0 w-5 flex items-center justify-center">
@@ -1015,7 +1015,7 @@ export default function MatchPage() {
                             <span className="text-[9px] text-gray-400 font-display uppercase tracking-wide font-bold flex-1 min-w-0 truncate">
                               {getShortQuestionText(q.question_text)}
                             </span>
-                            <span 
+                            <span
                               className="text-[11px] font-display font-extrabold uppercase tracking-wide shrink-0"
                               style={getCellColorByQuestion(stats.guess, q.question_text)}
                             >
@@ -1035,7 +1035,7 @@ export default function MatchPage() {
                         <table className="w-full text-left border-collapse">
                           <thead>
                             <tr className="bg-[#0f1220] border-b border-white/10">
-                              <th 
+                              <th
                                 className="sticky left-0 bg-[#0f1220] z-20 px-1.5 py-2 md:p-3 text-[10px] md:text-xs font-display font-black text-gray-400 uppercase tracking-normal md:tracking-widest min-w-[60px] max-w-[60px] w-[60px] md:min-w-[200px] md:max-w-[200px] md:w-[200px] border-r border-white/10 shadow-[2px_0_5px_rgba(0,0,0,0.3)]"
                                 title="Predictor"
                               ><span className="hidden md:inline">PREDICTOR</span><User className="md:hidden w-4 h-4 mx-auto text-gray-400" /></th>
@@ -1048,8 +1048,8 @@ export default function MatchPage() {
                                   ? "min-w-[85px] max-w-[85px] w-[85px] md:min-w-[140px] md:max-w-[140px] md:w-[140px]"
                                   : "min-w-[60px] max-w-[60px] w-[60px] md:min-w-[120px] md:max-w-[120px] md:w-[120px]";
                                 return (
-                                  <th 
-                                    key={q.key} 
+                                  <th
+                                    key={q.key}
                                     className={`px-0.5 py-1.5 md:p-3 text-[10px] md:text-xs font-display font-black text-center uppercase tracking-normal md:tracking-widest ${widthClass}`}
                                     title={q.question_text}
                                   ><span className="hidden md:inline" style={style}>{getShortQuestionText(q.question_text)}</span><div className="md:hidden flex flex-col items-center gap-0">{iconImg}{subLabel && (<span className="text-[7px] font-bold tracking-tighter" style={style}>{subLabel}</span>)}</div></th>
@@ -1064,19 +1064,17 @@ export default function MatchPage() {
                               const teamWinnerShort = winnerAns === '🔒' ? '🔒' : getTeamShortName(winnerAns);
 
                               return (
-                                <tr 
-                                  key={pred.user.id} 
-                                  className={`group border-b border-white/5 last:border-0 hover:bg-white/[0.02] transition-colors ${
-                                    isMyRow ? 'bg-ipl-gold/5 shadow-[inset_4px_0_0_rgba(244,196,48,0.2)]' : ''
-                                  }`}
+                                <tr
+                                  key={pred.user.id}
+                                  className={`group border-b border-white/5 last:border-0 hover:bg-white/[0.02] transition-colors ${isMyRow ? 'bg-ipl-gold/5 shadow-[inset_4px_0_0_rgba(244,196,48,0.2)]' : ''
+                                    }`}
                                 >
                                   {/* Predictor Column */}
-                                  <td 
-                                    className={`sticky left-0 z-10 px-1.5 py-2 md:p-3 border-r border-white/10 transition-colors shadow-[2px_0_5px_rgba(0,0,0,0.15)] min-w-[60px] max-w-[60px] w-[60px] md:min-w-[200px] md:max-w-[200px] md:w-[200px] overflow-hidden ${
-                                      isMyRow 
-                                        ? 'bg-[#181a24] shadow-[inset_3px_0_0_#F4C430]' 
-                                        : 'bg-[#0f1220] group-hover:bg-[#141724]'
-                                    }`}
+                                  <td
+                                    className={`sticky left-0 z-10 px-1.5 py-2 md:p-3 border-r border-white/10 transition-colors shadow-[2px_0_5px_rgba(0,0,0,0.15)] min-w-[60px] max-w-[60px] w-[60px] md:min-w-[200px] md:max-w-[200px] md:w-[200px] overflow-hidden ${isMyRow
+                                      ? 'bg-[#181a24] shadow-[inset_3px_0_0_#F4C430]'
+                                      : 'bg-[#0f1220] group-hover:bg-[#141724]'
+                                      }`}
                                     title={getUserDisplayName(pred.user)}
                                   >
                                     <div className="flex items-center justify-center md:justify-between gap-1 md:gap-2 w-full">
@@ -1085,8 +1083,8 @@ export default function MatchPage() {
                                           {(() => {
                                             const borderTeamColor = winnerAns !== '🔒' ? getAccessibleTeamTextColor(winnerAns) : (isMyRow ? '#F4C430' : 'rgba(255,255,255,0.1)');
                                             return (
-                                              <img 
-                                                src={pred.user.avatar_url || `https://ui-avatars.com/api/?name=${pred.user.name}&background=0B0E1A&color=F4C430`} 
+                                              <img
+                                                src={pred.user.avatar_url || `https://ui-avatars.com/api/?name=${pred.user.name}&background=0B0E1A&color=F4C430`}
                                                 className="w-6 h-6 md:w-8 md:h-8 rounded-full border-[3px] md:border-[4px] object-cover"
                                                 style={{
                                                   borderColor: borderTeamColor,
@@ -1097,7 +1095,7 @@ export default function MatchPage() {
                                             );
                                           })()}
                                           {pred.answers.use_powerup === 'Yes' && (
-                                            <span 
+                                            <span
                                               className="absolute -top-1.5 -right-1.5 bg-ipl-gold text-black rounded-full w-3.5 h-3.5 flex items-center justify-center font-black text-[8px] shadow-[0_0_8px_rgba(255,215,0,0.5)] border border-ipl-navy"
                                               title="2X Booster Applied"
                                             >
@@ -1105,7 +1103,7 @@ export default function MatchPage() {
                                             </span>
                                           )}
                                           {pred.is_auto_predicted && (
-                                            <span 
+                                            <span
                                               className="md:hidden absolute -bottom-1 -left-1 bg-[#7B2FF7] text-white rounded-full w-3.5 h-3.5 flex items-center justify-center font-black text-[8px] shadow-[0_0_8px_rgba(123,47,247,0.5)] border border-ipl-navy"
                                               title="AI Auto Predicted"
                                             >
@@ -1115,7 +1113,7 @@ export default function MatchPage() {
 
                                           {/* Points Badge Overlay - bottom of avatar */}
                                           {match.status === 'completed' && pred.points_awarded !== undefined && pred.points_awarded !== null && (
-                                            <span 
+                                            <span
                                               onClick={(e) => {
                                                 e.stopPropagation();
                                                 if (pred.points_breakdown?.rules) {
@@ -1129,10 +1127,10 @@ export default function MatchPage() {
                                               }}
                                               className="absolute -bottom-1.5 -left-1 px-1 py-0.5 rounded-full text-[6.5px] font-mono font-black border border-ipl-navy cursor-pointer shadow-md select-none leading-none text-white"
                                               style={{
-                                                backgroundColor: pred.points_awarded > 0 
-                                                  ? '#10B981' 
-                                                  : pred.points_awarded < 0 
-                                                    ? '#EF4444' 
+                                                backgroundColor: pred.points_awarded > 0
+                                                  ? '#10B981'
+                                                  : pred.points_awarded < 0
+                                                    ? '#EF4444'
                                                     : '#4B5563',
                                                 borderColor: '#0B0E1A'
                                               }}
@@ -1143,9 +1141,8 @@ export default function MatchPage() {
 
                                         </div>
                                         <div className="hidden md:flex flex-col min-w-0">
-                                          <span className={`text-[11px] md:text-xs font-bold leading-tight truncate ${
-                                            isMyRow ? 'text-ipl-gold font-extrabold' : 'text-white'
-                                          }`}>
+                                          <span className={`text-[11px] md:text-xs font-bold leading-tight truncate ${isMyRow ? 'text-ipl-gold font-extrabold' : 'text-white'
+                                            }`}>
                                             {getUserDisplayName(pred.user)}
                                           </span>
                                           {pred.is_auto_predicted && (
@@ -1159,7 +1156,7 @@ export default function MatchPage() {
                                       {/* Right side: Winner Badge & Points Indicator */}
                                       <div className="flex items-center gap-0.5 md:gap-1.5 shrink-0">
                                         {winnerQId && winnerAns !== '🔒' && (
-                                          <span 
+                                          <span
                                             className="hidden md:inline-block px-1.5 py-0.5 rounded text-[7px] md:text-[8px] font-black uppercase tracking-wider border border-white/10 select-none leading-none shadow-[0_1px_3px_rgba(0,0,0,0.3)]"
                                             style={{
                                               backgroundColor: getTeamColor(winnerAns),
@@ -1197,14 +1194,14 @@ export default function MatchPage() {
                                               className="bg-black/60 border border-white/20 text-white px-2 py-1 text-xs w-20 focus:border-ipl-gold focus:outline-none font-mono rounded"
                                               autoFocus
                                             />
-                                            <button 
-                                              onClick={() => handleAdminUpdate(pred.prediction_id, q.key)} 
+                                            <button
+                                              onClick={() => handleAdminUpdate(pred.prediction_id, q.key)}
                                               className="text-green-500 hover:bg-white/10 rounded p-0.5 shrink-0"
                                             >
                                               <Check className="w-3.5 h-3.5" />
                                             </button>
-                                            <button 
-                                              onClick={() => setEditingId(null)} 
+                                            <button
+                                              onClick={() => setEditingId(null)}
                                               className="text-red-500 hover:bg-white/10 rounded p-0.5 shrink-0"
                                             >
                                               <X className="w-3.5 h-3.5" />
@@ -1341,16 +1338,15 @@ export default function MatchPage() {
                 </h3>
               </div>
               <div className="flex items-center gap-2">
-                <span className={`px-2.5 py-1 rounded font-mono font-bold text-sm ${
-                  selectedBreakdown.points > 0 
-                    ? 'bg-green-500/20 text-green-400 border border-green-500/30' 
-                    : selectedBreakdown.points < 0 
-                      ? 'bg-red-500/20 text-red-400 border border-red-500/30' 
-                      : 'bg-white/10 text-gray-400 border border-white/20'
-                }`}>
+                <span className={`px-2.5 py-1 rounded font-mono font-bold text-sm ${selectedBreakdown.points > 0
+                  ? 'bg-green-500/20 text-green-400 border border-green-500/30'
+                  : selectedBreakdown.points < 0
+                    ? 'bg-red-500/20 text-red-400 border border-red-500/30'
+                    : 'bg-white/10 text-gray-400 border border-white/20'
+                  }`}>
                   {selectedBreakdown.points > 0 ? '+' : ''}{selectedBreakdown.points} PTS
                 </span>
-                <button 
+                <button
                   onClick={() => setSelectedBreakdown(null)}
                   className="p-1.5 hover:bg-white/5 rounded-full text-gray-400 hover:text-white transition-colors"
                 >
@@ -1381,9 +1377,8 @@ export default function MatchPage() {
                         {rule.category}
                       </span>
                     </div>
-                    <span className={`font-mono font-bold text-xs ${
-                      rule.points > 0 ? 'text-green-400' : rule.points < 0 ? 'text-red-400' : 'text-gray-500'
-                    }`}>
+                    <span className={`font-mono font-bold text-xs ${rule.points > 0 ? 'text-green-400' : rule.points < 0 ? 'text-red-400' : 'text-gray-500'
+                      }`}>
                       {rule.points > 0 ? '+' : ''}{rule.points}
                     </span>
                   </div>
