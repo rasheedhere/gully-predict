@@ -1043,10 +1043,13 @@ export default function MatchPage() {
                                 const iconImg = getHeaderIcon(q.question_text);
                                 const subLabel = getHeaderSubLabel(q.question_text);
                                 const style = getHeaderStyle(q.question_text);
+                                const isPotm = q.question_text.toLowerCase().includes('player') || q.question_text.toLowerCase().includes('potm') || q.question_text.toLowerCase().includes('man of');
                                 const isLongAnswer = q.answer_type === 'player_name' || q.answer_type === 'free_text' || q.answer_type === 'text';
-                                const widthClass = isLongAnswer
-                                  ? "min-w-[70px] max-w-[70px] w-[70px] md:min-w-[140px] md:max-w-[140px] md:w-[140px]"
-                                  : "min-w-[60px] max-w-[60px] w-[60px] md:min-w-[120px] md:max-w-[120px] md:w-[120px]";
+                                const widthClass = isPotm
+                                  ? "min-w-[48px] max-w-[48px] w-[48px] md:min-w-[140px] md:max-w-[140px] md:w-[140px]"
+                                  : isLongAnswer
+                                    ? "min-w-[70px] max-w-[70px] w-[70px] md:min-w-[140px] md:max-w-[140px] md:w-[140px]"
+                                    : "min-w-[30px] max-w-[30px] w-[30px] md:min-w-[120px] md:max-w-[120px] md:w-[120px]";
                                 return (
                                   <th
                                     key={q.key}
@@ -1175,10 +1178,13 @@ export default function MatchPage() {
                                   {relevantQuestions.map((q: any) => {
                                     const val = pred.answers[q.key];
                                     const isEditing = editingId === `${pred.prediction_id}:${q.key}`;
+                                    const isPotm = q.question_text.toLowerCase().includes('player') || q.question_text.toLowerCase().includes('potm') || q.question_text.toLowerCase().includes('man of');
                                     const isLongAnswer = q.answer_type === 'player_name' || q.answer_type === 'free_text' || q.answer_type === 'text';
-                                    const widthClass = isLongAnswer
-                                      ? "min-w-[70px] max-w-[70px] w-[70px] md:min-w-[140px] md:max-w-[140px] md:w-[140px]"
-                                      : "min-w-[60px] max-w-[60px] w-[60px] md:min-w-[120px] md:max-w-[120px] md:w-[120px]";
+                                    const widthClass = isPotm
+                                      ? "min-w-[48px] max-w-[48px] w-[48px] md:min-w-[140px] md:max-w-[140px] md:w-[140px]"
+                                      : isLongAnswer
+                                        ? "min-w-[70px] max-w-[70px] w-[70px] md:min-w-[140px] md:max-w-[140px] md:w-[140px]"
+                                        : "min-w-[30px] max-w-[30px] w-[30px] md:min-w-[120px] md:max-w-[120px] md:w-[120px]";
                                     const cellTextClass = isLongAnswer
                                       ? "whitespace-normal break-words text-[7px] md:text-xs leading-tight"
                                       : "whitespace-nowrap text-xs md:text-sm";
