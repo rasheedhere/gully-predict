@@ -581,7 +581,7 @@ export default function MatchPage() {
   };
 
   return (
-    <div className="w-full max-w-full px-2 md:px-6 pb-20 space-y-0 md:space-y-8 max-md:glass-panel max-md:p-4 max-md:border-b-[4px] max-md:border-ipl-gold max-md:rounded-2xl">
+    <div className="w-full max-w-full px-2 md:px-6 pb-20 space-y-0 md:space-y-8 max-md:glass-panel max-md:p-2 max-md:border-b-[4px] max-md:border-ipl-gold max-md:rounded-2xl">
       {/* Desktop Match Card Header */}
       <div className="hidden md:block text-center relative overflow-hidden md:glass-panel md:p-8 md:border-b-[4px] md:border-ipl-gold">
         <div className="flex justify-between items-center w-full mb-4 md:mb-0 relative md:absolute md:top-4 md:left-0 md:w-full md:px-4 z-10 px-1">
@@ -920,11 +920,11 @@ export default function MatchPage() {
             const t2Predictors = allPredictions.filter((p: any) => winnerQId && p.answers[winnerQId] === match.team2).length;
 
             return (
-              <div key={section.league.id} className="md:glass-panel md:p-8 animate-in fade-in slide-in-from-bottom-4 duration-700 space-y-4 md:space-y-6 max-md:py-4 max-md:border-b max-md:border-white/10 last:max-md:border-b-0">
+              <div key={section.league.id} className="md:glass-panel md:p-8 animate-in fade-in slide-in-from-bottom-4 duration-700 space-y-2 md:space-y-6 max-md:py-2 max-md:border-b max-md:border-white/10 last:max-md:border-b-0">
 
                 {/* Header */}
-                <div className="flex flex-col gap-2 md:gap-4">
-                  <div className="text-center py-0.5 md:py-2">
+                <div className="flex flex-col gap-1.5 md:gap-4">
+                  <div className="text-center py-0 md:py-2">
                     <h2 className="text-xs md:text-2xl font-display font-black text-white italic tracking-tighter uppercase">
                       {section.league.name === 'IPL Global' ? (
                         <>GLOBAL <span className="text-ipl-gold">| REVEAL</span></>
@@ -935,10 +935,10 @@ export default function MatchPage() {
                   </div>
 
                   {/* Team Predictors Count Bar */}
-                  <div className="flex items-center justify-between gap-1.5 md:gap-4 bg-black/40 border border-white/10 rounded-xl md:rounded-2xl p-1 md:p-2 select-none">
+                  <div className="flex items-center justify-between gap-1 md:gap-4 bg-black/40 border border-white/10 rounded-lg md:rounded-2xl p-0.5 md:p-2 select-none">
                     {/* Team 1 Predictors */}
                     <div
-                      className="flex-1 flex items-center justify-between px-2.5 py-1.5 md:px-6 md:py-3.5 rounded-lg md:rounded-xl transition-all duration-300"
+                      className="flex-1 flex items-center justify-between px-2 py-1 md:px-6 md:py-3.5 rounded-md md:rounded-xl transition-all duration-300"
                       style={{
                         backgroundColor: `${getTeamColor(match.team1)}15`,
                         border: `1px solid ${getTeamColor(match.team1)}40`
@@ -967,7 +967,7 @@ export default function MatchPage() {
 
                     {/* Team 2 Predictors */}
                     <div
-                      className="flex-1 flex items-center justify-between px-2.5 py-1.5 md:px-6 md:py-3.5 rounded-lg md:rounded-xl transition-all duration-300"
+                      className="flex-1 flex items-center justify-between px-2 py-1 md:px-6 md:py-3.5 rounded-md md:rounded-xl transition-all duration-300"
                       style={{
                         backgroundColor: `${getTeamColor(match.team2)}15`,
                         border: `1px solid ${getTeamColor(match.team2)}40`
@@ -1007,7 +1007,7 @@ export default function MatchPage() {
                         return (
                           <div
                             key={q.key}
-                            className="flex items-center gap-2.5 px-3 py-2 hover:bg-white/[0.04] transition-colors"
+                            className="flex items-center gap-2 px-2.5 py-1 hover:bg-white/[0.04] transition-colors"
                           >
                             <div className="shrink-0 w-5 flex items-center justify-center">
                               {getQuestionIcon(q.question_text)}
@@ -1036,7 +1036,7 @@ export default function MatchPage() {
                           <thead>
                             <tr className="bg-[#0f1220] border-b border-white/10">
                               <th
-                                className="sticky left-0 bg-[#0f1220] z-20 px-1.5 py-2 md:p-3 text-[10px] md:text-xs font-display font-black text-gray-400 uppercase tracking-normal md:tracking-widest min-w-[60px] max-w-[60px] w-[60px] md:min-w-[200px] md:max-w-[200px] md:w-[200px] border-r border-white/10 shadow-[2px_0_5px_rgba(0,0,0,0.3)]"
+                                className="sticky left-0 bg-[#0f1220] z-20 px-1 py-1 md:p-3 text-[10px] md:text-xs font-display font-black text-gray-400 uppercase tracking-normal md:tracking-widest min-w-[60px] max-w-[60px] w-[60px] md:min-w-[200px] md:max-w-[200px] md:w-[200px] border-r border-white/10 shadow-[2px_0_5px_rgba(0,0,0,0.3)]"
                                 title="Predictor"
                               ><span className="hidden md:inline">PREDICTOR</span><User className="md:hidden w-4 h-4 mx-auto text-gray-400" /></th>
                               {relevantQuestions.map((q: any) => {
@@ -1045,12 +1045,12 @@ export default function MatchPage() {
                                 const style = getHeaderStyle(q.question_text);
                                 const isLongAnswer = q.answer_type === 'player_name' || q.answer_type === 'free_text' || q.answer_type === 'text';
                                 const widthClass = isLongAnswer
-                                  ? "min-w-[85px] max-w-[85px] w-[85px] md:min-w-[140px] md:max-w-[140px] md:w-[140px]"
+                                  ? "min-w-[70px] max-w-[70px] w-[70px] md:min-w-[140px] md:max-w-[140px] md:w-[140px]"
                                   : "min-w-[60px] max-w-[60px] w-[60px] md:min-w-[120px] md:max-w-[120px] md:w-[120px]";
                                 return (
                                   <th
                                     key={q.key}
-                                    className={`px-0.5 py-1.5 md:p-3 text-[10px] md:text-xs font-display font-black text-center uppercase tracking-normal md:tracking-widest ${widthClass}`}
+                                    className={`px-0.5 py-1 md:p-3 text-[10px] md:text-xs font-display font-black text-center uppercase tracking-normal md:tracking-widest ${widthClass}`}
                                     title={q.question_text}
                                   ><span className="hidden md:inline" style={style}>{getShortQuestionText(q.question_text)}</span><div className="md:hidden flex flex-col items-center gap-0">{iconImg}{subLabel && (<span className="text-[7px] font-bold tracking-tighter" style={style}>{subLabel}</span>)}</div></th>
                                 );
@@ -1071,7 +1071,7 @@ export default function MatchPage() {
                                 >
                                   {/* Predictor Column */}
                                   <td
-                                    className={`sticky left-0 z-10 px-1.5 py-2 md:p-3 border-r border-white/10 transition-colors shadow-[2px_0_5px_rgba(0,0,0,0.15)] min-w-[60px] max-w-[60px] w-[60px] md:min-w-[200px] md:max-w-[200px] md:w-[200px] overflow-hidden ${isMyRow
+                                    className={`sticky left-0 z-10 px-1 py-1.5 md:p-3 border-r border-white/10 transition-colors shadow-[2px_0_5px_rgba(0,0,0,0.15)] min-w-[60px] max-w-[60px] w-[60px] md:min-w-[200px] md:max-w-[200px] md:w-[200px] overflow-hidden ${isMyRow
                                       ? 'bg-[#181a24] shadow-[inset_3px_0_0_#F4C430]'
                                       : 'bg-[#0f1220] group-hover:bg-[#141724]'
                                       }`}
@@ -1178,14 +1178,14 @@ export default function MatchPage() {
                                     const isEditing = editingId === `${pred.prediction_id}:${q.key}`;
                                     const isLongAnswer = q.answer_type === 'player_name' || q.answer_type === 'free_text' || q.answer_type === 'text';
                                     const widthClass = isLongAnswer
-                                      ? "min-w-[85px] max-w-[85px] w-[85px] md:min-w-[140px] md:max-w-[140px] md:w-[140px]"
+                                      ? "min-w-[70px] max-w-[70px] w-[70px] md:min-w-[140px] md:max-w-[140px] md:w-[140px]"
                                       : "min-w-[60px] max-w-[60px] w-[60px] md:min-w-[120px] md:max-w-[120px] md:w-[120px]";
                                     const cellTextClass = isLongAnswer
-                                      ? "whitespace-normal break-words text-[9px] md:text-xs leading-none"
+                                      ? "whitespace-normal break-words text-[7px] md:text-xs leading-tight"
                                       : "whitespace-nowrap text-xs md:text-sm";
 
                                     return (
-                                      <td key={q.key} className={`px-1 py-2 md:p-3 text-center border-b border-white/5 ${cellTextClass} ${widthClass}`}>
+                                      <td key={q.key} className={`px-1 py-1.5 md:p-3 text-center border-b border-white/5 ${cellTextClass} ${widthClass}`}>
                                         {isEditing ? (
                                           <div className="flex items-center gap-1 justify-center" onClick={(e) => e.stopPropagation()}>
                                             <input
