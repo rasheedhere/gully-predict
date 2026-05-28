@@ -92,7 +92,7 @@ export default function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
                   value={alias}
                   onChange={(e) => setAlias(e.target.value.replace(/[^a-zA-Z0-9-]/g, ''))}
                   placeholder="Enter Alias"
-                  className="w-full bg-black/40 border-2 border-white/10 rounded-2xl px-4 py-4 text-white font-display tracking-widest focus:outline-none focus:border-ipl-gold transition-all text-sm"
+                  className="w-full bg-black/40 border-2 border-white/10 rounded-2xl px-4 py-4 text-white font-display tracking-widest focus:outline-none focus:border-ipl-gold transition-all text-base md:text-sm"
                 />
                 <div className="absolute right-4 top-1/2 -translate-y-1/2 text-[8px] text-gray-600 font-display uppercase tracking-widest pointer-events-none">
                   Unique Identity

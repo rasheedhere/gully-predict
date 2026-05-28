@@ -172,11 +172,11 @@ export default function Leagues() {
         <div className="lg:hidden fixed inset-0 z-50 flex items-end justify-center select-none">
           {/* Backdrop overlay */}
           <div 
-            className="absolute inset-0 bg-black/60 backdrop-blur-sm animate-in fade-in duration-300"
+            className="absolute inset-0 bg-black/75 backdrop-blur-sm animate-in fade-in duration-300"
             onClick={() => setSearchParams({})}
           />
           {/* Bottom Sheet Panel */}
-          <div className="w-full bg-ipl-surface border-t border-white/10 rounded-t-[28px] shadow-2xl z-10 flex flex-col pb-[calc(1.5rem+env(safe-area-inset-bottom))] p-6 animate-in slide-in-from-bottom duration-300">
+          <div className="w-full bg-ipl-surface border-t border-white/10 rounded-t-[28px] shadow-2xl z-10 flex flex-col pb-[calc(1.5rem+env(safe-area-inset-bottom))] p-6 animate-in slide-in-from-bottom duration-300 max-h-[85vh]">
             {/* Drag handle */}
             <div className="w-12 h-1 bg-white/20 rounded-full mx-auto mb-5 shrink-0" />
             {/* Scrollable details content */}

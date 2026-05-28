@@ -50,8 +50,7 @@ def _apply_rules(answer_value, correct_answer, question_type: str, scoring_rules
             return pts * multiplier, "range"
         else:
             pts = rules.get("wrong_answer_points", 0)
-            # Negative penalties are never multiplied
-            return pts if pts < 0 else pts, "miss"
+            return pts * multiplier, "miss"
     else:
         # String match (dropdown, free_text, toggle, multiple_choice)
         is_correct = str(answer_value).strip().lower() == str(correct_answer).strip().lower()
@@ -60,8 +59,7 @@ def _apply_rules(answer_value, correct_answer, question_type: str, scoring_rules
             return pts * multiplier, "correct"
         else:
             pts = rules.get("wrong_answer_points", 0)
-            # Negative penalties are never multiplied
-            return pts, "incorrect"
+            return pts * multiplier, "incorrect"
 
 
 async def sync_match_results_to_campaign_questions(match_id: str, db: AsyncSession):

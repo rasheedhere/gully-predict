@@ -182,9 +182,8 @@ async def calculate_campaign_scores(campaign_id: str, db: AsyncSession, match_id
 
             pts_base, status = score_answer(q, answer_value, correct_answer_override=override)
 
-            # Apply powerup if this is a master match campaign
             current_multiplier = multiplier if q.allow_powerup else 1
-            pts = pts_base * current_multiplier if (current_multiplier > 1 and pts_base > 0) else pts_base
+            pts = pts_base * current_multiplier
 
             total += pts
 

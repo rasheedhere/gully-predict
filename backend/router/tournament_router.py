@@ -142,7 +142,7 @@ async def get_tournament_leaderboard(
     return await fetch_leaderboard_data(db, f"{tournament_id}-global")
 
 
-# ── Tournament Question Bank ─────────────────────────────────────────────────
+# ── Question Bank ─────────────────────────────────────────────────
 
 @router.get("/{tournament_id}/question-bank")
 async def get_tournament_question_bank(

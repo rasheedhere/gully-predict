@@ -20,6 +20,7 @@ import ProfileModal from './ProfileModal';
 import { getUserDisplayName } from '../utils/userUtils';
 import { useTournaments } from '../api/hooks/useTournaments';
 import { useTournamentStore } from '../store/tournament';
+import { useUiStore } from '../store/ui';
 
 export default function Layout() {
   const { isAuthenticated, user, logout: storeLogout, setUser, token } = useAuthStore();
@@ -27,6 +28,11 @@ export default function Layout() {
   const location = useLocation();
   const navigate = useNavigate();
   const [isProfileOpen, setIsProfileOpen] = useState(false);
+  const { headerTitle, setHeaderTitle } = useUiStore();
+
+  useEffect(() => {
+    setHeaderTitle(null);
+  }, [location.pathname, setHeaderTitle]);
 
   const handleLogout = () => {
     storeLogout();
@@ -84,7 +90,12 @@ export default function Layout() {
       return 'CAMPAIGNS';
     }
     if (pathname.startsWith('/activity')) return 'ACTIVITY';
-    if (pathname.startsWith('/admin')) return 'ADMIN CONSOLE';
+    if (pathname.startsWith('/admin')) {
+      const params = new URLSearchParams(location.search);
+      if (params.has('tournamentId')) return 'MANAGE TOURNAMENT';
+      if (params.has('leagueId')) return 'MANAGE LEAGUE';
+      return 'ADMIN CONSOLE';
+    }
     if (pathname.startsWith('/more')) return 'SETTINGS';
     return 'GULLY PREDICT';
   };
@@ -92,19 +103,19 @@ export default function Layout() {
   // Determine if we should show a back button instead of the tournament selector
   const isDetailRoute = ['/match/', '/leagues/', '/campaigns/', '/admin/'].some(
     prefix => location.pathname.startsWith(prefix) && location.pathname !== prefix.replace(/\/$/, '')
-  );
+  ) || new URLSearchParams(location.search).has('tournamentId') || new URLSearchParams(location.search).has('leagueId');
 
   return (
     <div className="min-h-screen flex flex-col bg-ipl-navy">
       {/* Mobile Top Navigation Header */}
-      <nav className="fixed top-0 left-0 right-0 z-50 md:hidden bg-ipl-surface/85 backdrop-blur-xl border-b border-white/5 pt-[env(safe-area-inset-top)] select-none">
+      <nav className="fixed top-0 left-0 right-0 z-50 md:hidden bg-ipl-surface/85 backdrop-blur-xl border-b border-white/5 pt-[env(safe-area-inset-top)] select-none [-webkit-touch-callout:none]">
         <div className="px-4 flex items-center justify-between h-14">
           {/* Left Element: Back Button or Tournament Selector */}
           <div className="w-[30%] flex justify-start">
             {isDetailRoute ? (
               <button 
                 onClick={() => navigate(-1)} 
-                className="flex items-center gap-0.5 text-xs font-display uppercase tracking-widest text-gray-300 active:opacity-60"
+                className="flex items-center gap-0.5 text-xs font-display uppercase tracking-widest text-gray-300 active:opacity-60 p-2 -ml-2 min-h-[44px] min-w-[44px]"
               >
                 <ChevronLeft className="w-4 h-4 text-ipl-gold shrink-0" />
                 Back
@@ -115,7 +126,7 @@ export default function Layout() {
                   <select 
                     value={activeTournamentId}
                     onChange={(e) => setActiveTournamentId(e.target.value)}
-                    className="appearance-none bg-white/5 border border-white/10 rounded-full pl-2.5 pr-6 py-1 text-[10px] font-display uppercase tracking-widest text-white focus:outline-none cursor-pointer transition-colors"
+                    className="appearance-none bg-white/5 border border-white/10 rounded-full pl-2.5 pr-6 py-1 text-base md:text-[10px] font-display uppercase tracking-widest text-white focus:outline-none cursor-pointer transition-colors"
                   >
                     {tournaments.map(t => (
                       <option key={t.id} value={t.id} className="bg-ipl-surface text-white">
@@ -132,7 +143,7 @@ export default function Layout() {
           {/* Center Element: Current Title */}
           <div className="w-[40%] text-center">
             <span className="text-sm font-display font-bold text-white tracking-widest uppercase block truncate">
-              {getPageTitle(location.pathname)}
+              {headerTitle || getPageTitle(location.pathname)}
             </span>
           </div>
 
@@ -259,7 +270,7 @@ export default function Layout() {
       </main>
 
       {/* Mobile Fixed Bottom Tab Bar */}
-      <nav className="fixed bottom-0 left-0 right-0 z-50 md:hidden bg-ipl-surface/85 backdrop-blur-xl border-t border-white/5 pb-[env(safe-area-inset-bottom)] select-none">
+      <nav className="fixed bottom-0 left-0 right-0 z-50 md:hidden bg-ipl-surface/85 backdrop-blur-xl border-t border-white/5 pb-[env(safe-area-inset-bottom)] select-none [-webkit-touch-callout:none]">
         <div className="flex items-center justify-around h-14">
           {/* Matches Tab */}
           <Link 
@@ -274,17 +285,6 @@ export default function Layout() {
             <span className="text-[9px] font-display uppercase tracking-widest mt-1">Matches</span>
           </Link>
 
-          {/* Standings Tab */}
-          <Link 
-            to="/leaderboard"
-            className={`flex flex-col items-center justify-center w-16 h-12 transition-all duration-150 active:scale-95 ${
-              location.pathname.startsWith('/leaderboard') ? 'text-ipl-gold' : 'text-gray-500'
-            }`}
-          >
-            <Trophy className="w-5 h-5" />
-            <span className="text-[9px] font-display uppercase tracking-widest mt-1">Standings</span>
-          </Link>
-
           {/* Leagues Tab */}
           <Link 
             to="/leagues"
@@ -296,22 +296,33 @@ export default function Layout() {
             <span className="text-[9px] font-display uppercase tracking-widest mt-1">Leagues</span>
           </Link>
 
-          {/* Activity Tab */}
+          {/* Standings Tab */}
           <Link 
-            to="/activity"
+            to="/leaderboard"
             className={`flex flex-col items-center justify-center w-16 h-12 transition-all duration-150 active:scale-95 ${
-              location.pathname.startsWith('/activity') ? 'text-ipl-gold' : 'text-gray-500'
+              location.pathname.startsWith('/leaderboard') ? 'text-ipl-gold' : 'text-gray-500'
             }`}
           >
-            <ActivityIcon className="w-5 h-5" />
-            <span className="text-[9px] font-display uppercase tracking-widest mt-1">Activity</span>
+            <Trophy className="w-5 h-5" />
+            <span className="text-[9px] font-display uppercase tracking-widest mt-1">Standings</span>
+          </Link>
+
+          {/* Analysis Tab */}
+          <Link 
+            to="/analysis"
+            className={`flex flex-col items-center justify-center w-16 h-12 transition-all duration-150 active:scale-95 ${
+              location.pathname.startsWith('/analysis') ? 'text-ipl-gold' : 'text-gray-500'
+            }`}
+          >
+            <BarChart2 className="w-5 h-5" />
+            <span className="text-[9px] font-display uppercase tracking-widest mt-1">Analysis</span>
           </Link>
 
           {/* More Tab */}
           <Link 
             to="/more"
             className={`flex flex-col items-center justify-center w-16 h-12 transition-all duration-150 active:scale-95 ${
-              location.pathname.startsWith('/more') || location.pathname.startsWith('/campaigns') || location.pathname.startsWith('/analysis') || location.pathname.startsWith('/admin')
+              location.pathname.startsWith('/more') || location.pathname.startsWith('/campaigns') || location.pathname.startsWith('/activity') || location.pathname.startsWith('/admin')
                 ? 'text-ipl-gold' 
                 : 'text-gray-500'
             }`}

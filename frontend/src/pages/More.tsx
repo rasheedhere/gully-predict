@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../store/auth';
 import { useQueryClient } from '@tanstack/react-query';
-import { BarChart2, Megaphone, Settings, LogOut, ChevronRight, User } from 'lucide-react';
+import { Activity, Megaphone, Settings, LogOut, ChevronRight, User } from 'lucide-react';
 import { getUserDisplayName } from '../utils/userUtils';
 import ProfileModal from '../components/ProfileModal';
 
@@ -66,13 +66,13 @@ export default function More() {
             </button>
 
             <button
-              onClick={() => navigate('/analysis')}
+              onClick={() => navigate('/activity')}
               className="w-full flex items-center gap-4 px-4 py-4 active:bg-white/10 transition-colors text-left"
             >
-              <div className="w-8 h-8 rounded-lg bg-blue-500/10 flex items-center justify-center text-blue-400 shrink-0">
-                <BarChart2 className="w-4 h-4" />
+              <div className="w-8 h-8 rounded-lg bg-orange-500/10 flex items-center justify-center text-orange-400 shrink-0">
+                <Activity className="w-4 h-4" />
               </div>
-              <span className="flex-1 text-sm font-display text-white uppercase tracking-wider font-bold">Analysis</span>
+              <span className="flex-1 text-sm font-display text-white uppercase tracking-wider font-bold">Activity</span>
               <ChevronRight className="w-4 h-4 text-gray-500 shrink-0" />
             </button>
           </div>
@@ -103,7 +103,7 @@ export default function More() {
           <div className="bg-white/5 border border-white/10 rounded-[22px] overflow-hidden divide-y divide-white/5">
             <button
               onClick={() => setIsProfileOpen(true)}
-              className="w-full flex items-center gap-4 px-4 py-4 active:bg-white/10 transition-colors text-left"
+              className="hidden md:flex w-full items-center gap-4 px-4 py-4 active:bg-white/10 transition-colors text-left"
             >
               <div className="w-8 h-8 rounded-lg bg-green-500/10 flex items-center justify-center text-green-400 shrink-0">
                 <User className="w-4 h-4" />

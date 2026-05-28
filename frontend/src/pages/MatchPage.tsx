@@ -10,6 +10,7 @@ import toast from 'react-hot-toast';
 import { getTeamColor, getTeamShortName, getAccessibleTeamTextColor } from '../utils/teamColors';
 import { getUserDisplayName } from '../utils/userUtils';
 import { getTeamLogo } from '../utils/teamLogos';
+import { useUiStore } from '../store/ui';
 
 export default function MatchPage() {
   const { id } = useParams();
@@ -23,8 +24,17 @@ export default function MatchPage() {
   const { register, handleSubmit, reset, setValue, formState: { errors } } = useForm();
 
   const { data, isLoading, error } = useMatch(id || '');
+  const match = data?.match;
   const { mutate: submitPrediction, isPending } = useSubmitPrediction(id || '');
   const { data: myPredictions } = useMyPredictions(id || '');
+  const { setHeaderTitle } = useUiStore();
+
+  useEffect(() => {
+    if (match) {
+      setHeaderTitle(`${getTeamShortName(match.team1)} VS ${getTeamShortName(match.team2)}`);
+    }
+    return () => setHeaderTitle(null);
+  }, [match, setHeaderTitle]);
 
 
   // Predictions are currently always open (start-lock disabled)
@@ -32,8 +42,6 @@ export default function MatchPage() {
   const isLocked = tossTime ? (new Date() > new Date(tossTime.getTime() - 30 * 60000)) : false;
 
   const { data: leagueSections } = useAllMatchPredictions(id || '');
-
-  const match = data?.match;
   const questions = data?.questions || [];
 
   // Pre-fill existing predictions and admin results
@@ -199,7 +207,7 @@ export default function MatchPage() {
             <select
               {...register(registerName, { required: true })}
               disabled={isLocked}
-              className={`w-full bg-white/5 border border-white/10 rounded-[18px] p-4 text-white font-display text-sm focus:outline-none focus:border-ipl-gold focus:bg-white/10 transition-all appearance-none disabled:opacity-50 shadow-inner ${error ? 'border-red-500/50' : 'border-white/10'}`}
+              className={`w-full bg-white/5 border border-white/10 rounded-[18px] p-4 text-white font-display text-base md:text-sm focus:outline-none focus:border-ipl-gold focus:bg-white/10 transition-all appearance-none disabled:opacity-50 shadow-inner ${error ? 'border-red-500/50' : 'border-white/10'}`}
             >
               <option value="" className="bg-ipl-navy">Select Option</option>
               {q.options?.map((opt: string) => (
@@ -225,7 +233,7 @@ export default function MatchPage() {
             type={q.answer_type === 'number' || q.answer_type === 'free_number' ? 'number' : 'text'}
             disabled={isLocked}
             placeholder={q.answer_type === 'number' || q.answer_type === 'free_number' ? '0' : 'Type your answer'}
-            className={`w-full bg-white/5 border border-white/10 rounded-[18px] p-4 text-white font-display text-sm focus:outline-none focus:border-ipl-gold focus:bg-white/10 transition-all disabled:opacity-50 shadow-inner ${error ? 'border-red-500/50' : 'border-white/10'}`}
+            className={`w-full bg-white/5 border border-white/10 rounded-[18px] p-4 text-white font-display text-base md:text-sm focus:outline-none focus:border-ipl-gold focus:bg-white/10 transition-all disabled:opacity-50 shadow-inner ${error ? 'border-red-500/50' : 'border-white/10'}`}
           />
         )}
       </div>
@@ -648,8 +656,8 @@ export default function MatchPage() {
 
       {/* Mobile-optimized Compact Match Header */}
       <div className="md:hidden flex flex-col items-center gap-2.5 w-full pb-4 border-b border-white/10">
-        {/* Team Matchup Row */}
-        <div className="flex items-center justify-center gap-3 w-full px-2 mt-1">
+        {/* Team Matchup Row (Hidden on mobile as it's shown in header title) */}
+        <div className="hidden items-center justify-center gap-3 w-full px-2 mt-1">
           {/* Team 1 Logo & Shortname */}
           <div className="flex items-center gap-2 flex-1 justify-end min-w-0">
             <span className="text-base font-display font-bold truncate" style={{ color: getTeamColor(match.team1) }}>
@@ -1074,7 +1082,7 @@ export default function MatchPage() {
                                 >
                                   {/* Predictor Column */}
                                   <td
-                                    className={`sticky left-0 z-10 px-1 py-1.5 md:p-3 border-r border-white/10 transition-colors shadow-[2px_0_5px_rgba(0,0,0,0.15)] min-w-[60px] max-w-[60px] w-[60px] md:min-w-[200px] md:max-w-[200px] md:w-[200px] select-none ${pred.points_breakdown?.rules ? 'cursor-pointer active:brightness-150' : ''} ${isMyRow
+                                    className={`sticky left-0 z-10 px-1 py-1.5 md:p-3 border-r border-white/10 transition-colors shadow-[2px_0_5px_rgba(0,0,0,0.15)] min-w-[60px] max-w-[60px] w-[60px] md:min-w-[200px] md:max-w-[200px] md:w-[200px] select-none [-webkit-touch-callout:none] ${pred.points_breakdown?.rules ? 'cursor-pointer active:brightness-150' : ''} ${isMyRow
                                       ? 'bg-[#181a24] shadow-[inset_3px_0_0_#F4C430]'
                                       : 'bg-[#0f1220] group-hover:bg-[#141724]'
                                       }`}
@@ -1328,7 +1336,7 @@ export default function MatchPage() {
             onClick={() => setSelectedBreakdown(null)}
           />
           {/* Drawer Panel */}
-          <div className="relative w-full max-w-md bg-[#0f172a]/95 backdrop-blur-md border-t border-white/10 rounded-t-3xl shadow-2xl p-6 pb-8 animate-in slide-in-from-bottom duration-300">
+          <div className="relative w-full max-w-md bg-[#0f172a]/95 backdrop-blur-md border-t border-white/10 rounded-t-3xl shadow-2xl p-6 pb-[calc(2rem+env(safe-area-inset-bottom))] max-h-[85vh] flex flex-col animate-in slide-in-from-bottom duration-300">
             {/* Drawer handle pull-bar */}
             <div className="w-12 h-1 bg-white/20 rounded-full mx-auto mb-5" />
 

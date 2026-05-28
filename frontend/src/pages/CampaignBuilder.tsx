@@ -520,7 +520,7 @@ export function CampaignForm({ campaignId }: { campaignId?: string }) {
     <div className="max-w-2xl mx-auto pb-20 space-y-8">
       <header>
         <button onClick={() => navigate('/admin/campaigns')}
-          className="flex items-center gap-2 text-gray-500 hover:text-white font-display text-xs uppercase tracking-widest transition-colors mb-6">
+          className="hidden md:flex items-center gap-2 text-gray-500 hover:text-white font-display text-xs uppercase tracking-widest transition-colors mb-6">
           <ArrowLeft className="w-4 h-4" />
           Back
         </button>

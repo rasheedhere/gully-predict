@@ -1,8 +1,10 @@
+import { useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useLeagueDetails, useKickMember, useRefreshJoinCode } from '../api/hooks/useLeagues';
 import { Copy, RefreshCw, Trash2, ShieldCheck, Users, Zap, ChevronLeft } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { getUserDisplayName } from '../utils/userUtils';
+import { useUiStore } from '../store/ui';
 
 export default function LeagueDetails() {
   const { id } = useParams<{ id: string }>();
@@ -10,6 +12,14 @@ export default function LeagueDetails() {
   const { data: league, isLoading, error } = useLeagueDetails(id!);
   const kickMember = useKickMember(id!);
   const refreshCode = useRefreshJoinCode(id!);
+  const { setHeaderTitle } = useUiStore();
+
+  useEffect(() => {
+    if (league) {
+      setHeaderTitle(league.name);
+    }
+    return () => setHeaderTitle(null);
+  }, [league, setHeaderTitle]);
 
   if (isLoading) {
     return <div className="text-white text-center font-display tracking-widest animate-pulse mt-20">SYNCING ARENA DATA...</div>;
@@ -52,7 +62,7 @@ export default function LeagueDetails() {
     <div className="w-full max-w-5xl mx-auto space-y-10 pb-20">
       <button
         onClick={() => navigate('/leagues')}
-        className="group flex items-center gap-2 text-gray-500 hover:text-white transition-all font-display uppercase tracking-[0.2em] text-[10px]"
+        className="hidden md:flex group items-center gap-2 text-gray-500 hover:text-white transition-all font-display uppercase tracking-[0.2em] text-[10px]"
       >
         <ChevronLeft className="w-4 h-4 transition-transform group-hover:-translate-x-1" /> 
         Back to Arenas
@@ -63,14 +73,14 @@ export default function LeagueDetails() {
         <div className="absolute inset-0 bg-gradient-to-br from-ipl-gold/5 via-transparent to-transparent rounded-[2rem] -z-10" />
         <div className="glass-panel p-8 md:p-10 border-t-4 border-ipl-gold rounded-[2rem] flex flex-col lg:flex-row justify-between items-start lg:items-center gap-10 shadow-2xl">
           <div className="flex items-center gap-8">
-            <div className={`w-24 h-24 rounded-3xl flex items-center justify-center text-4xl font-display font-bold shadow-2xl shrink-0 border-2
+            <div className={`hidden md:flex w-24 h-24 rounded-3xl items-center justify-center text-4xl font-display font-bold shadow-2xl shrink-0 border-2
               ${league.id === 'global-league' ? 'bg-gradient-to-br from-ipl-gold to-yellow-600 text-ipl-navy border-white/20' : 'bg-black/40 text-ipl-gold border-white/10'}
             `}>
               {league.name.charAt(0)}
             </div>
             <div>
               <div className="flex items-center gap-4">
-                <h1 className="text-4xl font-display font-bold text-white italic uppercase tracking-tighter">
+                <h1 className="hidden md:block text-4xl font-display font-bold text-white italic uppercase tracking-tighter">
                   {league.name}
                 </h1>
                 {league.is_admin && (

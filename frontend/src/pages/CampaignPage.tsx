@@ -4,6 +4,7 @@ import { ArrowLeft, CheckCircle, Lock, Hash, Type, ToggleLeft, ChevronDown, List
 import toast from 'react-hot-toast';
 import { useCampaign, useSubmitCampaignResponse, useCampaignResponses, type CampaignQuestion, type ScoringRules } from '../api/hooks/useCampaigns';
 import { useAuthStore } from '../store/auth';
+import { useUiStore } from '../store/ui';
 import { CampaignCountdown } from '../components/CampaignCountdown';
 import { getUserDisplayName } from '../utils/userUtils';
 
@@ -198,6 +199,14 @@ export default function CampaignPage() {
   const { mutate: submit, isPending: isSubmitting } = useSubmitCampaignResponse(id!);
 
   const [answers, setAnswers] = useState<Record<string, any>>({});
+  const { setHeaderTitle } = useUiStore();
+
+  useEffect(() => {
+    if (campaign) {
+      setHeaderTitle(campaign.title);
+    }
+    return () => setHeaderTitle(null);
+  }, [campaign, setHeaderTitle]);
   
   const isClosed = campaign?.status === 'closed' || (campaign?.ends_at ? new Date(campaign.ends_at) <= new Date() : false);
   const { data: responsesData, isLoading: isLoadingResponses } = useCampaignResponses(id!, isClosed);
@@ -286,10 +295,10 @@ export default function CampaignPage() {
 
         <div className="flex items-start justify-between gap-4 border-b border-white/10 pb-4">
           <div>
-            <span className="text-[9px] font-display uppercase tracking-widest text-gray-500 block mb-1">
+            <span className="hidden md:block text-[9px] font-display uppercase tracking-widest text-gray-500 mb-1">
               {campaign.type} campaign
             </span>
-            <h1 className="text-xl md:text-2xl font-display text-white uppercase font-bold leading-tight">{campaign.title}</h1>
+            <h1 className="hidden md:block text-xl md:text-2xl font-display text-white uppercase font-bold leading-tight">{campaign.title}</h1>
             {campaign.description && (
               <p className="text-gray-400 text-xs mt-1 leading-relaxed">{campaign.description}</p>
             )}

@@ -32,7 +32,7 @@ class ScoringRulesSchema(BaseModel):
 
 class QuestionCreate(BaseModel):
     id: Optional[str] = None  # set when preserving an existing question (e.g. mandatory)
-    key: Optional[str] = None # Stable key from the tournament question bank
+    key: Optional[str] = None # Stable key from the question bank
     question_text: str
     question_type: QuestionType
     options: Optional[list[str]] = None
@@ -86,7 +86,7 @@ class CampaignResponseSubmit(BaseModel):
 
 def _validate_question(q: QuestionCreate, campaign_type: CampaignType = CampaignType.general):
     if campaign_type == CampaignType.match and not q.key:
-        raise HTTPException(status_code=400, detail="Match campaigns only allow questions from the Tournament Question Bank (custom questions not allowed).")
+        raise HTTPException(status_code=400, detail="Match campaigns only allow questions from the Question Bank (custom questions not allowed).")
     if q.question_type == QuestionType.toggle:
         if not q.options or len(q.options) != 2:
             raise HTTPException(status_code=400, detail=f"Toggle question must have exactly 2 options")
