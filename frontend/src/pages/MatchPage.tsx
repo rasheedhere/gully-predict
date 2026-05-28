@@ -588,6 +588,68 @@ export default function MatchPage() {
     return `${part1}${part2}`.toUpperCase();
   };
 
+  const generatePostMatchInsight = (predictions: any[], questionsList: any[], results: any, winnerQId: string | null) => {
+    if (!predictions || predictions.length === 0 || !results) return '';
+
+    const total = predictions.length;
+
+    let winnerWinner = '';
+    let winnerCount = 0;
+    if (winnerQId) {
+      const maj = getMajorityGuess(predictions, winnerQId);
+      winnerWinner = maj.guess;
+      winnerCount = maj.count;
+    }
+
+    const actualWinner = results[winnerQId || ''];
+    let winnerInsight = '';
+    if (actualWinner && winnerWinner) {
+      const actualWinnerShort = getTeamShortName(actualWinner);
+      const predictedWinnerShort = winnerWinner; // already short
+      const percent = Math.round((winnerCount / total) * 100);
+
+      if (actualWinnerShort === predictedWinnerShort) {
+        winnerInsight = `THE COMMUNITY GOT IT RIGHT! ${actualWinnerShort} CLINCHED THE VICTORY, JUST AS ${percent}% OF PREDICTORS FORESAW.`;
+      } else {
+        winnerInsight = `THE COMMUNITY WAS PROVED WRONG! ${actualWinnerShort} DEFIED THE ODDS, STUNNING THE ${percent}% OF PREDICTORS WHO BACKED ${predictedWinnerShort}.`;
+      }
+    } else if (actualWinner) {
+      winnerInsight = `${getTeamShortName(actualWinner)} CLINCHED THE VICTORY IN THIS MATCH.`;
+    }
+
+    // Check sixes/fours if they exist in questions and results
+    let otherInsights: string[] = [];
+    questionsList.forEach((q: any) => {
+      const text = q.question_text.toLowerCase();
+      const actualVal = results[q.key];
+      if (!actualVal) return;
+
+      const maj = getMajorityGuess(predictions, q.key);
+      const predictedVal = maj.guess;
+      const percent = Math.round((maj.count / total) * 100);
+
+      if (text.includes('sixes')) {
+        if (getTeamShortName(actualVal) === predictedVal) { // predictedVal is already short
+          otherInsights.push(`THE COMMUNITY ACCURATELY NAILED THE SIXES WINNER WITH ${percent}% PREDICTING ${getTeamShortName(actualVal)}`);
+        } else {
+          otherInsights.push(`${getTeamShortName(actualVal)} SURPRISED THE ${percent}% WHO EXPECTED ${predictedVal} TO DOMINATE THE SIXES`);
+        }
+      } else if (text.includes('fours')) {
+        if (getTeamShortName(actualVal) === predictedVal) {
+          otherInsights.push(`THE COMMUNITY WAS CORRECT ON THE FOURS WINNER WITH ${percent}% PREDICTING ${getTeamShortName(actualVal)}`);
+        } else {
+          otherInsights.push(`${getTeamShortName(actualVal)} COUNTERED THE ${percent}% OF FOURS PREDICTIONS FOR ${predictedVal}`);
+        }
+      }
+    });
+
+    let finalInsight = winnerInsight;
+    if (otherInsights.length > 0) {
+      finalInsight += ' ' + otherInsights.join('. ') + '.';
+    }
+    return finalInsight.toUpperCase();
+  };
+
   return (
     <div className="w-full max-w-full px-2 md:px-6 pb-20 space-y-0 md:space-y-8 max-md:glass-panel max-md:p-2 max-md:border-b-[4px] max-md:border-ipl-gold max-md:rounded-2xl">
       {/* Desktop Match Card Header */}
@@ -848,7 +910,7 @@ export default function MatchPage() {
             <form onSubmit={handleSubmit(onSubmit)} className="space-y-12">
               {Object.entries(groupedQuestions).map(([source, groupQuestions]) => (
                 <div key={source} className="space-y-6 pt-8 first:pt-0 border-t border-white/5 first:border-t-0">
-                  <div className="flex items-center gap-3 border-l-4 border-ipl-gold pl-4 mb-4">
+                  {/* <div className="flex items-center gap-3 border-l-4 border-ipl-gold pl-4 mb-4">
                     <h3 className="text-lg font-display text-white tracking-widest uppercase italic">
                       {source === 'IPL Global' ? (
                         <>IPL Global <span className="text-ipl-gold not-italic">Questions</span></>
@@ -856,7 +918,7 @@ export default function MatchPage() {
                         <><span className="text-ipl-gold not-italic">League:</span> {source}</>
                       )}
                     </h3>
-                  </div>
+                  </div> */}
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-6">
                     {groupQuestions.map(q => renderQuestion(q))}
                   </div>
@@ -1251,21 +1313,39 @@ export default function MatchPage() {
                       </div>
                     </div>
 
-                    {/* Community Insight */}
-                    {generateCommunityInsight(allPredictions, questions, match.team1, match.team2) && (
-                      <div className="glass-panel p-4 bg-gradient-to-r from-ipl-gold/5 via-white/5 to-transparent border border-ipl-gold/10 rounded-2xl flex items-start gap-4">
-                        <div className="p-2.5 bg-ipl-gold/10 rounded-xl border border-ipl-gold/20 shrink-0">
-                          <Trophy className="w-5 h-5 text-ipl-gold animate-pulse" />
+                    {/* Community or Post-Match Insight */}
+                    {match.status === 'completed' ? (
+                      generatePostMatchInsight(allPredictions, questions, match.results, winnerQId) && (
+                        <div className="glass-panel p-4 bg-gradient-to-r from-ipl-live/5 via-white/5 to-transparent border border-ipl-live/20 rounded-2xl flex items-start gap-4">
+                          <div className="p-2.5 bg-ipl-live/10 rounded-xl border border-ipl-live/20 shrink-0">
+                            <Trophy className="w-5 h-5 text-ipl-live animate-pulse" />
+                          </div>
+                          <div className="space-y-1">
+                            <h4 className="text-xs font-display font-black text-ipl-live uppercase tracking-wider">
+                              Post-Match Insight
+                            </h4>
+                            <p className="text-[11px] md:text-xs font-display text-gray-300 font-bold uppercase tracking-wide leading-relaxed">
+                              {generatePostMatchInsight(allPredictions, questions, match.results, winnerQId)}
+                            </p>
+                          </div>
                         </div>
-                        <div className="space-y-1">
-                          <h4 className="text-xs font-display font-black text-ipl-gold uppercase tracking-wider">
-                            Community Insight
-                          </h4>
-                          <p className="text-[11px] md:text-xs font-display text-gray-300 font-bold uppercase tracking-wide leading-relaxed">
-                            {generateCommunityInsight(allPredictions, questions, match.team1, match.team2)}
-                          </p>
+                      )
+                    ) : (
+                      generateCommunityInsight(allPredictions, questions, match.team1, match.team2) && (
+                        <div className="glass-panel p-4 bg-gradient-to-r from-ipl-gold/5 via-white/5 to-transparent border border-ipl-gold/10 rounded-2xl flex items-start gap-4">
+                          <div className="p-2.5 bg-ipl-gold/10 rounded-xl border border-ipl-gold/20 shrink-0">
+                            <Trophy className="w-5 h-5 text-ipl-gold animate-pulse" />
+                          </div>
+                          <div className="space-y-1">
+                            <h4 className="text-xs font-display font-black text-ipl-gold uppercase tracking-wider">
+                              Community Insight
+                            </h4>
+                            <p className="text-[11px] md:text-xs font-display text-gray-300 font-bold uppercase tracking-wide leading-relaxed">
+                              {generateCommunityInsight(allPredictions, questions, match.team1, match.team2)}
+                            </p>
+                          </div>
                         </div>
-                      </div>
+                      )
                     )}
                   </div>
                 )}

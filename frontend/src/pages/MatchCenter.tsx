@@ -14,6 +14,7 @@ export default function MatchCenter() {
   // Scroll index tracking for iOS-style pagination indicators
   const [activeTodayIdx, setActiveTodayIdx] = useState(0);
   const [activeFutureIdx, setActiveFutureIdx] = useState(0);
+  const [activePastIdx, setActivePastIdx] = useState(0);
 
   if (isLoading) return <div className="text-white text-center font-display tracking-widest animate-pulse mt-20">LOADING ARENA...</div>;
   if (error) return <div className="text-ipl-live text-center font-display tracking-widest mt-20">FAILED TO LOAD MATCHES</div>;
@@ -30,6 +31,27 @@ export default function MatchCenter() {
     // Must not be today, and must be in the future
     return d.toDateString() !== now.toDateString() && d > now;
   }) || [];
+
+  const pastMatches = matches?.filter(m => {
+    const d = new Date(m.tossTime);
+    const now = new Date();
+    const twoDaysAgo = new Date();
+    twoDaysAgo.setDate(now.getDate() - 2);
+    twoDaysAgo.setHours(0, 0, 0, 0);
+    return d < now && d.toDateString() !== now.toDateString() && d >= twoDaysAgo;
+  }) || [];
+
+  const handlePastScroll = (e: React.UIEvent<HTMLDivElement>) => {
+    const container = e.currentTarget;
+    if (pastMatches.length === 0) return;
+    const scrollPosition = container.scrollLeft;
+    const itemWidth = container.scrollWidth / pastMatches.length;
+    const index = Math.min(
+      Math.max(0, Math.round(scrollPosition / itemWidth)),
+      pastMatches.length - 1
+    );
+    setActivePastIdx(index);
+  };
 
   const handleTodayScroll = (e: React.UIEvent<HTMLDivElement>) => {
     const container = e.currentTarget;
@@ -161,6 +183,45 @@ export default function MatchCenter() {
           </div>
         )}
       </section>
+
+      {/* Recent Matches */}
+      {pastMatches.length > 0 && (
+        <section className="space-y-4">
+          <div className="flex items-center gap-3 border-l-4 border-gray-600 pl-3">
+            <h2 className="text-lg font-display text-gray-400 tracking-wider uppercase">Recent Matches</h2>
+          </div>
+
+          <div 
+            onScroll={handlePastScroll}
+            className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 max-md:flex max-md:overflow-x-auto max-md:snap-x max-md:snap-mandatory max-md:scrollbar-hide max-md:-mx-4 max-md:px-4 max-md:pb-4 max-md:w-[calc(100%+2rem)]"
+          >
+            {pastMatches.map((match: any) => (
+              <div key={match.id} className="max-md:snap-start max-md:shrink-0 max-md:w-[85%] max-md:max-w-[320px]">
+                <MatchCard
+                  {...match}
+                  has_predicted={predictedMatchIds?.includes(match.id)}
+                />
+              </div>
+            ))}
+          </div>
+
+          {/* Dynamic Carousel dot indicators on mobile */}
+          {pastMatches.length > 1 && (
+            <div className="flex justify-center gap-1.5 mt-2 md:hidden select-none">
+              {pastMatches.map((_, idx) => (
+                <div
+                  key={idx}
+                  className={`h-1.5 rounded-full transition-all duration-300 ${
+                    activePastIdx === idx 
+                      ? 'w-4 bg-ipl-gold' 
+                      : 'w-1.5 bg-white/20'
+                  }`}
+                />
+              ))}
+            </div>
+          )}
+        </section>
+      )}
     </div>
   );
 }
