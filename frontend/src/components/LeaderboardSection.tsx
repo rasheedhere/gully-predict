@@ -10,6 +10,9 @@ export default function LeaderboardSection({ leagueId, leagueName, tournamentNam
   const [selectedUser, setSelectedUser] = useState<any>(null);
   const [expandedMatch, setExpandedMatch] = useState<string | null>(null);
 
+  const podiumUsers = leaderboard?.slice(0, 3) || [];
+  const listUsers = leaderboard?.slice(3) || [];
+
   useEffect(() => {
     if (selectedUser) {
       document.body.style.overflow = 'hidden';
@@ -245,149 +248,308 @@ export default function LeaderboardSection({ leagueId, leagueName, tournamentNam
 
   return (
     <div className="space-y-6">
-      <header className="border-b-2 border-white/10 pb-4">
+      {/* Desktop Header */}
+      <header className="border-b-2 border-white/10 pb-4 hidden md:block">
         <h2 className="text-2xl font-display text-white">{leagueName}</h2>
         <p className="text-gray-400 mt-1 italic tracking-widest text-xs uppercase opacity-60">
           {tournamentName} Standings
         </p>
       </header>
 
-      <div className="grid grid-cols-1 lg:grid-cols-4 gap-8 items-start">
-        <div className="lg:col-span-3 glass-panel overflow-hidden">
-          {isLoading ? (
-            <div className="p-8 text-center animate-pulse text-white font-display text-xl tracking-widest">LOADING STANDINGS...</div>
-          ) : (
-            <div className="overflow-x-auto w-full custom-scrollbar">
-              <table className="w-full text-left border-collapse table-fixed whitespace-nowrap">
-                <thead>
-                  <tr className="bg-white/5 border-b border-white/10">
-                    <th className="p-2 md:p-4 font-display tracking-wider text-gray-400 text-[10px] md:text-xs uppercase w-10 md:w-16 text-center">Rank</th>
-                    <th className="p-2 md:p-4 font-display tracking-wider text-gray-400 text-[10px] md:text-xs uppercase w-auto">Player</th>
-                    <th className="p-2 md:p-4 font-display tracking-wider text-gray-400 text-center hidden lg:table-cell lg:w-[200px]">
-                      <div className="text-[10px] md:text-xs uppercase">History</div>
-                      <div className="text-[8px] text-gray-500 font-mono tracking-tighter mt-0.5 opacity-60">(Latest → Oldest)</div>
-                    </th>
-                    <th className="p-2 md:p-4 font-display tracking-wider text-gray-400 text-[10px] md:text-xs uppercase text-right w-16 md:w-24">Points</th>
-                    <th className="p-2 md:p-4 font-display tracking-wider text-gray-400 text-[10px] md:text-xs uppercase text-center w-12 md:w-20">Pwrups</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {leaderboard?.map((entry: any) => (
-                    <tr
-                      key={entry.username}
-                      onClick={() => handleRowClick(entry)}
-                      className={`border-b border-white/5 transition-all group cursor-pointer ${selectedUser?.username === entry.username ? 'bg-ipl-gold/20' :
-                          entry.username === currentUser?.name ? 'bg-white/5' : 'hover:bg-white/5'
-                        }`}
-                    >
-                      <td className="p-2 md:p-4">
-                        <div className="flex items-center justify-center gap-2 font-display text-sm md:text-lg">
-                          {entry.rank <= 3 ? (
-                            <span className={`w-6 h-6 md:w-8 md:h-8 flex items-center justify-center rounded-sm ${entry.rank === 1 ? 'bg-ipl-gold text-black' :
-                              entry.rank === 2 ? 'bg-gray-300 text-black' : 'bg-[#CD7F32] text-black'
-                              }`}>
-                              {entry.rank}
-                            </span>
-                          ) : (
-                            <span className="text-gray-500 font-mono text-xs md:text-base">{entry.rank}</span>
-                          )}
-                        </div>
-                      </td>
-                      <td className="p-2 md:p-4">
-                        <div className="flex items-center gap-2 md:gap-4 overflow-hidden">
-                          <div className="w-8 h-8 md:w-10 md:h-10 rounded-full border border-white/10 overflow-hidden group-hover:border-ipl-gold transition-colors shrink-0">
-                            <img src={entry.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${entry.username}`} alt={entry.username} />
-                          </div>
-                          <div className="flex flex-col min-w-0 flex-1">
-                            <span className={`text-xs md:text-sm font-display tracking-wide truncate w-full ${entry.rank <= 3 ? 'text-white' : 'text-gray-300'}`}>
-                              {getUserDisplayName({ name: entry.username, alias: entry.alias, use_alias: entry.use_alias })}
-                            </span>
-                            <span className="text-[8px] md:text-[10px] text-gray-500 uppercase font-display tracking-tighter truncate w-full">
-                              M: {entry.matches_played}
-                            </span>
-                          </div>
-                        </div>
-                      </td>
-                      <td className="p-2 md:p-4 hidden lg:table-cell">
-                        <div className="flex items-center justify-start gap-1.5 overflow-x-auto custom-scrollbar pb-1 px-1">
-                          {entry.progression?.slice(0, 10).map((prog: any, idx: number) => (
-                            <div
-                              key={idx}
-                              className={`w-7 h-7 flex-shrink-0 flex items-center justify-center text-[10px] font-mono rounded-sm border ${prog.points >= 25 ? 'bg-green-500/20 border-green-500/30 text-green-400' :
-                                prog.points > 0 ? 'bg-blue-500/20 border-blue-500/30 text-blue-400' :
-                                  prog.points < 0 ? 'bg-red-500/20 border-red-500/30 text-red-400' :
-                                    'bg-white/5 border-white/10 text-gray-500'
-                                }`}
-                              title={`Earned ${prog.points} points in ${prog.teams}`}
-                            >
-                              {prog.points > 0 ? '+' : ''}{prog.points}
-                            </div>
-                          ))}
-                          {(!entry.progression || entry.progression.length === 0) && (
-                            <span className="text-gray-600 font-display text-[10px] uppercase opacity-40 italic">New Entrant</span>
-                          )}
-                        </div>
-                      </td>
-                      <td className="p-2 md:p-4 text-right">
-                        <div className="flex flex-col items-end">
-                          <span className="text-xl md:text-2xl font-display text-ipl-gold leading-none">{entry.total_points}</span>
-                          <div className="flex items-center gap-1 mt-0.5">
-                            {entry.base_points > 0 && (
-                              <span className="text-[7px] md:text-[8px] px-1 bg-ipl-gold/10 border border-ipl-gold/30 text-ipl-gold rounded uppercase font-bold tracking-tighter">
-                                +{entry.base_points}
-                              </span>
-                            )}
-                            <span className="text-[8px] md:text-[10px] text-gray-500 font-display uppercase tracking-widest leading-none">PTS</span>
-                          </div>
-                        </div>
-                      </td>
-                      <td className="p-2 md:p-4 text-center">
-                        <div className="flex items-center justify-center gap-2 md:gap-4">
-                          {entry.powerup_balances && entry.powerup_balances.length > 0 ? (
-                            entry.powerup_balances.map((bal: any, bIdx: number) => (
-                              <div
-                                key={bIdx}
-                                className="flex flex-col items-center shrink-0 min-w-[24px] md:min-w-[32px]"
-                                title={`${bal.name}: ${bal.remaining}/${bal.max} left`}
-                              >
-                                <span className={`text-xs md:text-sm font-display font-bold leading-none ${
-                                  bal.type === 'global' ? 'text-ipl-live' : 'text-purple-400 font-extrabold'
-                                }`}>
-                                  {bal.remaining}
-                                </span>
-                                <span className="text-[6px] md:text-[7px] text-gray-500 uppercase font-display tracking-tighter mt-0.5">
-                                  {bal.type === 'global' ? 'GLB' : bal.name.slice(0, 3)}
-                                </span>
-                              </div>
-                            ))
-                          ) : (
-                            <div className="flex flex-col items-center">
-                              <span className="text-base md:text-lg font-display text-ipl-live">
-                                {entry.remaining_powerups !== undefined ? entry.remaining_powerups : 10}
-                              </span>
-                              <span className="text-[7px] md:text-[8px] text-gray-500 uppercase tracking-widest leading-none">Left</span>
-                            </div>
-                          )}
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                  {leaderboard?.length === 0 && (
-                    <tr>
-                      <td colSpan={5} className="p-8 text-center text-gray-500 font-display uppercase tracking-widest opacity-30 italic">NO RANKINGS AVAILABLE YET</td>
-                    </tr>
-                  )}
-                </tbody>
-              </table>
-            </div>
-          )}
-        </div>
+      {isLoading ? (
+        <div className="p-8 text-center animate-pulse text-white font-display text-xl tracking-widest">LOADING STANDINGS...</div>
+      ) : (
+        <>
+          {/* Mobile-Only Podium & Custom Rankings List */}
+          <div className="md:hidden space-y-6">
+            {/* Podium */}
+            {podiumUsers.length > 0 && (
+              <div className="flex items-end justify-center gap-6 py-6 select-none bg-gradient-to-b from-white/[0.01] to-transparent rounded-3xl p-4 border border-white/5">
+                {/* Rank 2 */}
+                {podiumUsers[1] && (
+                  <div 
+                    className="flex flex-col items-center text-center animate-in fade-in slide-in-from-bottom-4 duration-500 delay-100 cursor-pointer"
+                    onClick={() => handleRowClick(podiumUsers[1])}
+                  >
+                    <div className="relative mb-2">
+                      <div className="w-16 h-16 rounded-full border-2 border-gray-400 overflow-hidden bg-black/40 p-0.5">
+                        <img 
+                          src={podiumUsers[1].avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${podiumUsers[1].username}`} 
+                          alt="" 
+                          className="w-full h-full rounded-full object-cover"
+                        />
+                      </div>
+                      <div className="absolute -bottom-1.5 left-1/2 -translate-x-1/2 w-5 h-5 bg-gray-400 text-black text-[10px] font-display font-bold rounded-full flex items-center justify-center border border-ipl-navy">
+                        2
+                      </div>
+                    </div>
+                    <span className="text-[11px] font-display font-bold text-gray-300 truncate max-w-[80px]">
+                      {getUserDisplayName({ name: podiumUsers[1].username, alias: podiumUsers[1].alias, use_alias: podiumUsers[1].use_alias }).split(' ')[0]}
+                    </span>
+                    <span className="text-[10px] font-body text-gray-400 mt-0.5">
+                      {podiumUsers[1].total_points.toLocaleString()} pts
+                    </span>
+                  </div>
+                )}
 
-        {/* Selected User Details Sidebar */}
-        <div id={`progression-details-${leagueId}`} className="hidden lg:block lg:col-span-1 space-y-4">
-          {renderProgressionPanel()}
-        </div>
-      </div>
+                {/* Rank 1 */}
+                {podiumUsers[0] && (
+                  <div 
+                    className="flex flex-col items-center text-center animate-in fade-in slide-in-from-bottom-6 duration-700 cursor-pointer -mt-4 pb-2"
+                    onClick={() => handleRowClick(podiumUsers[0])}
+                  >
+                    <div className="relative mb-2">
+                      <div className="absolute -top-6 left-1/2 -translate-x-1/2 text-ipl-gold drop-shadow-[0_0_8px_rgba(244,196,48,0.6)]">
+                        <Trophy className="w-5 h-5 fill-current" />
+                      </div>
+                      <div className="w-20 h-20 rounded-full border-2 border-ipl-gold overflow-hidden bg-black/40 p-0.5 shadow-[0_0_20px_rgba(244,196,48,0.25)]">
+                        <img 
+                          src={podiumUsers[0].avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${podiumUsers[0].username}`} 
+                          alt="" 
+                          className="w-full h-full rounded-full object-cover"
+                        />
+                      </div>
+                      <div className="absolute -bottom-1.5 left-1/2 -translate-x-1/2 w-5 h-5 bg-ipl-gold text-black text-[10px] font-display font-bold rounded-full flex items-center justify-center border border-ipl-navy">
+                        1
+                      </div>
+                    </div>
+                    <span className="text-xs font-display font-extrabold text-white truncate max-w-[95px]">
+                      {getUserDisplayName({ name: podiumUsers[0].username, alias: podiumUsers[0].alias, use_alias: podiumUsers[0].use_alias }).split(' ')[0]}
+                    </span>
+                    <span className="text-[11px] font-body text-ipl-gold font-bold mt-0.5">
+                      {podiumUsers[0].total_points.toLocaleString()} pts
+                    </span>
+                  </div>
+                )}
+
+                {/* Rank 3 */}
+                {podiumUsers[2] && (
+                  <div 
+                    className="flex flex-col items-center text-center animate-in fade-in slide-in-from-bottom-4 duration-500 delay-200 cursor-pointer"
+                    onClick={() => handleRowClick(podiumUsers[2])}
+                  >
+                    <div className="relative mb-2">
+                      <div className="w-16 h-16 rounded-full border-2 border-amber-600 overflow-hidden bg-black/40 p-0.5">
+                        <img 
+                          src={podiumUsers[2].avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${podiumUsers[2].username}`} 
+                          alt="" 
+                          className="w-full h-full rounded-full object-cover"
+                        />
+                      </div>
+                      <div className="absolute -bottom-1.5 left-1/2 -translate-x-1/2 w-5 h-5 bg-amber-600 text-black text-[10px] font-display font-bold rounded-full flex items-center justify-center border border-ipl-navy">
+                        3
+                      </div>
+                    </div>
+                    <span className="text-[11px] font-display font-bold text-gray-300 truncate max-w-[80px]">
+                      {getUserDisplayName({ name: podiumUsers[2].username, alias: podiumUsers[2].alias, use_alias: podiumUsers[2].use_alias }).split(' ')[0]}
+                    </span>
+                    <span className="text-[10px] font-body text-gray-400 mt-0.5">
+                      {podiumUsers[2].total_points.toLocaleString()} pts
+                    </span>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Scrollable Rankings List */}
+            <div className="space-y-2.5 pb-6">
+              {listUsers.map((entry: any) => {
+                const isCurrent = entry.username === currentUser?.name;
+                const recentProg = entry.progression?.slice(0, 3) || [];
+                return (
+                  <div 
+                    key={entry.username}
+                    onClick={() => handleRowClick(entry)}
+                    className={`flex items-center justify-between p-3.5 rounded-full border transition-all duration-200 cursor-pointer ${
+                      isCurrent 
+                        ? 'bg-ipl-gold/15 border-ipl-gold/30 shadow-[0_0_12px_rgba(244,196,48,0.06)]' 
+                        : 'bg-[#141822]/80 border-white/5 hover:bg-white/[0.02]'
+                    }`}
+                  >
+                    {/* Left: Rank, Avatar, Player Name */}
+                    <div className="w-[58%] flex items-center gap-3 min-w-0 shrink-0">
+                      <span className="w-5 text-center text-xs font-display text-gray-500 font-extrabold shrink-0">{entry.rank}</span>
+                      <img 
+                        src={entry.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${entry.username}`} 
+                        alt="" 
+                        className="w-8 h-8 rounded-full border border-white/10 shrink-0 object-cover"
+                      />
+                      <span className={`text-xs font-display font-bold truncate flex-1 min-w-0 ${isCurrent ? 'text-ipl-gold' : 'text-white'}`}>
+                        {isCurrent ? 'You' : getUserDisplayName({ name: entry.username, alias: entry.alias, use_alias: entry.use_alias })}
+                      </span>
+                    </div>
+
+                    {/* Center: Latest 3 Match Result Dots */}
+                    <div className="w-[25%] flex items-center justify-center gap-1.5 shrink-0">
+                      {recentProg.map((prog: any, idx: number) => {
+                        const color = prog.points >= 25 
+                          ? 'bg-[#00C896]' // Correct/green
+                          : prog.points > 0 
+                            ? 'bg-[#38BDF8]' // Blue
+                            : prog.points < 0 
+                              ? 'bg-[#E84040]' // Red/Penalty
+                              : 'bg-gray-600';
+                        return (
+                          <span 
+                            key={idx} 
+                            className={`w-1.5 h-1.5 rounded-full ${color}`} 
+                            title={`Earned ${prog.points} pts in Match ${prog.match_number}`}
+                          />
+                        );
+                      })}
+                      {recentProg.length === 0 && (
+                        <span className="text-[7px] font-display text-gray-600 uppercase tracking-tighter">NEW</span>
+                      )}
+                    </div>
+
+                    {/* Right: Points */}
+                    <div className="w-[17%] flex items-center justify-end pr-2 shrink-0">
+                      <span className="text-sm font-display font-extrabold text-white">{entry.total_points.toLocaleString()}</span>
+                    </div>
+                  </div>
+                );
+              })}
+              {listUsers.length === 0 && podiumUsers.length === 0 && (
+                <div className="p-8 text-center text-gray-500 font-display uppercase tracking-widest opacity-30 italic">NO RANKINGS AVAILABLE YET</div>
+              )}
+            </div>
+          </div>
+
+          {/* Desktop-Only Standings Table Grid Layout */}
+          <div className="hidden md:grid grid-cols-1 lg:grid-cols-4 gap-8 items-start">
+            <div className="lg:col-span-3 glass-panel overflow-hidden">
+              <div className="overflow-x-auto w-full custom-scrollbar">
+                <table className="w-full text-left border-collapse table-fixed whitespace-nowrap">
+                  <thead>
+                    <tr className="bg-white/5 border-b border-white/10">
+                      <th className="p-2 md:p-4 font-display tracking-wider text-gray-400 text-[10px] md:text-xs uppercase w-10 md:w-16 text-center">Rank</th>
+                      <th className="p-2 md:p-4 font-display tracking-wider text-gray-400 text-[10px] md:text-xs uppercase w-auto">Player</th>
+                      <th className="p-2 md:p-4 font-display tracking-wider text-gray-400 text-center hidden lg:table-cell lg:w-[200px]">
+                        <div className="text-[10px] md:text-xs uppercase">History</div>
+                        <div className="text-[8px] text-gray-500 font-mono tracking-tighter mt-0.5 opacity-60">(Latest → Oldest)</div>
+                      </th>
+                      <th className="p-2 md:p-4 font-display tracking-wider text-gray-400 text-[10px] md:text-xs uppercase text-right w-16 md:w-24">Points</th>
+                      <th className="p-2 md:p-4 font-display tracking-wider text-gray-400 text-[10px] md:text-xs uppercase text-center w-12 md:w-20">Pwrups</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {leaderboard?.map((entry: any) => (
+                      <tr
+                        key={entry.username}
+                        onClick={() => handleRowClick(entry)}
+                        className={`border-b border-white/5 transition-all group cursor-pointer ${selectedUser?.username === entry.username ? 'bg-ipl-gold/20' :
+                            entry.username === currentUser?.name ? 'bg-white/5' : 'hover:bg-white/5'
+                          }`}
+                      >
+                        <td className="p-2 md:p-4">
+                          <div className="flex items-center justify-center gap-2 font-display text-sm md:text-lg">
+                            {entry.rank <= 3 ? (
+                              <span className={`w-6 h-6 md:w-8 md:h-8 flex items-center justify-center rounded-sm ${entry.rank === 1 ? 'bg-ipl-gold text-black' :
+                                entry.rank === 2 ? 'bg-gray-300 text-black' : 'bg-[#CD7F32] text-black'
+                                }`}>
+                                {entry.rank}
+                              </span>
+                            ) : (
+                              <span className="text-gray-500 font-mono text-xs md:text-base">{entry.rank}</span>
+                            )}
+                          </div>
+                        </td>
+                        <td className="p-2 md:p-4">
+                          <div className="flex items-center gap-2 md:gap-4 overflow-hidden">
+                            <div className="w-8 h-8 md:w-10 md:h-10 rounded-full border border-white/10 overflow-hidden group-hover:border-ipl-gold transition-colors shrink-0">
+                              <img src={entry.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${entry.username}`} alt={entry.username} />
+                            </div>
+                            <div className="flex flex-col min-w-0 flex-1">
+                              <span className={`text-xs md:text-sm font-display tracking-wide truncate w-full ${entry.rank <= 3 ? 'text-white' : 'text-gray-300'}`}>
+                                {getUserDisplayName({ name: entry.username, alias: entry.alias, use_alias: entry.use_alias })}
+                              </span>
+                              <span className="text-[8px] md:text-[10px] text-gray-500 uppercase font-display tracking-tighter truncate w-full">
+                                M: {entry.matches_played}
+                              </span>
+                            </div>
+                          </div>
+                        </td>
+                        <td className="p-2 md:p-4 hidden lg:table-cell">
+                          <div className="flex items-center justify-start gap-1.5 overflow-x-auto custom-scrollbar pb-1 px-1">
+                            {entry.progression?.slice(0, 10).map((prog: any, idx: number) => (
+                              <div
+                                key={idx}
+                                className={`w-7 h-7 flex-shrink-0 flex items-center justify-center text-[10px] font-mono rounded-sm border ${prog.points >= 25 ? 'bg-green-500/20 border-green-500/30 text-green-400' :
+                                  prog.points > 0 ? 'bg-blue-500/20 border-blue-500/30 text-blue-400' :
+                                    prog.points < 0 ? 'bg-red-500/20 border-red-500/30 text-red-400' :
+                                      'bg-white/5 border-white/10 text-gray-500'
+                                  }`}
+                                title={`Earned ${prog.points} points in ${prog.teams}`}
+                              >
+                                {prog.points > 0 ? '+' : ''}{prog.points}
+                              </div>
+                            ))}
+                            {(!entry.progression || entry.progression.length === 0) && (
+                              <span className="text-gray-600 font-display text-[10px] uppercase opacity-40 italic">New Entrant</span>
+                            )}
+                          </div>
+                        </td>
+                        <td className="p-2 md:p-4 text-right">
+                          <div className="flex flex-col items-end">
+                            <span className="text-xl md:text-2xl font-display text-ipl-gold leading-none">{entry.total_points}</span>
+                            <div className="flex items-center gap-1 mt-0.5">
+                              {entry.base_points > 0 && (
+                                <span className="text-[7px] md:text-[8px] px-1 bg-ipl-gold/10 border border-ipl-gold/30 text-ipl-gold rounded uppercase font-bold tracking-tighter">
+                                  +{entry.base_points}
+                                </span>
+                              )}
+                              <span className="text-[8px] md:text-[10px] text-gray-500 font-display uppercase tracking-widest leading-none">PTS</span>
+                            </div>
+                          </div>
+                        </td>
+                        <td className="p-2 md:p-4 text-center">
+                          <div className="flex items-center justify-center gap-2 md:gap-4">
+                            {entry.powerup_balances && entry.powerup_balances.length > 0 ? (
+                              entry.powerup_balances.map((bal: any, bIdx: number) => (
+                                <div
+                                  key={bIdx}
+                                  className="flex flex-col items-center shrink-0 min-w-[24px] md:min-w-[32px]"
+                                  title={`${bal.name}: ${bal.remaining}/${bal.max} left`}
+                                >
+                                  <span className={`text-xs md:text-sm font-display font-bold leading-none ${
+                                    bal.type === 'global' ? 'text-ipl-live' : 'text-purple-400 font-extrabold'
+                                  }`}>
+                                    {bal.remaining}
+                                  </span>
+                                  <span className="text-[6px] md:text-[7px] text-gray-500 uppercase font-display tracking-tighter mt-0.5">
+                                    {bal.type === 'global' ? 'GLB' : bal.name.slice(0, 3)}
+                                  </span>
+                                </div>
+                              ))
+                            ) : (
+                              <div className="flex flex-col items-center">
+                                <span className="text-base md:text-lg font-display text-ipl-live">
+                                  {entry.remaining_powerups !== undefined ? entry.remaining_powerups : 10}
+                                </span>
+                                <span className="text-[7px] md:text-[8px] text-gray-500 uppercase tracking-widest leading-none">Left</span>
+                              </div>
+                            )}
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                    {leaderboard?.length === 0 && (
+                      <tr>
+                        <td colSpan={5} className="p-8 text-center text-gray-500 font-display uppercase tracking-widest opacity-30 italic">NO RANKINGS AVAILABLE YET</td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            {/* Selected User Details Sidebar */}
+            <div id={`progression-details-${leagueId}`} className="hidden lg:block lg:col-span-1 space-y-4">
+              {renderProgressionPanel()}
+            </div>
+          </div>
+        </>
+      )}
 
       {/* Mobile iOS Bottom Sheet */}
       {selectedUser && (
