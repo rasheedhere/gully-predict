@@ -11,7 +11,8 @@ from sqlalchemy.orm import selectinload
 from backend.models import (
     Campaign, CampaignQuestion, CampaignResponse, CampaignType,
     QuestionType, User, CampaignMatchResult, CampaignResult,
-    TournamentMatchAnswer, LeagueUserMapping, LeaderboardEntry
+    TournamentMatchAnswer, LeagueUserMapping, LeaderboardEntry,
+    MatchStatus
 )
 
 
@@ -89,6 +90,13 @@ async def calculate_campaign_scores(campaign_id: str, db: AsyncSession, match_id
     if not campaign:
         return
 
+    if campaign.type == CampaignType.match and match_id:
+        from backend.models import Match
+        match_res = await db.execute(select(Match).where(Match.id == match_id))
+        match_obj = match_res.scalars().first()
+        if match_obj and match_obj.status != MatchStatus.completed:
+            return  # Don't calculate scores for matches that are not completed
+
     # Load correct answer overrides — source depends on campaign type and context
     if campaign.type == CampaignType.general:
         # General campaigns: one result row per campaign
@@ -146,6 +154,10 @@ async def calculate_campaign_scores(campaign_id: str, db: AsyncSession, match_id
     for response in responses:
         answers = response.answers or {}  # {question_id: answer_value}
         m_id = response.match_id or match_id
+        if campaign.type == CampaignType.match:
+            match_obj = match_map.get(m_id)
+            if match_obj and match_obj.status != MatchStatus.completed:
+                continue
         overrides = overrides_by_match.get(m_id, general_overrides)
 
         total = 0

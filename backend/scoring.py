@@ -12,7 +12,7 @@ from sqlalchemy import func
 from sqlalchemy.orm import selectinload
 
 from backend.models import (
-    Match, User, CampaignQuestion, Campaign, CampaignResponse,
+    Match, MatchStatus, User, CampaignQuestion, Campaign, CampaignResponse,
     CampaignMatchResult, LeaderboardEntry, LeaderboardCache,
     League, LeagueUserMapping, TournamentUserMapping,
     SystemEventType,
@@ -175,13 +175,16 @@ async def calculate_match_scores(match_id: str, db: AsyncSession):
     4. Writes points_breakdown back to CampaignResponse
     5. Upserts LeaderboardEntry and rebuilds LeaderboardCache
     """
-    await sync_match_results_to_campaign_questions(match_id, db)
-
     # ── Match context ─────────────────────────────────────────────────────────
     match_res = await db.execute(select(Match).where(Match.id == match_id))
     match = match_res.scalars().first()
     if not match:
         raise ValueError(f"Match {match_id} not found")
+
+    if match.status != MatchStatus.completed:
+        return  # Don't calculate scores for matches that are not completed
+
+    await sync_match_results_to_campaign_questions(match_id, db)
 
     # ── Master campaign questions ─────────────────────────────────────────────
     cam_res = await db.execute(
@@ -287,7 +290,7 @@ async def calculate_match_scores(match_id: str, db: AsyncSession):
             if status == "skip":
                 continue
 
-            pts = pts_base * current_multiplier if (current_multiplier > 1 and pts_base > 0) else pts_base
+            pts = pts_base * current_multiplier
             total_points += pts
 
             category = q.question_text
