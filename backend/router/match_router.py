@@ -94,6 +94,8 @@ async def list_matches(tournament_id: Optional[str] = None, db: AsyncSession = D
             "report_method": m.report_method,
             "reported_by_name": m.reporter.name if m.reporter else None,
             "reported_by_email": m.reporter.email if m.reporter else None,
+            "winner": m.raw_result_json.get("winner") if m.raw_result_json else None,
+            "raw_result_json": m.raw_result_json,
         })
     return matches
 

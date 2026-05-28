@@ -6,11 +6,13 @@ import {
   Settings, 
   LogOut, 
   BarChart2, 
+  BarChart3,
   Megaphone, 
   Users, 
   Activity as ActivityIcon, 
   ChevronDown, 
   ChevronLeft,
+  LayoutGrid,
   Plus
 } from 'lucide-react';
 import { useEffect, useState } from 'react';
@@ -126,7 +128,7 @@ export default function Layout() {
                   <select 
                     value={activeTournamentId}
                     onChange={(e) => setActiveTournamentId(e.target.value)}
-                    className="appearance-none bg-white/5 border border-white/10 rounded-full pl-2.5 pr-6 py-1 text-base md:text-[10px] font-display uppercase tracking-widest text-white focus:outline-none cursor-pointer transition-colors"
+                    className="appearance-none bg-transparent border-none pr-5 py-1 text-sm font-display font-bold uppercase tracking-wider text-ipl-gold focus:outline-none cursor-pointer"
                   >
                     {tournaments.map(t => (
                       <option key={t.id} value={t.id} className="bg-ipl-surface text-white">
@@ -134,20 +136,20 @@ export default function Layout() {
                       </option>
                     ))}
                   </select>
-                  <ChevronDown className="absolute right-2 w-3 h-3 text-gray-400 pointer-events-none" />
+                  <ChevronDown className="absolute right-0 w-3.5 h-3.5 text-ipl-gold pointer-events-none" />
                 </div>
               )
             )}
           </div>
 
-          {/* Center Element: Current Title */}
+          {/* Center Element: Brand Title */}
           <div className="w-[40%] text-center">
-            <span className="text-sm font-display font-bold text-white tracking-widest uppercase block truncate">
-              {headerTitle || getPageTitle(location.pathname)}
+            <span className="text-sm font-display font-extrabold text-ipl-gold tracking-widest uppercase block truncate">
+              {isDetailRoute ? (headerTitle || getPageTitle(location.pathname)) : 'GULLY PREDICT'}
             </span>
           </div>
 
-          {/* Right Element: User Avatar Settings Link */}
+          {/* Right Element: User Avatar Link */}
           <div className="w-[30%] flex justify-end items-center gap-2.5">
             {location.pathname === '/leagues' && (
               <button 
@@ -159,15 +161,15 @@ export default function Layout() {
               </button>
             )}
             {user && (
-              <button onClick={() => setIsProfileOpen(true)} className="relative active:scale-95 transition-transform shrink-0">
+              <button 
+                onClick={() => setIsProfileOpen(true)} 
+                className="relative active:scale-95 transition-transform shrink-0 min-w-[44px] min-h-[44px] flex items-center justify-end"
+              >
                 <img 
                   src={user.avatar || `https://ui-avatars.com/api/?name=${getUserDisplayName(user)}&background=0B0E1A&color=F4C430`} 
                   alt="avatar" 
-                  className="w-7 h-7 rounded-lg border border-white/20 object-cover" 
+                  className="w-8 h-8 rounded-full border border-white/20 object-cover" 
                 />
-                <div className="absolute -bottom-1 -right-1 w-2.5 h-2.5 bg-ipl-gold rounded-full border border-ipl-navy flex items-center justify-center">
-                  <Settings className="w-1.5 h-1.5 text-ipl-navy" />
-                </div>
               </button>
             )}
           </div>
@@ -275,60 +277,75 @@ export default function Layout() {
           {/* Matches Tab */}
           <Link 
             to="/matchcenter"
-            className={`flex flex-col items-center justify-center w-16 h-12 transition-all duration-150 active:scale-95 ${
+            className={`flex flex-col items-center justify-center w-16 h-12 transition-all duration-150 active:scale-95 relative ${
               location.pathname.startsWith('/matchcenter') || location.pathname.startsWith('/match/')
-                ? 'text-ipl-gold' 
-                : 'text-gray-500'
+                ? 'text-ipl-gold font-bold' 
+                : 'text-[#5e6675]'
             }`}
           >
-            <LayoutDashboard className="w-5 h-5" />
+            <LayoutGrid className="w-5 h-5" />
             <span className="text-[9px] font-display uppercase tracking-widest mt-1">Matches</span>
+            {(location.pathname.startsWith('/matchcenter') || location.pathname.startsWith('/match/')) && (
+              <span className="w-1 h-1 rounded-full bg-ipl-gold absolute bottom-0.5 animate-pulse" />
+            )}
           </Link>
 
           {/* Leagues Tab */}
           <Link 
             to="/leagues"
-            className={`flex flex-col items-center justify-center w-16 h-12 transition-all duration-150 active:scale-95 ${
-              location.pathname.startsWith('/leagues') ? 'text-ipl-gold' : 'text-gray-500'
+            className={`flex flex-col items-center justify-center w-16 h-12 transition-all duration-150 active:scale-95 relative ${
+              location.pathname.startsWith('/leagues') ? 'text-ipl-gold font-bold' : 'text-[#5e6675]'
             }`}
           >
             <Users className="w-5 h-5" />
             <span className="text-[9px] font-display uppercase tracking-widest mt-1">Leagues</span>
+            {location.pathname.startsWith('/leagues') && (
+              <span className="w-1 h-1 rounded-full bg-ipl-gold absolute bottom-0.5 animate-pulse" />
+            )}
           </Link>
 
           {/* Standings Tab */}
           <Link 
             to="/leaderboard"
-            className={`flex flex-col items-center justify-center w-16 h-12 transition-all duration-150 active:scale-95 ${
-              location.pathname.startsWith('/leaderboard') ? 'text-ipl-gold' : 'text-gray-500'
+            className={`flex flex-col items-center justify-center w-16 h-12 transition-all duration-150 active:scale-95 relative ${
+              location.pathname.startsWith('/leaderboard') ? 'text-ipl-gold font-bold' : 'text-[#5e6675]'
             }`}
           >
             <Trophy className="w-5 h-5" />
             <span className="text-[9px] font-display uppercase tracking-widest mt-1">Standings</span>
+            {location.pathname.startsWith('/leaderboard') && (
+              <span className="w-1 h-1 rounded-full bg-ipl-gold absolute bottom-0.5 animate-pulse" />
+            )}
           </Link>
 
           {/* Analysis Tab */}
           <Link 
             to="/analysis"
-            className={`flex flex-col items-center justify-center w-16 h-12 transition-all duration-150 active:scale-95 ${
-              location.pathname.startsWith('/analysis') ? 'text-ipl-gold' : 'text-gray-500'
+            className={`flex flex-col items-center justify-center w-16 h-12 transition-all duration-150 active:scale-95 relative ${
+              location.pathname.startsWith('/analysis') ? 'text-ipl-gold font-bold' : 'text-[#5e6675]'
             }`}
           >
-            <BarChart2 className="w-5 h-5" />
+            <BarChart3 className="w-5 h-5" />
             <span className="text-[9px] font-display uppercase tracking-widest mt-1">Analysis</span>
+            {location.pathname.startsWith('/analysis') && (
+              <span className="w-1 h-1 rounded-full bg-ipl-gold absolute bottom-0.5 animate-pulse" />
+            )}
           </Link>
 
           {/* More Tab */}
           <Link 
             to="/more"
-            className={`flex flex-col items-center justify-center w-16 h-12 transition-all duration-150 active:scale-95 ${
+            className={`flex flex-col items-center justify-center w-16 h-12 transition-all duration-150 active:scale-95 relative ${
               location.pathname.startsWith('/more') || location.pathname.startsWith('/campaigns') || location.pathname.startsWith('/activity') || location.pathname.startsWith('/admin')
-                ? 'text-ipl-gold' 
-                : 'text-gray-500'
+                ? 'text-ipl-gold font-bold' 
+                : 'text-[#5e6675]'
             }`}
           >
             <Settings className="w-5 h-5" />
             <span className="text-[9px] font-display uppercase tracking-widest mt-1">More</span>
+            {(location.pathname.startsWith('/more') || location.pathname.startsWith('/campaigns') || location.pathname.startsWith('/activity') || location.pathname.startsWith('/admin')) && (
+              <span className="w-1 h-1 rounded-full bg-ipl-gold absolute bottom-0.5 animate-pulse" />
+            )}
           </Link>
         </div>
       </nav>
