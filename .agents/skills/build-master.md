@@ -19,6 +19,7 @@ This skill provides a **post‑change checklist** that the Antigravity agent sho
 3. **Build Production Bundle**
    - `npm run build` – generate the optimized static assets in `frontend/dist/`.
    - Verify the build succeeds with **zero** errors or warnings.
+   - `/.venv/bin/python -m compileall backend` – ensure backend python files are compiled.
 4. **Validate iOS‑PWA Safety**
    - Check that `manifest.json` contains `display: "standalone"`.
    - Confirm generated HTML includes the required meta tags (`viewport-fit=cover`, `apple-mobile-web-app-status-bar-style`).

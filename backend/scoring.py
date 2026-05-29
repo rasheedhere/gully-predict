@@ -242,7 +242,7 @@ async def calculate_match_scores(match_id: str, db: AsyncSession):
         match_number = int(match_id.split("-")[-1])
     except (ValueError, IndexError):
         pass
-    penalty_points = -5 if match_number >= 2 else 0
+    penalty_points = master_cam.non_participation_penalty if match_number >= 2 else 0
 
     # ── Score each user ───────────────────────────────────────────────────────
     user_points: dict[str, int] = {}
