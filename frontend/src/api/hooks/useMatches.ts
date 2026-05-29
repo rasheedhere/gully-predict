@@ -22,7 +22,7 @@ export function useMyPredictionStatus() {
   return useQuery({
     queryKey: ['predictions', 'mine', 'status'],
     queryFn: async () => {
-      const response = await apiClient.get<string[]>('/matches/my/prediction-status');
+      const response = await apiClient.get<Record<string, number | null>>('/matches/my/prediction-status');
       return response.data;
     },
   });

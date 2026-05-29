@@ -8,21 +8,21 @@ import { getTeamColor, getTeamShortName } from '../utils/teamColors';
 import { getTeamLogo } from '../utils/teamLogos';
 
 // Helper to generate realistic deterministic cricket margins for completed matches
-const getMockMargin = (matchId: string, winner: string) => {
-  let hash = 0;
-  for (let i = 0; i < matchId.length; i++) {
-    hash = matchId.charCodeAt(i) + ((hash << 5) - hash);
-  }
-  const absHash = Math.abs(hash);
-  const isWkts = absHash % 2 === 0;
-  if (isWkts) {
-    const wkts = (absHash % 5) + 5; // 5 to 9 wickets
-    return `${winner} won by ${wkts} wkts`;
-  } else {
-    const runs = (absHash % 40) + 5; // 5 to 45 runs
-    return `${winner} won by ${runs} runs`;
-  }
-};
+// const getMockMargin = (matchId: string, winner: string) => {
+//   let hash = 0;
+//   for (let i = 0; i < matchId.length; i++) {
+//     hash = matchId.charCodeAt(i) + ((hash << 5) - hash);
+//   }
+//   const absHash = Math.abs(hash);
+//   const isWkts = absHash % 2 === 0;
+//   if (isWkts) {
+//     const wkts = (absHash % 5) + 5; // 5 to 9 wickets
+//     return `${winner} won by ${wkts} wkts`;
+//   } else {
+//     const runs = (absHash % 40) + 5; // 5 to 45 runs
+//     return `${winner} won by ${runs} runs`;
+//   }
+// };
 
 // Helper to format match times exactly like reference image (Tomorrow, 19:30 or 12 Apr, 19:30)
 const formatMatchTime = (isoString: string) => {
@@ -30,9 +30,9 @@ const formatMatchTime = (isoString: string) => {
   const now = new Date();
   const tomorrow = new Date();
   tomorrow.setDate(now.getDate() + 1);
-  
+
   const timeStr = d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false });
-  
+
   if (d.toDateString() === now.toDateString()) {
     return `Today, ${timeStr}`;
   } else if (d.toDateString() === tomorrow.toDateString()) {
@@ -48,7 +48,7 @@ export default function MatchCenter() {
   const { user } = useAuthStore();
   const { activeTournamentId } = useTournamentStore();
   const { data: matches, isLoading, error } = useMatches(activeTournamentId || undefined);
-  const { data: predictedMatchIds } = useMyPredictionStatus();
+  const { data: predictionStatus } = useMyPredictionStatus();
 
   // Scroll index tracking for iOS-style pagination indicators
   const [activeTodayIdx, setActiveTodayIdx] = useState(0);
@@ -121,7 +121,7 @@ export default function MatchCenter() {
           </div>
         </div>
 
-        <div 
+        <div
           onScroll={handleTodayScroll}
           className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 max-md:flex max-md:overflow-x-auto max-md:snap-x max-md:snap-mandatory max-md:scrollbar-hide max-md:-mx-4 max-md:px-4 max-md:pb-4 max-md:w-[calc(100%+2rem)]"
         >
@@ -139,13 +139,13 @@ export default function MatchCenter() {
               const t2Logo = getTeamLogo(match.team2);
               const t1Short = getTeamShortName(match.team1);
               const t2Short = getTeamShortName(match.team2);
-              const hasPredicted = predictedMatchIds?.includes(match.id);
+              const hasPredicted = predictionStatus ? (match.id in predictionStatus) : false;
               const isLive = match.status === 'live';
 
               return (
                 <div key={match.id} className="max-md:snap-start max-md:shrink-0 max-md:w-[88%] max-md:max-w-[340px] w-full">
-                  <Link 
-                    to={`/match/${match.id}`} 
+                  <Link
+                    to={`/match/${match.id}`}
                     className="block w-full bg-[#171a24] border border-white/5 rounded-[2rem] p-6 relative group transition-all duration-300 hover:border-ipl-gold/20 shadow-[0_4px_20px_rgba(0,0,0,0.3)]"
                     style={{
                       boxShadow: isLive ? '0 0 25px rgba(244, 196, 48, 0.06)' : undefined
@@ -173,9 +173,9 @@ export default function MatchCenter() {
                     <div className="flex items-center justify-center gap-4 my-3 w-full">
                       {/* Team 1 */}
                       <div className="flex flex-col items-center gap-3 flex-1">
-                        <div 
+                        <div
                           className="w-18 h-18 rounded-full flex items-center justify-center border-2 bg-black/30 p-2.5 transition-transform duration-300 group-hover:scale-105"
-                          style={{ 
+                          style={{
                             borderColor: isLive ? '#F4C430' : `${t1Color}40`,
                             boxShadow: isLive ? '0 0 15px rgba(244,196,48,0.4)' : undefined,
                             backgroundColor: `${t1Color}08`
@@ -198,9 +198,9 @@ export default function MatchCenter() {
 
                       {/* Team 2 */}
                       <div className="flex flex-col items-center gap-3 flex-1">
-                        <div 
+                        <div
                           className="w-18 h-18 rounded-full flex items-center justify-center border-2 bg-black/30 p-2.5 transition-transform duration-300 group-hover:scale-105"
-                          style={{ 
+                          style={{
                             borderColor: `${t2Color}20`,
                             backgroundColor: `${t2Color}05`
                           }}
@@ -235,11 +235,10 @@ export default function MatchCenter() {
             {todayMatches.map((_, idx) => (
               <div
                 key={idx}
-                className={`h-1.5 rounded-full transition-all duration-300 ${
-                  activeTodayIdx === idx 
-                    ? 'w-4 bg-ipl-gold' 
-                    : 'w-1.5 bg-white/20'
-                }`}
+                className={`h-1.5 rounded-full transition-all duration-300 ${activeTodayIdx === idx
+                  ? 'w-4 bg-ipl-gold'
+                  : 'w-1.5 bg-white/20'
+                  }`}
               />
             ))}
           </div>
@@ -259,7 +258,7 @@ export default function MatchCenter() {
               const t2Short = getTeamShortName(match.team2);
               const timeFormatted = formatMatchTime(match.tossTime);
               return (
-                <Link 
+                <Link
                   to={`/match/${match.id}`}
                   key={match.id}
                   className="flex items-center justify-between p-4 bg-[#141822]/80 border border-white/5 rounded-2xl hover:bg-white/[0.02] hover:border-white/10 transition-all duration-200"
@@ -270,9 +269,9 @@ export default function MatchCenter() {
                       <span className="text-base font-display font-extrabold text-white tracking-wide block leading-none">{t1Short}</span>
                       <span className="text-[8px] font-display uppercase tracking-widest text-gray-500 mt-1 block">HOME</span>
                     </div>
-                    
+
                     <div className="w-[1px] h-6 bg-white/10 mx-3" />
-                    
+
                     <div className="text-center min-w-[36px]">
                       <span className="text-base font-display font-extrabold text-white tracking-wide block leading-none">{t2Short}</span>
                       <span className="text-[8px] font-display uppercase tracking-widest text-gray-500 mt-1 block">AWAY</span>
@@ -303,16 +302,17 @@ export default function MatchCenter() {
               const t1Short = getTeamShortName(match.team1);
               const t2Short = getTeamShortName(match.team2);
               const winnerShort = match.winner ? getTeamShortName(match.winner) : null;
-              
+
               // If winner is set, highlight winner in white and loser in faded gray
               const resolvedWinner = winnerShort || t1Short;
               const isT1Winner = resolvedWinner === t1Short;
               const isT2Winner = resolvedWinner === t2Short;
-              const hasPredicted = predictedMatchIds?.includes(match.id);
-              const resultText = getMockMargin(match.id, resolvedWinner);
+              const hasPredicted = predictionStatus ? (match.id in predictionStatus) : false;
+              const pointsWon = predictionStatus?.[match.id];
+              // const resultText = getMockMargin(match.id, resolvedWinner);
 
               return (
-                <Link 
+                <Link
                   to={`/match/${match.id}`}
                   key={match.id}
                   className="relative bg-[#141822]/80 border border-white/5 rounded-2xl p-4 hover:bg-white/[0.02] transition-all duration-200 overflow-hidden flex flex-col justify-between min-h-[130px] shadow-sm"
@@ -322,10 +322,10 @@ export default function MatchCenter() {
                     <span className="text-[9px] font-display uppercase tracking-widest text-gray-500 font-semibold">
                       Match {matchNumber}
                     </span>
-                    
-                    {hasPredicted && (
+
+                    {hasPredicted && typeof pointsWon === 'number' && (
                       <span className="bg-ipl-gold text-ipl-navy text-[7px] font-display font-extrabold uppercase tracking-wider px-1.5 py-0.5 rounded select-none">
-                        WON +45PTS
+                        WON {pointsWon >= 0 ? `+${pointsWon}` : pointsWon}PTS
                       </span>
                     )}
                   </div>
@@ -338,13 +338,13 @@ export default function MatchCenter() {
                   </div>
 
                   {/* Bottom Row: Result Text */}
-                  <div className="text-center">
+                  {/* <div className="text-center">
                     <span className={`text-[9px] font-display tracking-wider block ${
                       hasPredicted ? 'text-ipl-gold font-bold' : 'text-gray-500'
                     }`}>
                       {resultText}
                     </span>
-                  </div>
+                  </div> */}
                 </Link>
               );
             })}

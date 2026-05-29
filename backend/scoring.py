@@ -494,3 +494,4 @@ async def update_leaderboard_cache(db: AsyncSession, tournament_id: str):
     backend_cache.invalidate("leaderboard_*")
     backend_cache.invalidate("analysis_*")
     backend_cache.invalidate("match_podiums")
+    backend_cache.invalidate("user_pred_status:*")

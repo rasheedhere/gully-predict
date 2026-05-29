@@ -877,9 +877,9 @@ async def get_my_prediction_status(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    """Returns list of match_ids the current user has already predicted for."""
+    """Returns a dict mapping match_ids to points won for the logged in user."""
     if current_user.is_guest:
-        return []
+        return {}
 
     cache_key = f"user_pred_status:{current_user.id}"
     cached = backend_cache.get(cache_key)
@@ -887,16 +887,18 @@ async def get_my_prediction_status(
         return cached
 
     res = await db.execute(
-        select(CampaignResponse.match_id)
+        select(CampaignResponse.match_id, CampaignResponse.total_points)
+        .join(Campaign, CampaignResponse.campaign_id == Campaign.id)
         .where(
             CampaignResponse.user_id == current_user.id,
             CampaignResponse.match_id != None,
+            Campaign.is_master == True,
         )
-        .distinct()
     )
-    match_ids = list(res.scalars().all())
-    backend_cache.set(cache_key, match_ids)
-    return match_ids
+    rows = res.all()
+    match_status = {row[0]: row[1] for row in rows if row[0] is not None}
+    backend_cache.set(cache_key, match_status)
+    return match_status
 
 
 # ── Create Match (Admin) ──────────────────────────────────────────────────────
