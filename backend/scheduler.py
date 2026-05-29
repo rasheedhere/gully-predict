@@ -176,6 +176,7 @@ async def generate_ai_prediction(db, match: Match, ai_user: User):
 
     def generate_answers(campaign: Campaign) -> dict:
         ans = {}
+        t1, t2 = match.team1, match.team2
         for q in campaign.questions:
             opts = [_replace_placeholders(o, match) for o in q.options] if q.options else []
             qtype = q.question_type
