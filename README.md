@@ -9,7 +9,10 @@ A sophisticated, private Gully Predict Cricket prediction platform for competiti
 ### 🏆 Multi-League & Campaign System
 - **Tournament-Based Architecture**: Matches belong to a Tournament (e.g., IPL 2026). Multiple private Leagues exist within each Tournament.
 - **Time-Bound Scoring**: League points only count from matches/campaigns that locked after the user's `joined_at` timestamp in that league.
-- **Dynamic Campaigns**: Admins create "Master" (global) or league-specific campaigns with flexible question types. Campaigns must be explicitly marked as `Active` to appear on user prediction forms and to be scored.
+- **Dynamic Campaigns**: Admins create "Master" (global) or league-specific campaigns with flexible question types:
+  - *Match Campaigns*: Scored per match, support 2× powerup boosters, and render directly on the match prediction form.
+  - *General Campaigns*: Tournament-wide or league-scoped questions (e.g., overall winner, orange cap) locked by `ends_at` timestamps. They do not support powerup multipliers (always evaluated at 1×), and correct answers are stored in `CampaignResult`.
+  Campaigns must be explicitly marked as `Active` to appear on user prediction forms and to be scored.
 - **Rich Question Types**: Multiple choice, toggle, dropdown, free text, numeric inputs with configurable scoring tiers.
 - **Advanced Scoring**: Per-question scoring rules (exact match, numeric difference, multi-choice tiers).
 - **League-Scoped Reveal**: Community predictions are segmented by league — users only see predictions from members of their shared leagues.
@@ -107,83 +110,134 @@ docker compose exec backend alembic revision --autogenerate -m "describe change"
 ## 📁 Project Structure
 
 ```text
-ipl-fantasy/
+gully-predict/
+├── automation/
+│   └── n8n_telegram_parser.js      # JS Telegram message parsing helper for n8n
 ├── backend/
 │   ├── router/
-│   │   ├── auth_router.py          # Google OAuth, JWT issuance
-│   │   ├── match_router.py         # Matches, predictions, community reveal
-│   │   ├── admin_router.py         # Admin-only endpoints
-│   │   ├── campaigns_router.py     # Campaign CRUD and submissions
-│   │   ├── leaderboard_router.py   # Global & league leaderboards, analytics
-│   │   ├── tournament_router.py    # Tournament & bulk match import
-│   │   ├── league_router.py        # League creation, joining, management
-│   │   └── external_router.py      # n8n webhook endpoint
+│   │   ├── auth_router.py          # Google OAuth, JWT token issuance
+│   │   ├── match_router.py         # Match details, predictions, and community reveals
+│   │   ├── admin_router.py         # Admin panel backend endpoints
+│   │   ├── campaigns_router.py     # Campaign creation, status, and questions CRUD
+│   │   ├── leaderboard_router.py   # Leaderboard queries, analytics, and progression lists
+│   │   ├── tournament_router.py    # Tournament creation and bulk match schedule imports
+│   │   ├── league_router.py        # League management, user mapping, and join codes
+│   │   └── external_router.py      # Webhook integration for incoming Telegram results
 │   ├── agents/
-│   │   ├── match_stats_agent.py    # Gemini Search: nightly stats fetch
-│   │   └── match_result_agent.py   # Gemini Search: auto-fetch results
-│   ├── models.py                   # SQLAlchemy models (all tables)
-│   ├── scoring.py                  # Core scoring engine
-│   ├── campaigns_scoring.py        # Campaign-specific scoring logic
-│   ├── scheduler.py                # APScheduler background jobs
-│   └── utils/
-│       └── permissions.py          # RBAC helpers
+│   │   ├── match_stats_agent.py    # Gemini stats agent: fetches match analytics nightly
+│   │   └── match_result_agent.py   # Gemini result agent: parses match outcomes post-game
+│   ├── utils/
+│   │   ├── alias.py                # User alias generators for leaderboards
+│   │   ├── cache.py                # Memory/filesystem cache handlers for key paths
+│   │   ├── email.py                # Email notifications and verification rules
+│   │   ├── events.py               # Application-wide system audit events logging
+│   │   └── permissions.py          # Role-Based Access Control (RBAC) check utilities
+│   ├── auth.py                     # Password, hashing, and token validation utilities
+│   ├── database.py                 # SQLAlchemy engine and async session creation setup
+│   ├── dependencies.py             # FastAPI dependencies (auth validation, db session)
+│   ├── main.py                     # Main application entry point and CORS setup
+│   ├── models.py                   # Consolidated SQLAlchemy models (declarative tables)
+│   ├── scoring.py                  # Core match prediction scoring and cache updates
+│   ├── campaigns_scoring.py        # Scoring rules engine for global/league campaigns
+│   ├── scheduler.py                # APScheduler jobs for AI predictions and stats
+│   └── MIGRATIONS.md               # Backend database migrations documentation
+├── docs/
+│   ├── GEMINI.md                   # AI Assistant context and system business rules
+│   ├── TODO.md                     # Project tracker and pending features checklist
+│   └── db_migration_summary.md     # Historical database changes and migrations recap
 ├── frontend/
-│   └── src/
-│       ├── api/
-│       │   ├── client.ts           # Axios instance with auth interceptors
-│       │   └── hooks/              # TanStack Query hooks per domain
-│       ├── components/
-│       │   ├── Layout.tsx          # App shell, nav, outlet
-│       │   ├── MatchCard.tsx       # Match list card with countdown
-│       │   ├── LeaderboardSection.tsx
-│       │   └── CountdownTimer.tsx
-│       ├── pages/
-│       │   ├── MatchCenter.tsx     # Today's matches + upcoming
-│       │   ├── MatchPage.tsx       # Prediction form + community reveal
-│       │   ├── Leaderboard.tsx     # Global + league standings
-│       │   ├── Campaigns.tsx       # Active campaigns list
-│       │   ├── CampaignPage.tsx    # Campaign submission form
-│       │   ├── CampaignBuilder.tsx # Admin campaign creator
-│       │   ├── Leagues.tsx         # User's leagues list
-│       │   ├── Admin.tsx           # Full admin panel
-│       │   └── Login.tsx           # Google OAuth login
-│       ├── store/
-│       │   └── auth.ts             # Zustand auth store
-│       └── utils/
-│           └── teamColors.ts       # IPL team color map & helpers
+│   ├── src/
+│   │   ├── api/
+│   │   │   ├── client.ts           # Central Axios HTTP client with auth interceptors
+│   │   │   └── hooks/              # tanstack/react-query server-state hooks
+│   │   ├── components/
+│   │   │   ├── Layout.tsx          # Main layout shell, sidebar, and navbar header
+│   │   │   ├── MatchCard.tsx       # Live and upcoming matches card component
+│   │   │   ├── LeaderboardSection.tsx # Desktop & mobile standings lists & podiums
+│   │   │   ├── CountdownTimer.tsx  # Dynamic lock-in timer for prediction locks
+│   │   │   ├── CampaignCountdown.tsx # Countdown timer specifically for campaign locks
+│   │   │   ├── PWAInstallBanner.tsx # Native mobile installer installation prompt banner
+│   │   │   ├── ProfileModal.tsx    # User profile setting editor modal (avatar/alias)
+│   │   │   └── SocialFeed.tsx      # Activity feed widget (leagues joined, matches scored)
+│   │   ├── pages/
+│   │   │   ├── MatchCenter.tsx     # Today's fixtures and recently completed matches
+│   │   │   ├── MatchPage.tsx       # Predictions lock form and post-lock reveals
+│   │   │   ├── Leaderboard.tsx     # Standings dashboard (global and league scope)
+│   │   │   ├── Campaigns.tsx       # Active campaigns listings
+│   │   │   ├── CampaignPage.tsx    # Single campaign questions submission forms
+│   │   │   ├── CampaignBuilder.tsx # Admin drag-and-drop campaign constructor
+│   │   │   ├── Leagues.tsx         # User's leagues list and creation workspace
+│   │   │   ├── Admin.tsx           # Global developer admin panel (matches, users, stats)
+│   │   │   ├── Login.tsx           # Google OAuth sign-in screen
+│   │   │   ├── Activity.tsx        # Global social activity feed logs
+│   │   │   ├── Analysis.tsx        # Advanced analytics and charts comparisons
+│   │   │   ├── AuthCallback.tsx    # Google OAuth callback redirection landing page
+│   │   │   ├── Hub.tsx             # Entry dashboard/control center portal
+│   │   │   ├── LeagueAdmin.tsx     # League-specific admin dashboard
+│   │   │   ├── LeagueDetails.tsx   # Private league stats, standings, and campaigns
+│   │   │   └── More.tsx            # Desktop/mobile navigation settings and options list
+│   │   ├── store/
+│   │   │   └── auth.ts             # Zustand client auth store (JWT & user status)
+│   │   └── utils/
+│   │       └── teamColors.ts       # Color mappings and name shorteners for IPL teams
+│   ├── package.json                # Frontend dependencies and configuration scripts
+│   └── vite.config.ts              # Vite configuration with proxy configurations
 ├── migrations/
-│   └── versions/                   # Alembic migration files
+│   └── versions/                   # Alembic database migration files
 ├── seed_admin.py                   # Seed first admin user
 ├── seed_ai.py                      # Seed AI Assassin competitor
 ├── seed_matches.py                 # Seed match schedule
 ├── start_all.sh                    # One-command dev startup
-├── docker-compose.yml
-├── Dockerfile
-├── requirements.txt
+├── start_frontend.sh               # Local script to start frontend dev server
+├── docker-compose.yml              # Docker services configuration
+├── Dockerfile                      # Docker container environment definition
+├── requirements.txt                # Python backend dependencies
 └── GEMINI.md                       # AI context file (for AI assistants)
 ```
 
 ---
 
 ## ⚖️ Scoring Rules (2026 Season)
-
-| Category | Correct | Incorrect |
+Defined in `scoring_rules` JSON per `CampaignQuestion`:
+### Group Stage Matches
+| Category | Correct | Incorrect / Range |
 |---|---|---|
 | Match Winner | +10 | −5 |
-| Player of the Match | +25 | 0 |
+| Player of the Match | +10 | 0 |
 | Powerplay Score (exact) | +15 | — |
-| Powerplay Score (±5 range) | +5 | — |
-| More Sixes / More Fours | +5 | 0 |
-| Non-participation (Match 12+) | — | −5 |
+| Powerplay Score (±5 range) | — | +5 |
+| More Sixes / More Fours | +10 | 0 |
+| Non-participation (Match 2+) | — | −5 |
 | AI Assassin penalty starts | — | Match 25 |
 
-**Powerup (2× Booster)**: Tracked globally (`User.base_powerups`). Multiplies Winner, POM, and Powerplay points (including negative points/penalties). Does **not** multiply Sixes/Fours.
+### Playoff Matches (Matches 71–74)
+| Category | Correct | Incorrect / Range |
+|---|---|---|
+| Match Winner | +20 | −10 |
+| Player of the Match | +50 | 0 |
+| Powerplay Score (exact) | +30 | — |
+| Powerplay Score (±10 range) | — | +10 |
+| More Sixes | +6 | 0 |
+| More Fours | +10 | 0 |
+| Most Dot Balls | +10 | 0 |
+| Non-participation | — | −5 |
+| AI Assassin penalty starts | — | Match 25 |
+
+**Powerup (2× Booster)**: Tracked globally (`User.base_powerups`). Multiplies points dynamically for any question where `allow_powerup=True` is configured in the database (including negative points/penalties). Specific questions can be excluded from the booster by setting `allow_powerup=False`.
+
+**Powerup Limits & Remaining Balances**:
+- **Global Powerups**: Max limit is defined by `TournamentUserMapping.base_powerups` (defaults to `10`). Remaining balance is computed as `base_powerups - global_powerups_used`.
+- **Campaign-Scoped Powerups**: Master campaigns with specific limits (like Playoffs) can define their own limits in `Campaign.max_powerups`. Remaining balance is computed as `max_powerups - campaign_powerups_used`.
+- **UI Visibility**: These balances are displayed dynamically in both desktop and mobile views of the leaderboard (e.g. `GLB` for global, or campaign-specific abbreviations).
 
 **Points Breakdown UI Design & Powerups**:
 - To maintain mathematical clarity in the UI, the `points_breakdown` JSON stores **unmultiplied base values** (e.g. `10` or `-10`) for each individual question in the rules list.
-- Since the frontend displays a dedicated `Powerup Applied (2x)` row at the bottom of the card, showing base values inside the list makes the math clear and avoids looking like a doubled score is being doubled again:
-  $$\text{Total Score} = (\text{Sum of base question points}) \times 2$$
-  The `total_points` field in the response and database correctly reflects this final multiplied sum.
+- The frontend displays the base values alongside a dedicated `Powerup Applied (2x)` indicator if a powerup was used. The total score is computed in the backend as:
+  $$\text{Total Score} = \sum (\text{Base Question Points} \times \text{Question Multiplier})$$
+  where:
+  * $\text{Question Multiplier} = 2$ if a powerup is active and the question has `allow_powerup=True`.
+  * $\text{Question Multiplier} = 1$ if the question has `allow_powerup=False` or no powerup is active.
+  The `total_points` field in the database and response correctly reflects this final multiplied sum.
 
 **Late Entrants**: Protected from retroactive penalties for matches before signup. Can receive a `User.base_points` catch-up handicap applied globally and in private leagues.
 
@@ -193,7 +247,11 @@ ipl-fantasy/
 
 - **Prediction Lock**: 30 minutes before `start_time`. Enforced server-side.
 - **Community Reveal**: `GET /matches/{id}/predictions/all` returns HTTP 403 until predictions are locked. Results are segmented by the leagues the requesting user shares with others.
-- **Dynamic Questions**: The prediction form and reveal both render questions dynamically from the backend. No hardcoded question IDs on the frontend.
+- **Dynamic Match Questions (Master vs. League)**: The prediction form retrieves tournament-wide Master questions (keyed by database UUID `q.id`) and league-specific campaigns (keyed by composite `league_{campaign_id}_{question_id}` to prevent key collisions). The frontend groups them dynamically by campaign source (`source_name`) using the `groupedQuestions` useMemo hook in [MatchPage.tsx](file:///Users/rasheed/Documents/git/gully-predict/frontend/src/pages/MatchPage.tsx). On submission, the backend splits composite keys back into their respective campaign responses.
+- **Leaderboard Calculations (Global vs. League)**: Standings are pre-aggregated in `LeaderboardCache`.
+  - *Global leaderboard* sums all Master match and global general campaigns points plus base handicap points.
+  - *League leaderboards* apply temporal filtering: users only score points for matches starting (`Match.start_time >= LeagueUserMapping.joined_at` in [scoring.py](file:///Users/rasheed/Documents/git/gully-predict/backend/scoring.py)) and general campaigns ending (`ends_at >= joined_at` in [scoring.py](file:///Users/rasheed/Documents/git/gully-predict/backend/scoring.py)) *on or after* they joined the league. The dynamic match count (`matches_played`) and progression list are filtered identically in [leaderboard_router.py](file:///Users/rasheed/Documents/git/gully-predict/backend/router/leaderboard_router.py).
+- **Match Grading & Standings Lifecycle**: When a match is completed, the system syncs the ground truth results from `raw_result_json` into `CampaignMatchResult`, scores all user prediction responses (handling powerup multipliers and non-participation penalties), persists points breakdowns inside `LeaderboardEntry` per user, and triggers a full rebuild of the `LeaderboardCache` across all global and league scopes.
 - **Match ID Format**: `tournament-year-number` (e.g., `ipl-2026-42`). Admin bulk import accepts sequential numbers (1, 2, 3) and auto-formats them.
 
 ---

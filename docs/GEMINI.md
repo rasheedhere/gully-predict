@@ -42,13 +42,16 @@ A private Gully Predict prediction platform for a group of friends. Users sign i
 | **User** | Core user identity, permissions (`is_admin`, `is_league_admin`), and base stats. |
 | **Tournament** | Top-level entity. Matches and global campaigns are scoped here. |
 | **League** | Friend groups. Includes Global League (auto-joined) and Private Leagues (invite-only). |
-| **LeagueUserMapping** | M2M tracking when users join specific leagues. |
+| **LeagueUserMapping** | M2M tracking when users join specific leagues. Stores user join timestamps (`joined_at`). |
+| **TournamentUserMapping** | Stores tournament-specific user statistics, such as starting global handicap (`base_points`) and total powerup counts (`base_powerups`). |
 | **Match** | Includes `start_time` (used for locks), `status`, and teams. |
 | **Campaign** | Groups questions. `is_master=True` acts as the single source of truth for matches. |
 | **CampaignQuestion** | Dynamic questions with `scoring_rules` JSON (e.g. `exact_match`, `difference`). |
 | **CampaignResponse** | User's submitted predictions (JSON map of answers). |
 | **CampaignMatchResult** | The correct answers for a Campaign + Match pair. Drives the scoring engine. |
+| **TournamentMatchAnswer** | Single source of truth for match outcomes. Automatically copied to CampaignMatchResult mappings. |
 | **LeaderboardCache** | Pre-aggregated scores. `league_id=None` = global; specific `league_id` = league total. |
+| **SystemEvent** | Unified application-wide audit log for events (The 'Pulse' stream) such as logins, joins, predictions, and grading. |
 
 ---
 
@@ -64,20 +67,142 @@ A private Gully Predict prediction platform for a group of friends. Users sign i
 - **Leaderboard Scoping**: Points are only counted for matches/campaigns that lock *after* the user's `joined_at` timestamp for a given league.
 - **Reveal Segmentation**: Community reveal is grouped by shared leagues. Users only see predictions from leagues they share with other predictors.
 
+#### 📊 Global vs. League Standings & Scoring Calculations
+Standings are pre-aggregated in the `LeaderboardCache` table and computed differently depending on the league context:
+
+*   **Global Standings (`league_id = None`)**:
+    *   **Scope**: Aggregates all points won by a user in the tournament across all Master match campaigns and global general campaigns, plus the user's global catch-up handicap (`TournamentUserMapping.base_points`).
+    *   **Inclusions**: Includes all matches and campaign questions in the tournament.
+*   **League Standings (`league_id` matches a Private League)**:
+    *   **Scope**: Aggregates points for members of a specific private league.
+    *   **Temporal/Joined-Date Filtering**: To ensure fairness for users who join private leagues mid-season, the system restricts points calculation to a user's active membership timeframe:
+        *   **Matches**: Points are only included for matches starting *on or after* the user joined the league: `Match.start_time >= LeagueUserMapping.joined_at` in [scoring.py:L440](file:///Users/rasheed/Documents/git/gully-predict/backend/scoring.py#L440).
+        *   **General Campaigns**: Points are only included for campaigns ending (or created) *on or after* the user joined the league: `coalesce(Campaign.ends_at, Campaign.created_at) >= LeagueUserMapping.joined_at` in [scoring.py:L455](file:///Users/rasheed/Documents/git/gully-predict/backend/scoring.py#L455).
+        *   **League-Scoped Campaigns**: General or match campaigns created specifically for the league are fully included.
+        *   **Handicaps**: The user's catch-up handicap (`TournamentUserMapping.base_points`) is added to the total.
+    *   **Dynamic Match Count & Progression**: When fetching the leaderboard, the `matches_played` count and the user's recent match progression are dynamically filtered in the API using the same `joined_at` timestamp (see [leaderboard_router.py:L292-L305](file:///Users/rasheed/Documents/git/gully-predict/backend/router/leaderboard_router.py#L292-L305)).
+
 ### 3. Scoring System (2026 Rules)
 Defined in `scoring_rules` JSON per `CampaignQuestion`:
+**Group Stage Matches:**
 - **Match Winner**: +10 correct, −5 incorrect.
-- **Player of the Match**: +25 correct, 0 incorrect.
+- **Player of the Match**: +10 correct, 0 incorrect.
 - **Powerplay Scores**: Exact = +15, Within ±5 = +5.
-- **Sixes / Fours**: +5 correct.
-- **Powerup (2× Booster)**: Multiplies Winner, POM, and Powerplay. **Does NOT multiply Sixes/Fours**. Questions can be exempted via `allow_powerup=False`.
-- **Non-participation penalty**: −5 from **Match 12 onwards**.
+- **Sixes / Fours**: +10 correct, 0 incorrect.
+- **Powerup (2× Booster)**: Multiplies points dynamically for any question with `allow_powerup=True` (including negative points/penalties). Questions can be exempted via `allow_powerup=False`.
+- **Non-participation penalty**: −5 from **Match 2 onwards**.
 - **AI Assassin penalty**: Starts from **Match 25 onwards**.
+
+**Playoff Matches:**
+- **Match Winner**: +20 correct, −10 incorrect.
+- **Player of the Match**: +50 correct, 0 incorrect.
+- **Powerplay Scores**: Exact = +30, Within ±10 = +10.
+- **Sixes**: +6 correct.
+- **Fours**: +10 correct.
+- **Most Dot Balls**: +10 correct.
+- **Powerup (2× Booster)**: Multiplies points dynamically for any question with `allow_powerup=True`.
+- **Non-participation penalty**: −5.
+- **AI Assassin penalty**: Starts from **Match 25 onwards**.
+
+**Example JSON for a Match Winner Question (Dropdown/String match):**
+```json
+{
+  "id": "q-winner-id",
+  "key": "match_winner",
+  "question_text": "Who will win the match?",
+  "question_type": "dropdown",
+  "options": ["{{Team1}}", "{{Team2}}"],
+  "allow_powerup": true,
+  "scoring_rules": {
+    "exact_match_points": 10,
+    "wrong_answer_points": -5
+  }
+}
+```
+
+**Example JSON for a Powerplay Score Question (Numeric Range):**
+```json
+{
+  "id": "q-ppscore-id",
+  "key": "ppscore_team1",
+  "question_text": "{{Team1}} power play score?",
+  "question_type": "free_number",
+  "allow_powerup": true,
+  "scoring_rules": {
+    "exact_match_points": 15,
+    "within_range_points": 5,
+    "range_delta": 5,
+    "wrong_answer_points": 0
+  }
+}
+```
+
+#### ⚙️ Match Grading & Scoring Lifecycle
+When a match is completed and graded (scored), the system follows this multi-step backend process to calculate points and update standings:
+
+1.  **Triggering Context**:
+    *   Once a match status transitions to `completed`, an admin or automation workflow (such as Telegram webhook processing in [external_router.py](file:///Users/rasheed/Documents/git/gully-predict/backend/router/external_router.py)) triggers the scoring process by calling `calculate_match_scores(match_id, db)` in [scoring.py:L169](file:///Users/rasheed/Documents/git/gully-predict/backend/scoring.py#L169).
+2.  **Sync Ground Truth**:
+    *   The backend calls `sync_match_results_to_campaign_questions` to load the match's `raw_result_json` (containing winner, POM, powerplay scores, etc.) and copy those values into a `CampaignMatchResult` database record, mapping each field to its corresponding master campaign question UUID.
+3.  **Evaluate Predictions**:
+    *   The scoring engine iterates over all non-guest users in the system and retrieves their `CampaignResponse` for the match's master campaign:
+        *   **No Prediction (Non-participation)**: If the user did not submit predictions, they receive the non-participation penalty (unless immune because they joined the tournament after the match start time, or if they are the AI Assassin before Match 25).
+        *   **Submitted Prediction**: The system scores each question response using the rule engine (`_apply_rules`). If a user activated a powerup (`use_powerup=True`) for this match and the question allows it (`allow_powerup=True`), a 2× multiplier is applied to the points (including any negative penalty points).
+        *   **Record Details**: The backend writes the final total score to `CampaignResponse.total_points` and stores a detailed question-by-question breakdown (showing user guess, correct answer, rule-level points, and whether it was boosted) in `CampaignResponse.points_breakdown`.
+4.  **Save Standings & Rebuild Leaderboard Caches**:
+    *   Individual scores are saved into the `LeaderboardEntry` table.
+    *   The engine calls `update_leaderboard_cache(db, match.tournament_id)` to re-calculate all users' overall tournament standings across both global and league-specific scopes. This rebuilds the `LeaderboardCache` rows by summing all points won after a user's `joined_at` timestamp.
+5.  **Audit Event & Cache Invalidation**:
+    *   The backend dispatches a `SystemEventType.match_scored` system event for audit tracking.
+    *   Leaderboard caches are invalidated so that users see updated rankings immediately on the frontend.
 
 ### 4. Late Entrants & Handicaps
 - **Tournament Scoping**: Stats (`base_points`, `base_powerups`) are stored in `TournamentUserMapping`.
 - **Campaign Scoping**: Master campaigns can specify their own `max_powerups` (e.g. for Playoffs).
+- **Powerup Balances**: The scoring and leaderboard systems maintain distinct powerup balances:
+  - **Global**: Remaining = `base_powerups` (from `TournamentUserMapping`, defaults to `10`) minus total global powerups used.
+  - **Campaign-Scoped**: Remaining = `max_powerups` (from `Campaign`) minus powerups used on that specific campaign.
+  Both balances are displayed dynamically in all desktop and mobile leaderboard interfaces.
 - **Handicaps**: Late entrants get base_powerups and can be given a catch-up handicap (`base_points`). They are immune to non-participation penalties for matches starting before their `created_at` timestamp.
+
+### 5. Match Questions Display & Submission Mapping
+The system dynamically displays both global (Master) and league-specific questions on a single Match prediction form and handles collisions seamlessly:
+
+*   **API Retrieval & Key Collision Prevention**:
+    *   The `GET /api/matches/{match_id}` endpoint (defined in [match_router.py:L126](file:///Users/rasheed/Documents/git/gully-predict/backend/router/match_router.py#L126)) fetches all relevant campaigns for the match.
+    *   **Master Match Campaign** questions (linked to the main tournament campaign where `is_master=True`) are assigned their database UUID `q.id` as their form submission key `key` (see [match_router.py:L268](file:///Users/rasheed/Documents/git/gully-predict/backend/router/match_router.py#L268)).
+    *   **League Match Campaign** questions (linked to active campaigns in leagues the user has joined) are assigned a custom composite key format: `league_{campaign_id}_{question_id}` (see [match_router.py:L285](file:///Users/rasheed/Documents/git/gully-predict/backend/router/match_router.py#L285)).
+    *   This composite key structure prevents collision when multiple campaigns define questions for the same match.
+*   **UI Question Grouping (`MatchPage.tsx`)**:
+    *   The frontend uses a `useMemo` block called `groupedQuestions` in [MatchPage.tsx:L108-L116](file:///Users/rasheed/Documents/git/gully-predict/frontend/src/pages/MatchPage.tsx#L108-L116) to categorize questions by their `source_name` attribute (e.g. `"IPL Global"` vs. League names).
+    *   It renders separate form sections dynamically. Binary questions (e.g., Match Winner, where key matches `winnerQId`) render as team-colored large selection buttons, whereas others render as standard inputs/dropdowns.
+    *   All inputs map under the `extra_answers` form field via React Hook Form as `extra_answers.{q.key}` (see [MatchPage.tsx:L126](file:///Users/rasheed/Documents/git/gully-predict/frontend/src/pages/MatchPage.tsx#L126)).
+*   **Form Submission & Answers Parsing**:
+    *   When predictions are submitted to `POST /api/matches/{match_id}/predictions` (defined in [match_router.py:L511](file:///Users/rasheed/Documents/git/gully-predict/backend/router/match_router.py#L511)):
+        *   The backend iterates through the `extra_answers` dictionary.
+        *   Keys starting with `"league_"` are parsed as `league_{campaign_id}_{question_id}`. The backend splits them to extract the respective campaign and question IDs.
+        *   For keys matching a raw UUID, the backend queries `CampaignQuestion` to find the corresponding `campaign_id`.
+        *   Answers are grouped by `campaign_id`, and a `CampaignResponse` is upserted for each campaign. The `use_powerup` value is set only on the Master campaign response.
+
+### 6. General Campaigns (Tournament-Wide Predictions)
+Unlike match-specific campaigns, General campaigns are designed for tournament-wide or league-scoped predictions (e.g., predicting the Tournament Winner or Orange Cap winner):
+
+*   **Campaign Definition & Scope**:
+    *   `Campaign.type` is set to `"general"`.
+    *   They are not associated with a specific match, so `match_id` remains `None` on all responses.
+    *   They can be scoped **Globally** (`league_id = None`) or to a **Specific League** (`league_id` is set to a league).
+*   **Active Submission Window**:
+    *   They define an active window using `starts_at` and `ends_at` timestamps. Submissions lock automatically once the current time passes `ends_at` (see [campaigns_router.py:L886](file:///Users/rasheed/Documents/git/gully-predict/backend/router/campaigns_router.py#L886)).
+    *   Users submit predictions via the dedicated campaign respondent form (tanstack hook `useSubmitCampaignResponse` posting to `POST /api/campaigns/{campaign_id}/respond`).
+*   **Grading & Scoring Process**:
+    *   Admins submit correct answers via the admin panel, which are persisted as a single `CampaignResult` record (where `CampaignResult.campaign_id == campaign.id`).
+    *   When the admin triggers grading (`POST /api/campaigns/{campaign_id}/calculate-scores`), `calculate_campaign_scores` evaluates all user responses against the `CampaignResult` correct answers using the standard ruleset (see [campaigns_scoring.py:L101](file:///Users/rasheed/Documents/git/gully-predict/backend/campaigns_scoring.py#L101)).
+    *   **Powerups**: Powerups (2× boosters) are **not** applicable to General campaigns; predictions are evaluated with a static `1` multiplier (see [campaigns_scoring.py:L165](file:///Users/rasheed/Documents/git/gully-predict/backend/campaigns_scoring.py#L165)).
+    *   Scoring records user totals in `CampaignResponse.total_points` and updates `LeaderboardEntry` for the campaign.
+*   **Leaderboard Aggregation & Temporal Filtering**:
+    *   Once campaign scoring completes, the leaderboard caches are updated.
+    *   **Global Standings**: All points from global general campaigns are fully summed.
+    *   **League Standings**: Points are only included if the campaign lock time (`coalesce(Campaign.ends_at, Campaign.created_at)`) is greater than or equal to the member's league `joined_at` timestamp (see [scoring.py:L455](file:///Users/rasheed/Documents/git/gully-predict/backend/scoring.py#L455)).
 
 ---
 

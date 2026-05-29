@@ -42,9 +42,8 @@ export default function LeaderboardSection({ leagueId, leagueName, tournamentNam
     }
 
     return (
-      <div className={`glass-panel p-5 border-t-2 border-ipl-gold rounded-2xl ${
-        isMobile ? '!border-none !bg-transparent !p-0 !shadow-none' : 'animate-in fade-in slide-in-from-right-4 duration-500'
-      }`}>
+      <div className={`glass-panel p-5 border-t-2 border-ipl-gold rounded-2xl ${isMobile ? '!border-none !bg-transparent !p-0 !shadow-none' : 'animate-in fade-in slide-in-from-right-4 duration-500'
+        }`}>
         <div className="flex justify-between items-start mb-6">
           <div className="flex items-center gap-3">
             <img
@@ -144,7 +143,7 @@ export default function LeaderboardSection({ leagueId, leagueName, tournamentNam
 
                     {isExpanded && !prog.breakdown && (
                       <div className="px-3 pb-3 pt-1 text-[9px] text-gray-500 italic text-center font-display uppercase tracking-widest bg-red-500/5 mt-2 rounded border border-red-500/10">
-                        {prog.points < 0 ? 'Non-participation Penalty (-5)' : 'No breakdown data available'}
+                        {prog.points < 0 ? `Non-participation Penalty (${prog.points})` : 'No breakdown data available'}
                       </div>
                     )}
                   </div>
@@ -160,7 +159,7 @@ export default function LeaderboardSection({ leagueId, leagueName, tournamentNam
               <Trophy className="w-4 h-4 text-ipl-gold" />
               <h4 className="text-[10px] font-display text-white uppercase tracking-widest">Campaigns & Bonuses</h4>
             </div>
-            
+
             <div className="space-y-2 pr-2">
               {selectedUser.campaign_scores.map((camp: any, idx: number) => {
                 const isExpanded = expandedMatch === `camp-${idx}`;
@@ -267,15 +266,15 @@ export default function LeaderboardSection({ leagueId, leagueName, tournamentNam
               <div className="flex items-end justify-center gap-6 py-6 select-none bg-gradient-to-b from-white/[0.01] to-transparent rounded-3xl p-4 border border-white/5">
                 {/* Rank 2 */}
                 {podiumUsers[1] && (
-                  <div 
+                  <div
                     className="flex flex-col items-center text-center animate-in fade-in slide-in-from-bottom-4 duration-500 delay-100 cursor-pointer"
                     onClick={() => handleRowClick(podiumUsers[1])}
                   >
                     <div className="relative mb-2">
                       <div className="w-16 h-16 rounded-full border-2 border-gray-400 overflow-hidden bg-black/40 p-0.5">
-                        <img 
-                          src={podiumUsers[1].avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${podiumUsers[1].username}`} 
-                          alt="" 
+                        <img
+                          src={podiumUsers[1].avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${podiumUsers[1].username}`}
+                          alt=""
                           className="w-full h-full rounded-full object-cover"
                         />
                       </div>
@@ -313,7 +312,7 @@ export default function LeaderboardSection({ leagueId, leagueName, tournamentNam
 
                 {/* Rank 1 */}
                 {podiumUsers[0] && (
-                  <div 
+                  <div
                     className="flex flex-col items-center text-center animate-in fade-in slide-in-from-bottom-6 duration-700 cursor-pointer -mt-4 pb-2"
                     onClick={() => handleRowClick(podiumUsers[0])}
                   >
@@ -322,9 +321,9 @@ export default function LeaderboardSection({ leagueId, leagueName, tournamentNam
                         <Trophy className="w-5 h-5 fill-current" />
                       </div>
                       <div className="w-20 h-20 rounded-full border-2 border-ipl-gold overflow-hidden bg-black/40 p-0.5 shadow-[0_0_20px_rgba(244,196,48,0.25)]">
-                        <img 
-                          src={podiumUsers[0].avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${podiumUsers[0].username}`} 
-                          alt="" 
+                        <img
+                          src={podiumUsers[0].avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${podiumUsers[0].username}`}
+                          alt=""
                           className="w-full h-full rounded-full object-cover"
                         />
                       </div>
@@ -362,15 +361,15 @@ export default function LeaderboardSection({ leagueId, leagueName, tournamentNam
 
                 {/* Rank 3 */}
                 {podiumUsers[2] && (
-                  <div 
+                  <div
                     className="flex flex-col items-center text-center animate-in fade-in slide-in-from-bottom-4 duration-500 delay-200 cursor-pointer"
                     onClick={() => handleRowClick(podiumUsers[2])}
                   >
                     <div className="relative mb-2">
                       <div className="w-16 h-16 rounded-full border-2 border-amber-600 overflow-hidden bg-black/40 p-0.5">
-                        <img 
-                          src={podiumUsers[2].avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${podiumUsers[2].username}`} 
-                          alt="" 
+                        <img
+                          src={podiumUsers[2].avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${podiumUsers[2].username}`}
+                          alt=""
                           className="w-full h-full rounded-full object-cover"
                         />
                       </div>
@@ -414,21 +413,20 @@ export default function LeaderboardSection({ leagueId, leagueName, tournamentNam
                 const isCurrent = entry.username === currentUser?.name;
                 const recentProg = entry.progression?.slice(0, 3) || [];
                 return (
-                  <div 
+                  <div
                     key={entry.username}
                     onClick={() => handleRowClick(entry)}
-                    className={`flex items-center justify-between p-3.5 rounded-full border transition-all duration-200 cursor-pointer ${
-                      isCurrent 
-                        ? 'bg-ipl-gold/15 border-ipl-gold/30 shadow-[0_0_12px_rgba(244,196,48,0.06)]' 
+                    className={`flex items-center justify-between p-3.5 rounded-full border transition-all duration-200 cursor-pointer ${isCurrent
+                        ? 'bg-ipl-gold/15 border-ipl-gold/30 shadow-[0_0_12px_rgba(244,196,48,0.06)]'
                         : 'bg-[#141822]/80 border-white/5 hover:bg-white/[0.02]'
-                    }`}
+                      }`}
                   >
                     {/* Left: Rank, Avatar, Player Name */}
                     <div className="w-[58%] flex items-center gap-3 min-w-0 shrink-0">
                       <span className="w-5 text-center text-xs font-display text-gray-500 font-extrabold shrink-0">{entry.rank}</span>
-                      <img 
-                        src={entry.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${entry.username}`} 
-                        alt="" 
+                      <img
+                        src={entry.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${entry.username}`}
+                        alt=""
                         className="w-8 h-8 rounded-full border border-white/10 shrink-0 object-cover"
                       />
                       <div className="flex flex-col min-w-0 flex-1">
@@ -466,17 +464,17 @@ export default function LeaderboardSection({ leagueId, leagueName, tournamentNam
                     {/* Center: Latest 3 Match Result Dots */}
                     <div className="w-[25%] flex items-center justify-center gap-1.5 shrink-0">
                       {recentProg.map((prog: any, idx: number) => {
-                        const color = prog.points >= 25 
+                        const color = prog.points >= 25
                           ? 'bg-[#00C896]' // Correct/green
-                          : prog.points > 0 
+                          : prog.points > 0
                             ? 'bg-[#38BDF8]' // Blue
-                            : prog.points < 0 
+                            : prog.points < 0
                               ? 'bg-[#E84040]' // Red/Penalty
                               : 'bg-gray-600';
                         return (
-                          <span 
-                            key={idx} 
-                            className={`w-1.5 h-1.5 rounded-full ${color}`} 
+                          <span
+                            key={idx}
+                            className={`w-1.5 h-1.5 rounded-full ${color}`}
                             title={`Earned ${prog.points} pts in Match ${prog.match_number}`}
                           />
                         );
@@ -522,7 +520,7 @@ export default function LeaderboardSection({ leagueId, leagueName, tournamentNam
                         key={entry.username}
                         onClick={() => handleRowClick(entry)}
                         className={`border-b border-white/5 transition-all group cursor-pointer ${selectedUser?.username === entry.username ? 'bg-ipl-gold/20' :
-                            entry.username === currentUser?.name ? 'bg-white/5' : 'hover:bg-white/5'
+                          entry.username === currentUser?.name ? 'bg-white/5' : 'hover:bg-white/5'
                           }`}
                       >
                         <td className="p-2 md:p-4">
@@ -595,9 +593,8 @@ export default function LeaderboardSection({ leagueId, leagueName, tournamentNam
                                   className="flex flex-col items-center shrink-0 min-w-[24px] md:min-w-[32px]"
                                   title={`${bal.name}: ${bal.remaining}/${bal.max} left`}
                                 >
-                                  <span className={`text-xs md:text-sm font-display font-bold leading-none ${
-                                    bal.type === 'global' ? 'text-ipl-live' : 'text-purple-400 font-extrabold'
-                                  }`}>
+                                  <span className={`text-xs md:text-sm font-display font-bold leading-none ${bal.type === 'global' ? 'text-ipl-live' : 'text-purple-400 font-extrabold'
+                                    }`}>
                                     {bal.remaining}
                                   </span>
                                   <span className="text-[6px] md:text-[7px] text-gray-500 uppercase font-display tracking-tighter mt-0.5">
@@ -639,7 +636,7 @@ export default function LeaderboardSection({ leagueId, leagueName, tournamentNam
       {selectedUser && (
         <div className="lg:hidden fixed inset-0 z-[60] flex items-end justify-center select-none">
           {/* Backdrop overlay */}
-          <div 
+          <div
             className="absolute inset-0 bg-black/60 backdrop-blur-sm animate-in fade-in duration-300"
             onClick={() => setSelectedUser(null)}
           />
