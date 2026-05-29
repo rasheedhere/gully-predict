@@ -212,7 +212,7 @@ async def calculate_campaign_scores(campaign_id: str, db: AsyncSession, match_id
                 "category": category,
                 "key": q.key,
                 "status": status,
-                "points": pts_base,
+                "points": pts,
                 "predicted": answer_value,
                 "actual": override,
                 "was_boosted": current_multiplier > 1,

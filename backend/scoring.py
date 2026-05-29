@@ -304,7 +304,7 @@ async def calculate_match_scores(match_id: str, db: AsyncSession):
                 "category": category,
                 "key": q.key,
                 "status": status,
-                "points": pts_base,
+                "points": pts,
                 "predicted": answer_value,
                 "actual": correct_answer,
                 "was_boosted": current_multiplier > 1,
