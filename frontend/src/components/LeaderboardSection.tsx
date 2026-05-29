@@ -289,6 +289,25 @@ export default function LeaderboardSection({ leagueId, leagueName, tournamentNam
                     <span className="text-[10px] font-body text-gray-400 mt-0.5">
                       {podiumUsers[1].total_points.toLocaleString()} pts
                     </span>
+                    <div className="flex items-center justify-center gap-1 mt-1">
+                      {podiumUsers[1].powerup_balances && podiumUsers[1].powerup_balances.length > 0 ? (
+                        podiumUsers[1].powerup_balances.map((bal: any, bIdx: number) => (
+                          <div key={bIdx} className="flex items-center gap-0.5" title={`${bal.name}: ${bal.remaining}/${bal.max} left`}>
+                            <Zap className={`w-2.5 h-2.5 ${bal.type === 'global' ? 'text-ipl-live' : 'text-purple-400'}`} />
+                            <span className={`text-[9px] font-mono font-bold leading-none ${bal.type === 'global' ? 'text-ipl-live' : 'text-purple-400'}`}>
+                              {bal.remaining}
+                            </span>
+                          </div>
+                        ))
+                      ) : (
+                        <div className="flex items-center gap-0.5">
+                          <Zap className="w-2.5 h-2.5 text-ipl-live" />
+                          <span className="text-[9px] font-mono font-bold text-ipl-live leading-none">
+                            {podiumUsers[1].remaining_powerups !== undefined ? podiumUsers[1].remaining_powerups : 10}
+                          </span>
+                        </div>
+                      )}
+                    </div>
                   </div>
                 )}
 
@@ -319,6 +338,25 @@ export default function LeaderboardSection({ leagueId, leagueName, tournamentNam
                     <span className="text-[11px] font-body text-ipl-gold font-bold mt-0.5">
                       {podiumUsers[0].total_points.toLocaleString()} pts
                     </span>
+                    <div className="flex items-center justify-center gap-1 mt-1 animate-pulse">
+                      {podiumUsers[0].powerup_balances && podiumUsers[0].powerup_balances.length > 0 ? (
+                        podiumUsers[0].powerup_balances.map((bal: any, bIdx: number) => (
+                          <div key={bIdx} className="flex items-center gap-0.5" title={`${bal.name}: ${bal.remaining}/${bal.max} left`}>
+                            <Zap className={`w-2.5 h-2.5 ${bal.type === 'global' ? 'text-ipl-live' : 'text-purple-400'}`} />
+                            <span className={`text-[9px] font-mono font-bold leading-none ${bal.type === 'global' ? 'text-ipl-live' : 'text-purple-400'}`}>
+                              {bal.remaining}
+                            </span>
+                          </div>
+                        ))
+                      ) : (
+                        <div className="flex items-center gap-0.5">
+                          <Zap className="w-2.5 h-2.5 text-ipl-live" />
+                          <span className="text-[9px] font-mono font-bold text-ipl-live leading-none">
+                            {podiumUsers[0].remaining_powerups !== undefined ? podiumUsers[0].remaining_powerups : 10}
+                          </span>
+                        </div>
+                      )}
+                    </div>
                   </div>
                 )}
 
@@ -346,6 +384,25 @@ export default function LeaderboardSection({ leagueId, leagueName, tournamentNam
                     <span className="text-[10px] font-body text-gray-400 mt-0.5">
                       {podiumUsers[2].total_points.toLocaleString()} pts
                     </span>
+                    <div className="flex items-center justify-center gap-1 mt-1">
+                      {podiumUsers[2].powerup_balances && podiumUsers[2].powerup_balances.length > 0 ? (
+                        podiumUsers[2].powerup_balances.map((bal: any, bIdx: number) => (
+                          <div key={bIdx} className="flex items-center gap-0.5" title={`${bal.name}: ${bal.remaining}/${bal.max} left`}>
+                            <Zap className={`w-2.5 h-2.5 ${bal.type === 'global' ? 'text-ipl-live' : 'text-purple-400'}`} />
+                            <span className={`text-[9px] font-mono font-bold leading-none ${bal.type === 'global' ? 'text-ipl-live' : 'text-purple-400'}`}>
+                              {bal.remaining}
+                            </span>
+                          </div>
+                        ))
+                      ) : (
+                        <div className="flex items-center gap-0.5">
+                          <Zap className="w-2.5 h-2.5 text-ipl-live" />
+                          <span className="text-[9px] font-mono font-bold text-ipl-live leading-none">
+                            {podiumUsers[2].remaining_powerups !== undefined ? podiumUsers[2].remaining_powerups : 10}
+                          </span>
+                        </div>
+                      )}
+                    </div>
                   </div>
                 )}
               </div>
@@ -374,9 +431,36 @@ export default function LeaderboardSection({ leagueId, leagueName, tournamentNam
                         alt="" 
                         className="w-8 h-8 rounded-full border border-white/10 shrink-0 object-cover"
                       />
-                      <span className={`text-xs font-display font-bold truncate flex-1 min-w-0 ${isCurrent ? 'text-ipl-gold' : 'text-white'}`}>
-                        {isCurrent ? 'You' : getUserDisplayName({ name: entry.username, alias: entry.alias, use_alias: entry.use_alias })}
-                      </span>
+                      <div className="flex flex-col min-w-0 flex-1">
+                        <span className={`text-xs font-display font-bold truncate ${isCurrent ? 'text-ipl-gold' : 'text-white'}`}>
+                          {isCurrent ? 'You' : getUserDisplayName({ name: entry.username, alias: entry.alias, use_alias: entry.use_alias })}
+                        </span>
+                        <div className="flex items-center gap-1.5 mt-0.5">
+                          <span className="text-[9px] text-gray-500 font-display uppercase tracking-tight">
+                            M: {entry.matches_played}
+                          </span>
+                          <span className="text-white/10 text-[9px] select-none">•</span>
+                          <div className="flex items-center gap-1">
+                            {entry.powerup_balances && entry.powerup_balances.length > 0 ? (
+                              entry.powerup_balances.map((bal: any, bIdx: number) => (
+                                <div key={bIdx} className="flex items-center gap-0.5" title={`${bal.name}: ${bal.remaining}/${bal.max} left`}>
+                                  <Zap className={`w-2.5 h-2.5 ${bal.type === 'global' ? 'text-ipl-live' : 'text-purple-400'}`} />
+                                  <span className={`text-[9px] font-mono font-bold leading-none ${bal.type === 'global' ? 'text-ipl-live' : 'text-purple-400'}`}>
+                                    {bal.remaining}
+                                  </span>
+                                </div>
+                              ))
+                            ) : (
+                              <div className="flex items-center gap-0.5">
+                                <Zap className="w-2.5 h-2.5 text-ipl-live" />
+                                <span className="text-[9px] font-mono font-bold text-ipl-live leading-none">
+                                  {entry.remaining_powerups !== undefined ? entry.remaining_powerups : 10}
+                                </span>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      </div>
                     </div>
 
                     {/* Center: Latest 3 Match Result Dots */}
