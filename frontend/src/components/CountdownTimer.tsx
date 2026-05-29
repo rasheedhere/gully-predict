@@ -56,12 +56,14 @@ export default function CountdownTimer({ targetDate }: CountdownTimerProps) {
     return () => clearInterval(interval);
   }, [targetDate]);
 
+  if (isLocked) return null;
+
   return (
     <div className={`flex items-center gap-2 font-display tracking-widest text-sm
-      ${isLocked ? 'text-ipl-live' : urgent ? 'text-ipl-live animate-pulse' : 'text-ipl-gold'}`}
+      ${urgent ? 'text-ipl-live animate-pulse' : 'text-ipl-gold'}`}
     >
       <Clock className="w-4 h-4" />
-      {isLocked ? 'PREDICTIONS LOCKED' : `LOCKS IN: ${timeLeft}`}
+      LOCKS IN: {timeLeft}
     </div>
   );
 }

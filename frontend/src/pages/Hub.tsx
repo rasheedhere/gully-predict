@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Trophy, ChevronRight, Sparkles } from 'lucide-react';
 import { useTournaments } from '../api/hooks/useTournaments';
@@ -9,6 +10,14 @@ export default function Hub() {
   const { data: tournaments, isLoading: loadingTournaments } = useTournaments();
   const { data: leagues, isLoading: loadingLeagues } = useMyLeagues();
   const { setActiveTournamentId } = useTournamentStore();
+
+  // Auto-redirect if only 1 tournament exists in total
+  useEffect(() => {
+    if (!loadingTournaments && tournaments && tournaments.length === 1) {
+      setActiveTournamentId(tournaments[0].id);
+      navigate('/matchcenter', { replace: true });
+    }
+  }, [tournaments, loadingTournaments, navigate, setActiveTournamentId]);
 
   if (loadingTournaments || loadingLeagues) {
     return <div className="text-white text-center font-display tracking-widest animate-pulse mt-20">LOADING HUB...</div>;

@@ -6,6 +6,7 @@ import { useTournamentStore } from '../store/tournament';
 import { Sparkles, BarChart3 } from 'lucide-react';
 import { getTeamColor, getTeamShortName } from '../utils/teamColors';
 import { getTeamLogo } from '../utils/teamLogos';
+import CountdownTimer from '../components/CountdownTimer';
 
 // Helper to generate realistic deterministic cricket margins for completed matches
 
@@ -200,10 +201,17 @@ export default function MatchCenter() {
                       </div>
                     </div>
 
+                    {/* Countdown Timer / Locks Status */}
+                    {match.status !== 'completed' && new Date() < new Date(new Date(match.tossTime).getTime() - 30 * 60000) && (
+                      <div className="flex justify-center mt-5 text-[10px] font-mono tracking-widest w-full">
+                        <CountdownTimer targetDate={match.tossTime} />
+                      </div>
+                    )}
+
                     {/* Bottom Button */}
                     <div className="w-full mt-6">
                       <div className="w-full py-3 rounded-full border border-white/10 hover:bg-white/5 flex items-center justify-center gap-2 text-[10px] font-display uppercase tracking-widest text-white/90 font-bold transition-colors">
-                        VIEW INSIGHTS
+                        VIEW MATCH
                         <BarChart3 className="w-3.5 h-3.5" />
                       </div>
                     </div>
