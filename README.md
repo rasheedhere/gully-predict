@@ -177,7 +177,14 @@ ipl-fantasy/
 | Non-participation (Match 12+) | — | −5 |
 | AI Assassin penalty starts | — | Match 25 |
 
-**Powerup (2× Booster)**: Tracked globally (`User.base_powerups`). Multiplies Winner, POM, and Powerplay points. Does **not** multiply Sixes/Fours.
+**Powerup (2× Booster)**: Tracked globally (`User.base_powerups`). Multiplies Winner, POM, and Powerplay points (including negative points/penalties). Does **not** multiply Sixes/Fours.
+
+**Points Breakdown UI Design & Powerups**:
+- To maintain mathematical clarity in the UI, the `points_breakdown` JSON stores **unmultiplied base values** (e.g. `10` or `-10`) for each individual question in the rules list.
+- Since the frontend displays a dedicated `Powerup Applied (2x)` row at the bottom of the card, showing base values inside the list makes the math clear and avoids looking like a doubled score is being doubled again:
+  $$\text{Total Score} = (\text{Sum of base question points}) \times 2$$
+  The `total_points` field in the response and database correctly reflects this final multiplied sum.
+
 **Late Entrants**: Protected from retroactive penalties for matches before signup. Can receive a `User.base_points` catch-up handicap applied globally and in private leagues.
 
 ---
