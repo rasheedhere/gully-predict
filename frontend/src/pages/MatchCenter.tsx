@@ -8,21 +8,6 @@ import { getTeamColor, getTeamShortName } from '../utils/teamColors';
 import { getTeamLogo } from '../utils/teamLogos';
 
 // Helper to generate realistic deterministic cricket margins for completed matches
-// const getMockMargin = (matchId: string, winner: string) => {
-//   let hash = 0;
-//   for (let i = 0; i < matchId.length; i++) {
-//     hash = matchId.charCodeAt(i) + ((hash << 5) - hash);
-//   }
-//   const absHash = Math.abs(hash);
-//   const isWkts = absHash % 2 === 0;
-//   if (isWkts) {
-//     const wkts = (absHash % 5) + 5; // 5 to 9 wickets
-//     return `${winner} won by ${wkts} wkts`;
-//   } else {
-//     const runs = (absHash % 40) + 5; // 5 to 45 runs
-//     return `${winner} won by ${runs} runs`;
-//   }
-// };
 
 // Helper to format match times exactly like reference image (Tomorrow, 19:30 or 12 Apr, 19:30)
 const formatMatchTime = (isoString: string) => {
@@ -256,6 +241,8 @@ export default function MatchCenter() {
             futureMatches.slice(0, 4).map((match: any) => {
               const t1Short = getTeamShortName(match.team1);
               const t2Short = getTeamShortName(match.team2);
+              const t1Logo = getTeamLogo(match.team1);
+              const t2Logo = getTeamLogo(match.team2);
               const timeFormatted = formatMatchTime(match.tossTime);
               return (
                 <Link
@@ -265,15 +252,21 @@ export default function MatchCenter() {
                 >
                   {/* Left side: Teams */}
                   <div className="flex items-center">
-                    <div className="text-center min-w-[36px]">
-                      <span className="text-base font-display font-extrabold text-white tracking-wide block leading-none">{t1Short}</span>
+                    <div className="text-center min-w-[44px]">
+                      <div className="flex items-center gap-1.5 justify-center">
+                        {t1Logo && <img src={t1Logo} alt={match.team1} className="w-3.5 h-3.5 object-contain" />}
+                        <span className="text-sm md:text-base font-display font-extrabold text-white tracking-wide block leading-none">{t1Short}</span>
+                      </div>
                       <span className="text-[8px] font-display uppercase tracking-widest text-gray-500 mt-1 block">HOME</span>
                     </div>
 
-                    <div className="w-[1px] h-6 bg-white/10 mx-3" />
+                    <div className="w-[1px] h-6 bg-white/10 mx-3.5" />
 
-                    <div className="text-center min-w-[36px]">
-                      <span className="text-base font-display font-extrabold text-white tracking-wide block leading-none">{t2Short}</span>
+                    <div className="text-center min-w-[44px]">
+                      <div className="flex items-center gap-1.5 justify-center">
+                        {t2Logo && <img src={t2Logo} alt={match.team2} className="w-3.5 h-3.5 object-contain" />}
+                        <span className="text-sm md:text-base font-display font-extrabold text-white tracking-wide block leading-none">{t2Short}</span>
+                      </div>
                       <span className="text-[8px] font-display uppercase tracking-widest text-gray-500 mt-1 block">AWAY</span>
                     </div>
                   </div>
@@ -301,6 +294,8 @@ export default function MatchCenter() {
               const matchNumber = matchNoMatch ? matchNoMatch[1] : null;
               const t1Short = getTeamShortName(match.team1);
               const t2Short = getTeamShortName(match.team2);
+              const t1Logo = getTeamLogo(match.team1);
+              const t2Logo = getTeamLogo(match.team2);
               const winnerShort = match.winner ? getTeamShortName(match.winner) : null;
 
               // If winner is set, highlight winner in white and loser in faded gray
@@ -309,7 +304,6 @@ export default function MatchCenter() {
               const isT2Winner = resolvedWinner === t2Short;
               const hasPredicted = predictionStatus ? (match.id in predictionStatus) : false;
               const pointsWon = predictionStatus?.[match.id];
-              // const resultText = getMockMargin(match.id, resolvedWinner);
 
               return (
                 <Link
@@ -331,20 +325,17 @@ export default function MatchCenter() {
                   </div>
 
                   {/* Middle Row: Teams (e.g. PBKS vs SRH) */}
-                  <div className="flex items-center justify-center gap-2 text-base font-display font-extrabold uppercase tracking-wider my-3">
-                    <span className={isT1Winner ? 'text-white' : 'text-gray-600'}>{t1Short}</span>
+                  <div className="flex items-center justify-center gap-2 my-3">
+                    <div className="flex items-center gap-1.5">
+                      {t1Logo && <img src={t1Logo} alt={match.team1} className="w-3.5 h-3.5 object-contain" />}
+                      <span className={`text-sm md:text-base font-display font-extrabold uppercase tracking-wider ${isT1Winner ? 'text-white' : 'text-gray-600'}`}>{t1Short}</span>
+                    </div>
                     <span className="text-[8px] text-white/20 italic font-body lowercase tracking-normal">vs</span>
-                    <span className={isT2Winner ? 'text-white' : 'text-gray-600'}>{t2Short}</span>
+                    <div className="flex items-center gap-1.5">
+                      {t2Logo && <img src={t2Logo} alt={match.team2} className="w-3.5 h-3.5 object-contain" />}
+                      <span className={`text-sm md:text-base font-display font-extrabold uppercase tracking-wider ${isT2Winner ? 'text-white' : 'text-gray-600'}`}>{t2Short}</span>
+                    </div>
                   </div>
-
-                  {/* Bottom Row: Result Text */}
-                  {/* <div className="text-center">
-                    <span className={`text-[9px] font-display tracking-wider block ${
-                      hasPredicted ? 'text-ipl-gold font-bold' : 'text-gray-500'
-                    }`}>
-                      {resultText}
-                    </span>
-                  </div> */}
                 </Link>
               );
             })}
