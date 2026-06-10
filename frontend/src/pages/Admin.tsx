@@ -1552,14 +1552,14 @@ function TournamentQuestionBankManager({ tournamentId }: { tournamentId: string 
   const [editingQuestionId, setEditingQuestionId] = useState<string | null>(null);
   const [key, setKey] = useState('');
   const [questionText, setQuestionText] = useState('');
-  const [questionType, setQuestionType] = useState<'toggle' | 'multiple_choice' | 'dropdown' | 'free_text' | 'free_number'>('toggle');
-  const [optionsStr, setOptionsStr] = useState('');
+  const [questionType, setQuestionType] = useState<'toggle' | 'toggle_3way' | 'multiple_choice' | 'dropdown' | 'free_text' | 'free_number'>('toggle');
+  const [optionsStr, setOptionsStr] = useState('{{Team1}}, {{Team2}}');
 
   const handleEdit = (q: any) => {
     setEditingQuestionId(q.id);
     setKey(q.key);
     setQuestionText(q.question_text);
-    setQuestionType(q.question_type);
+    setQuestionType(q.question_type === 'toggle' && q.options?.length === 3 ? 'toggle_3way' : q.question_type);
     setOptionsStr(q.options ? q.options.join(', ') : '');
     toast(`Editing question: ${q.key}`);
   };
@@ -1569,7 +1569,7 @@ function TournamentQuestionBankManager({ tournamentId }: { tournamentId: string 
     setKey('');
     setQuestionText('');
     setQuestionType('toggle');
-    setOptionsStr('');
+    setOptionsStr('{{Team1}}, {{Team2}}');
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -1577,8 +1577,17 @@ function TournamentQuestionBankManager({ tournamentId }: { tournamentId: string 
     if (!key || !questionText) return;
 
     let options: string[] | null = null;
-    if (['toggle', 'multiple_choice', 'dropdown'].includes(questionType)) {
+    const isToggle = questionType === 'toggle' || questionType === 'toggle_3way';
+    if (isToggle || ['multiple_choice', 'dropdown'].includes(questionType)) {
       options = optionsStr.split(',').map(s => s.trim()).filter(Boolean);
+      if (isToggle && questionType === 'toggle' && options.length !== 2) {
+        toast.error('Toggle (2 options) must have exactly 2 options');
+        return;
+      }
+      if (isToggle && questionType === 'toggle_3way' && options.length !== 3) {
+        toast.error('Toggle (3 options) must have exactly 3 options');
+        return;
+      }
       if (options.length < 2) {
         toast.error('Please provide at least 2 options');
         return;
@@ -1588,7 +1597,7 @@ function TournamentQuestionBankManager({ tournamentId }: { tournamentId: string 
     const payload = {
       key,
       question_text: questionText,
-      question_type: questionType,
+      question_type: isToggle ? 'toggle' : questionType,
       options,
       default_scoring_rules: {
         exact_match_points: 10,
@@ -1652,17 +1661,28 @@ function TournamentQuestionBankManager({ tournamentId }: { tournamentId: string 
               <label className="block text-[9px] font-display uppercase tracking-[0.2em] text-gray-500 mb-1.5">Type</label>
               <select
                 value={questionType}
-                onChange={(e) => setQuestionType(e.target.value as any)}
+                onChange={(e) => {
+                  const val = e.target.value as any;
+                  setQuestionType(val);
+                  if (val === 'toggle') {
+                    setOptionsStr('{{Team1}}, {{Team2}}');
+                  } else if (val === 'toggle_3way') {
+                    setOptionsStr('{{Team1}}, {{Team2}}, Draw');
+                  } else if (val === 'multiple_choice' || val === 'dropdown') {
+                    setOptionsStr('');
+                  }
+                }}
                 className="w-full bg-black/40 border border-white/10 p-3.5 rounded-2xl text-white font-display text-xs focus:border-ipl-gold focus:outline-none transition-all"
               >
                 <option value="toggle" className="bg-ipl-navy">Toggle (2 options)</option>
+                <option value="toggle_3way" className="bg-ipl-navy">Toggle (3 options)</option>
                 <option value="multiple_choice" className="bg-ipl-navy">Multiple Choice</option>
                 <option value="dropdown" className="bg-ipl-navy">Dropdown</option>
                 <option value="free_text" className="bg-ipl-navy">Free Text</option>
                 <option value="free_number" className="bg-ipl-navy">Free Number</option>
               </select>
             </div>
-            {['toggle', 'multiple_choice', 'dropdown'].includes(questionType) && (
+            {['toggle', 'toggle_3way', 'multiple_choice', 'dropdown'].includes(questionType) && (
               <div>
                 <label className="block text-[9px] font-display uppercase tracking-[0.2em] text-gray-500 mb-1.5">Options (Comma separated)</label>
                 <input

@@ -1,0 +1,105 @@
+id,team1,team2,venue,start_time
+fifa-2026-01,Mexico,South Africa,Estadio Azteca,2026-06-11T19:00:00Z
+fifa-2026-02,South Korea,Czech Republic,Estadio Akron,2026-06-12T02:00:00Z
+fifa-2026-03,Canada,Bosnia & Herzegovina,Toronto Stadium,2026-06-12T19:00:00Z
+fifa-2026-04,USA,Paraguay,Los Angeles Stadium,2026-06-13T01:00:00Z
+fifa-2026-05,Qatar,Switzerland,San Francisco Bay Area Stadium,2026-06-13T19:00:00Z
+fifa-2026-06,Brazil,Morocco,New York New Jersey Stadium,2026-06-13T22:00:00Z
+fifa-2026-07,Haiti,Scotland,Boston Stadium,2026-06-14T01:00:00Z
+fifa-2026-08,Australia,Turkey,Vancouver Stadium,2026-06-14T04:00:00Z
+fifa-2026-09,Germany,Curaçao,Houston Stadium,2026-06-14T17:00:00Z
+fifa-2026-10,Netherlands,Japan,Dallas Stadium,2026-06-14T20:00:00Z
+fifa-2026-11,Ivory Coast,Ecuador,Philadelphia Stadium,2026-06-14T23:00:00Z
+fifa-2026-12,Sweden,Tunisia,Estadio BBVA,2026-06-15T02:00:00Z
+fifa-2026-13,Spain,Cape Verde,Atlanta Stadium,2026-06-15T16:00:00Z
+fifa-2026-14,Belgium,Egypt,Seattle Stadium,2026-06-15T19:00:00Z
+fifa-2026-15,Saudi Arabia,Uruguay,Miami Stadium,2026-06-15T22:00:00Z
+fifa-2026-16,Iran,New Zealand,Los Angeles Stadium,2026-06-16T01:00:00Z
+fifa-2026-17,France,Senegal,New York New Jersey Stadium,2026-06-16T19:00:00Z
+fifa-2026-18,Iraq,Norway,Boston Stadium,2026-06-16T22:00:00Z
+fifa-2026-19,Argentina,Algeria,Kansas City Stadium,2026-06-17T01:00:00Z
+fifa-2026-20,Austria,Jordan,San Francisco Bay Area Stadium,2026-06-17T04:00:00Z
+fifa-2026-21,Portugal,DR Congo,Houston Stadium,2026-06-17T17:00:00Z
+fifa-2026-22,England,Croatia,Dallas Stadium,2026-06-17T20:00:00Z
+fifa-2026-23,Ghana,Panama,Toronto Stadium,2026-06-17T23:00:00Z
+fifa-2026-24,Uzbekistan,Colombia,Estadio Azteca,2026-06-18T02:00:00Z
+fifa-2026-25,Czech Republic,South Africa,Atlanta Stadium,2026-06-18T16:00:00Z
+fifa-2026-26,Switzerland,Bosnia & Herzegovina,Los Angeles Stadium,2026-06-18T19:00:00Z
+fifa-2026-27,Canada,Qatar,Vancouver Stadium,2026-06-18T22:00:00Z
+fifa-2026-28,Mexico,South Korea,Estadio Akron,2026-06-19T01:00:00Z
+fifa-2026-29,USA,Australia,Seattle Stadium,2026-06-19T19:00:00Z
+fifa-2026-30,Scotland,Morocco,Boston Stadium,2026-06-19T22:00:00Z
+fifa-2026-31,Brazil,Haiti,Philadelphia Stadium,2026-06-20T00:30:00Z
+fifa-2026-32,Turkey,Paraguay,San Francisco Bay Area Stadium,2026-06-20T03:00:00Z
+fifa-2026-33,Netherlands,Sweden,Houston Stadium,2026-06-20T17:00:00Z
+fifa-2026-34,Germany,Ivory Coast,Toronto Stadium,2026-06-20T20:00:00Z
+fifa-2026-35,Ecuador,Curaçao,Kansas City Stadium,2026-06-21T00:00:00Z
+fifa-2026-36,Tunisia,Japan,Estadio BBVA,2026-06-21T04:00:00Z
+fifa-2026-37,Spain,Saudi Arabia,Atlanta Stadium,2026-06-21T16:00:00Z
+fifa-2026-38,Belgium,Iran,Los Angeles Stadium,2026-06-21T19:00:00Z
+fifa-2026-39,Uruguay,Cape Verde,Miami Stadium,2026-06-21T22:00:00Z
+fifa-2026-40,New Zealand,Egypt,Vancouver Stadium,2026-06-22T01:00:00Z
+fifa-2026-41,Argentina,Austria,Dallas Stadium,2026-06-22T17:00:00Z
+fifa-2026-42,France,Iraq,Philadelphia Stadium,2026-06-22T21:00:00Z
+fifa-2026-43,Norway,Senegal,New York New Jersey Stadium,2026-06-23T00:00:00Z
+fifa-2026-44,Jordan,Algeria,San Francisco Bay Area Stadium,2026-06-23T03:00:00Z
+fifa-2026-45,Portugal,Uzbekistan,Houston Stadium,2026-06-23T17:00:00Z
+fifa-2026-46,England,Ghana,Boston Stadium,2026-06-23T20:00:00Z
+fifa-2026-47,Panama,Croatia,Toronto Stadium,2026-06-23T23:00:00Z
+fifa-2026-48,Colombia,DR Congo,Estadio Akron,2026-06-24T02:00:00Z
+fifa-2026-49,Switzerland,Canada,Vancouver Stadium,2026-06-24T19:00:00Z
+fifa-2026-50,Bosnia & Herzegovina,Qatar,Seattle Stadium,2026-06-24T19:00:00Z
+fifa-2026-51,Scotland,Brazil,Miami Stadium,2026-06-24T22:00:00Z
+fifa-2026-52,Morocco,Haiti,Atlanta Stadium,2026-06-24T22:00:00Z
+fifa-2026-53,Czech Republic,Mexico,Estadio Azteca,2026-06-25T01:00:00Z
+fifa-2026-54,South Africa,South Korea,Estadio BBVA,2026-06-25T01:00:00Z
+fifa-2026-55,Curaçao,Ivory Coast,Philadelphia Stadium,2026-06-25T20:00:00Z
+fifa-2026-56,Ecuador,Germany,New York New Jersey Stadium,2026-06-25T20:00:00Z
+fifa-2026-57,Japan,Sweden,Dallas Stadium,2026-06-25T23:00:00Z
+fifa-2026-58,Tunisia,Netherlands,Kansas City Stadium,2026-06-25T23:00:00Z
+fifa-2026-59,Turkey,USA,Los Angeles Stadium,2026-06-26T02:00:00Z
+fifa-2026-60,Paraguay,Australia,San Francisco Bay Area Stadium,2026-06-26T02:00:00Z
+fifa-2026-61,Norway,France,Boston Stadium,2026-06-26T19:00:00Z
+fifa-2026-62,Senegal,Iraq,Toronto Stadium,2026-06-26T19:00:00Z
+fifa-2026-63,Cape Verde,Saudi Arabia,Houston Stadium,2026-06-27T00:00:00Z
+fifa-2026-64,Uruguay,Spain,Estadio Akron,2026-06-27T00:00:00Z
+fifa-2026-65,Egypt,Iran,Seattle Stadium,2026-06-27T03:00:00Z
+fifa-2026-66,New Zealand,Belgium,Vancouver Stadium,2026-06-27T03:00:00Z
+fifa-2026-67,Panama,England,New York New Jersey Stadium,2026-06-27T21:00:00Z
+fifa-2026-68,Croatia,Ghana,Philadelphia Stadium,2026-06-27T21:00:00Z
+fifa-2026-69,Colombia,Portugal,Miami Stadium,2026-06-27T23:30:00Z
+fifa-2026-70,DR Congo,Uzbekistan,Atlanta Stadium,2026-06-27T23:30:00Z
+fifa-2026-71,Algeria,Austria,Kansas City Stadium,2026-06-28T02:00:00Z
+fifa-2026-72,Jordan,Argentina,Dallas Stadium,2026-06-28T02:00:00Z
+fifa-2026-73,2A,2B,Los Angeles Stadium,2026-06-28T19:00:00Z
+fifa-2026-74,1C,2F,Houston Stadium,2026-06-29T17:00:00Z
+fifa-2026-75,1E,3A/B/C/D/F,Boston Stadium,2026-06-29T20:30:00Z
+fifa-2026-76,1F,2C,Estadio BBVA,2026-06-30T01:00:00Z
+fifa-2026-77,2E,2I,Dallas Stadium,2026-06-30T17:00:00Z
+fifa-2026-78,1I,3C/D/F/G/H,New York New Jersey Stadium,2026-06-30T21:00:00Z
+fifa-2026-79,1A,3C/E/F/H/I,Estadio Azteca,2026-07-01T01:00:00Z
+fifa-2026-80,1L,3E/H/I/J/K,Atlanta Stadium,2026-07-01T16:00:00Z
+fifa-2026-81,1G,3A/E/H/I/J,Seattle Stadium,2026-07-01T20:00:00Z
+fifa-2026-82,1D,3B/E/F/I/J,San Francisco Bay Area Stadium,2026-07-02T00:00:00Z
+fifa-2026-83,1H,2J,Los Angeles Stadium,2026-07-02T19:00:00Z
+fifa-2026-84,2K,2L,Toronto Stadium,2026-07-02T23:00:00Z
+fifa-2026-85,1B,3E/F/G/I/J,Vancouver Stadium,2026-07-03T03:00:00Z
+fifa-2026-86,2D,2G,Dallas Stadium,2026-07-03T18:00:00Z
+fifa-2026-87,1J,2H,Miami Stadium,2026-07-03T22:00:00Z
+fifa-2026-88,1K,3D/E/I/J/L,Kansas City Stadium,2026-07-04T01:30:00Z
+fifa-2026-89,W73,W75,Houston Stadium,2026-07-04T17:00:00Z
+fifa-2026-90,W74,W77,Philadelphia Stadium,2026-07-04T21:00:00Z
+fifa-2026-91,W76,W78,New York New Jersey Stadium,2026-07-05T20:00:00Z
+fifa-2026-92,W79,W80,Estadio Azteca,2026-07-06T00:00:00Z
+fifa-2026-93,W83,W84,Dallas Stadium,2026-07-06T19:00:00Z
+fifa-2026-94,W81,W82,Seattle Stadium,2026-07-07T00:00:00Z
+fifa-2026-95,W86,W88,Atlanta Stadium,2026-07-07T16:00:00Z
+fifa-2026-96,W85,W87,Vancouver Stadium,2026-07-07T20:00:00Z
+fifa-2026-97,W89,W90,Boston Stadium,2026-07-09T20:00:00Z
+fifa-2026-98,W93,W94,Los Angeles Stadium,2026-07-10T19:00:00Z
+fifa-2026-99,W91,W92,Miami Stadium,2026-07-11T21:00:00Z
+fifa-2026-100,W95,W96,Kansas City Stadium,2026-07-12T01:00:00Z
+fifa-2026-101,W97,W98,Dallas Stadium,2026-07-14T19:00:00Z
+fifa-2026-102,W99,W100,Atlanta Stadium,2026-07-15T19:00:00Z
+fifa-2026-103,L101,L102,Miami Stadium,2026-07-18T21:00:00Z
+fifa-2026-104,W101,W102,New York New Jersey Stadium,2026-07-19T19:00:00Z

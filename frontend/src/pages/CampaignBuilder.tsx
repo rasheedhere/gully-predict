@@ -27,7 +27,7 @@ function emptyQuestion(order: number): QuestionCreate {
     id: `new-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
     question_text: '',
     question_type: 'toggle',
-    options: ['', ''],
+    options: ['{{Team1}}', '{{Team2}}'],
     correct_answer: null,
     scoring_rules: { exact_match_points: 10, wrong_answer_points: -5, within_range_points: 5 },
     order_index: order,
@@ -36,8 +36,9 @@ function emptyQuestion(order: number): QuestionCreate {
   };
 }
 
-const QUESTION_TYPES: { value: CampaignQuestion['question_type']; label: string }[] = [
+const QUESTION_TYPES: { value: string; label: string }[] = [
   { value: 'toggle', label: 'Toggle Switch (2 options)' },
+  { value: 'toggle_3way', label: 'Toggle Switch (3 options)' },
   { value: 'multiple_choice', label: 'Multiple Choice (select many)' },
   { value: 'dropdown', label: 'Dropdown (select one)' },
   { value: 'free_text', label: 'Free Text (letters only)' },
@@ -60,12 +61,13 @@ function QuestionEditor({
 }) {
   const has_options = needsOptions(q.question_type);
 
-  const setType = (type: QuestionCreate['question_type']) => {
+  const setType = (type: string) => {
     const defaultOptions =
-      type === 'toggle' ? ['', ''] :
-        type === 'multiple_choice' ? ['', '', ''] :
-          type === 'dropdown' ? ['', ''] : null;
-    onChange({ ...q, question_type: type, options: defaultOptions, correct_answer: null });
+      type === 'toggle' ? ['{{Team1}}', '{{Team2}}'] :
+      type === 'toggle_3way' ? ['{{Team1}}', '{{Team2}}', 'Draw'] :
+      type === 'multiple_choice' ? ['', '', ''] :
+      type === 'dropdown' ? ['', ''] : null;
+    onChange({ ...q, question_type: (type === 'toggle_3way' ? 'toggle' : type) as any, options: defaultOptions, correct_answer: null });
   };
 
   const setOption = (i: number, val: string) => {
@@ -167,8 +169,8 @@ function QuestionEditor({
             <div className="flex flex-wrap gap-4">
               <div className="relative flex-1">
                 <select
-                  value={q.question_type}
-                  onChange={e => setType(e.target.value as QuestionCreate['question_type'])}
+                  value={q.question_type === 'toggle' && q.options?.length === 3 ? 'toggle_3way' : q.question_type}
+                  onChange={e => setType(e.target.value)}
                   className="w-full bg-black/40 border-2 border-white/10 py-2.5 pl-4 pr-10 text-white font-display text-sm appearance-none focus:outline-none focus:border-ipl-gold transition-all"
                 >
                   {QUESTION_TYPES.map(t => (

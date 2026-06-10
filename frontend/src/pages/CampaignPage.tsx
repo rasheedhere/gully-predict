@@ -44,16 +44,16 @@ function ScoringHint({ rules, type }: { rules: ScoringRules; type: CampaignQuest
 // ── Question inputs ───────────────────────────────────────────────────────────
 
 function ToggleInput({ q, value, onChange, disabled }: { q: CampaignQuestion; value: any; onChange: (v: any) => void; disabled: boolean }) {
-  const [a, b] = q.options ?? ['Option A', 'Option B'];
+  const opts = q.options ?? ['Option A', 'Option B'];
   return (
-    <div className="flex bg-white/5 p-1 rounded-2xl border border-white/10 w-full mt-3 select-none">
-      {[a, b].map(opt => (
+    <div className="flex flex-wrap md:flex-nowrap gap-2 bg-white/5 p-1 rounded-2xl border border-white/10 w-full mt-3 select-none">
+      {opts.map(opt => (
         <button
           key={opt}
           type="button"
           disabled={disabled}
           onClick={() => onChange(opt)}
-          className={`flex-1 py-3 rounded-xl font-display text-xs uppercase tracking-wider transition-all duration-200 select-none
+          className={`flex-1 min-h-[44px] py-3 px-2 rounded-xl font-display text-xs uppercase tracking-wider transition-all duration-200 select-none truncate
             ${value === opt
               ? 'bg-ipl-gold text-black shadow-lg font-bold'
               : 'text-gray-500 active:text-gray-300 disabled:opacity-50'

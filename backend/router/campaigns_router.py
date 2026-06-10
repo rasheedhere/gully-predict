@@ -88,8 +88,8 @@ def _validate_question(q: QuestionCreate, campaign_type: CampaignType = Campaign
     if campaign_type == CampaignType.match and not q.key:
         raise HTTPException(status_code=400, detail="Match campaigns only allow questions from the Question Bank (custom questions not allowed).")
     if q.question_type == QuestionType.toggle:
-        if not q.options or len(q.options) != 2:
-            raise HTTPException(status_code=400, detail=f"Toggle question must have exactly 2 options")
+        if not q.options or len(q.options) not in (2, 3):
+            raise HTTPException(status_code=400, detail=f"Toggle question must have 2 or 3 options")
     if q.question_type in (QuestionType.multiple_choice, QuestionType.dropdown):
         if not q.options or len(q.options) < 2:
             raise HTTPException(status_code=400, detail=f"{q.question_type} question must have at least 2 options")
