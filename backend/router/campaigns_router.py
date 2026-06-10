@@ -833,7 +833,10 @@ async def get_all_community_predictions(
     from backend.models import League, LeagueUserMapping
     user_leagues_res = await db.execute(
         select(League).join(LeagueUserMapping)
-        .where(LeagueUserMapping.user_id == current_user.id)
+        .where(
+            LeagueUserMapping.user_id == current_user.id,
+            League.tournament_id == campaign.tournament_id
+        )
     )
     user_leagues = user_leagues_res.scalars().all()
 

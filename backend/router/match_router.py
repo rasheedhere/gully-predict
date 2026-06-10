@@ -838,10 +838,13 @@ async def get_all_community_predictions(
             "points_breakdown": points_breakdown,
         }
 
-    # Segment by leagues the current user belongs to
+    # Segment by leagues the current user belongs to for this tournament
     user_leagues_res = await db.execute(
         select(League).join(LeagueUserMapping)
-        .where(LeagueUserMapping.user_id == current_user.id)
+        .where(
+            LeagueUserMapping.user_id == current_user.id,
+            League.tournament_id == match.tournament_id
+        )
     )
     user_leagues = user_leagues_res.scalars().all()
 
