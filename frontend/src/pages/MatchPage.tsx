@@ -43,7 +43,6 @@ export default function MatchPage() {
 
   const { data: allPredictionsData } = useAllMatchPredictions(id || '');
   const leagueSections = allPredictionsData?.leagues;
-  const communityPredictors = allPredictionsData?.predictors || [];
   const questions = data?.questions || [];
 
   // Pre-fill existing predictions and admin results
