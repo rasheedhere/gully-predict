@@ -41,7 +41,9 @@ export default function MatchPage() {
   const tossTime = data?.match?.tossTime ? new Date(data.match.tossTime) : null;
   const isLocked = tossTime ? (new Date() > new Date(tossTime.getTime() - 30 * 60000)) : false;
 
-  const { data: leagueSections } = useAllMatchPredictions(id || '');
+  const { data: allPredictionsData } = useAllMatchPredictions(id || '');
+  const leagueSections = allPredictionsData?.leagues;
+  const communityPredictors = allPredictionsData?.predictors || [];
   const questions = data?.questions || [];
 
   // Pre-fill existing predictions and admin results

@@ -84,7 +84,12 @@ export function useAllMatchPredictions(matchId: string) {
     queryKey: ['predictions', 'all', matchId],
     queryFn: async () => {
       const response = await apiClient.get(`/matches/${matchId}/predictions/all`);
-      return response.data;
+      const data = response.data;
+      // Backend may return {leagues: [...], predictors: [...]} or a plain array (legacy)
+      if (Array.isArray(data)) {
+        return { leagues: data, predictors: [] };
+      }
+      return { leagues: data.leagues || [], predictors: data.predictors || [] };
     },
     enabled: !!matchId,
   });
