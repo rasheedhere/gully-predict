@@ -28,6 +28,7 @@ export const getAccessibleTeamTextColor = (teamName: any) => {
   if (teamName === undefined || teamName === null) return '#ffffff';
   const teamStr = String(teamName);
   const normalized = teamStr.trim().toUpperCase();
+  if (normalized === 'DRAW' || normalized === 'TIE') return '#94A3B8'; // Slate 400
   
   // 1. Direct lookup
   if (accessibleTeamColors[normalized]) return accessibleTeamColors[normalized];
@@ -66,6 +67,7 @@ export const getTeamColor = (teamName: any) => {
   const teamStr = String(teamName);
   
   const normalized = teamStr.trim().toUpperCase();
+  if (normalized === 'DRAW' || normalized === 'TIE') return '#475569'; // Slate 600
   
   // 1. Direct lookup (MI, CSK, etc)
   if (teamColors[normalized]) return teamColors[normalized];

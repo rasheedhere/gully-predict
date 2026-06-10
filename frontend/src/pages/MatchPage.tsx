@@ -130,7 +130,8 @@ export default function MatchPage() {
 
     const options = q.options || [];
     const isChoice = ['toggle', 'multiple_choice', 'dropdown'].includes(q.answer_type) || (options.length > 0);
-    const isBinary = isChoice && options.length === 2;
+    // Render 2-option choices and 3-option toggles using the side-by-side button layout
+    const isBinary = isChoice && (options.length === 2 || (q.answer_type === 'toggle' && options.length === 3));
 
     if (isBinary) {
       const isMatchWinner = q.key === winnerQId;
@@ -152,14 +153,15 @@ export default function MatchPage() {
               </span>
             )}
           </div>
-          <div className={`grid grid-cols-2 gap-4 ${isLocked ? 'pointer-events-none opacity-80' : ''}`}>
+          <div className={`grid ${options.length === 3 ? 'grid-cols-3' : 'grid-cols-2'} gap-4 ${isLocked ? 'pointer-events-none opacity-80' : ''}`}>
             {options.map((opt: string) => (
               <label key={opt} className="cursor-pointer select-none">
                 <input type="radio" value={opt} {...register(registerName, { required: true })} className="peer sr-only" disabled={isLocked} />
                 <div
-                  className={`team-select-button p-4 border-2 text-center font-display transition-all peer-checked:text-white rounded-[18px] active:scale-[0.97] duration-150 ${isMatchWinner ? 'text-lg md:text-xl' : 'text-xs md:text-sm'}`}
+                  className={`team-select-button min-h-[44px] flex items-center justify-center p-4 border-2 text-center font-display transition-all rounded-[18px] active:scale-[0.97] duration-150 ${isMatchWinner ? 'text-lg md:text-xl' : 'text-xs md:text-sm'}`}
                   style={{
                     '--team-color': getTeamColor(opt),
+                    '--team-text-color': getContrastColor(getTeamColor(opt)),
                     borderColor: error ? 'rgba(239, 68, 68, 0.4)' : 'rgba(255, 255, 255, 0.1)',
                     color: error ? 'rgba(239, 68, 68, 0.5)' : 'rgba(156, 163, 175, 1)'
                   } as any}
@@ -174,6 +176,7 @@ export default function MatchPage() {
             input:checked + .team-select-button {
               background-color: var(--team-color) !important;
               border-color: var(--team-color) !important;
+              color: var(--team-text-color) !important;
               box-shadow: 0 8px 24px var(--team-color)40 !important;
             }
           `}</style>
@@ -202,7 +205,7 @@ export default function MatchPage() {
           )}
         </div>
 
-        {q.answer_type === 'dropdown' || (options.length > 2) ? (
+        {q.answer_type === 'dropdown' || (options.length > 2 && !(q.answer_type === 'toggle' && options.length === 3)) ? (
           <div className="relative">
             <select
               {...register(registerName, { required: true })}

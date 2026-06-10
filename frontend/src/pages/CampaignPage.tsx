@@ -46,7 +46,7 @@ function ScoringHint({ rules, type }: { rules: ScoringRules; type: CampaignQuest
 function ToggleInput({ q, value, onChange, disabled }: { q: CampaignQuestion; value: any; onChange: (v: any) => void; disabled: boolean }) {
   const opts = q.options ?? ['Option A', 'Option B'];
   return (
-    <div className="flex flex-wrap md:flex-nowrap gap-2 bg-white/5 p-1 rounded-2xl border border-white/10 w-full mt-3 select-none">
+    <div className="flex bg-white/5 p-1 rounded-2xl border border-white/10 w-full mt-3 select-none">
       {opts.map(opt => (
         <button
           key={opt}
