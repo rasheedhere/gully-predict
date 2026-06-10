@@ -870,7 +870,18 @@ async def get_all_community_predictions(
             "predictions": preds,
         })
 
-    return response_data
+    # Build predictor list (unique users who submitted predictions)
+    predictor_list = []
+    for uid in all_user_ids:
+        user = users_map.get(uid)
+        if user:
+            predictor_list.append({
+                "id": user.id,
+                "name": user.alias if getattr(user, 'use_alias', False) and user.alias else user.name,
+                "avatar_url": getattr(user, 'avatar_url', None),
+            })
+
+    return {"leagues": response_data, "predictors": predictor_list}
 
 
 # ── Prediction Status ─────────────────────────────────────────────────────────

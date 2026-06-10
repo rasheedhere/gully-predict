@@ -1215,7 +1215,7 @@ export default function MatchPage() {
                                           )}
 
                                         </div>
-                                        <div className="hidden md:flex flex-col min-w-0">
+                                        <div className="flex flex-col min-w-0">
                                           <span className={`text-[11px] md:text-xs font-bold leading-tight truncate ${isMyRow ? 'text-ipl-gold font-extrabold' : 'text-white'
                                             }`}>
                                             {getUserDisplayName(pred.user)}
