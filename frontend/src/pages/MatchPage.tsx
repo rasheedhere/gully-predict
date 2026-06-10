@@ -1006,7 +1006,31 @@ export default function MatchPage() {
                       )}
                     </h2>
                   </div>
-
+                  {/* Predictors before reveal */}
+                  <div className="flex overflow-x-auto gap-2 p-2 bg-black/30 rounded-lg mb-2">
+                    {Array.from(
+                      new Map(
+                        allPredictions.map((p: any) => [p.user.id, p])
+                      ).values()
+                    ).map((pred: any) => (
+                      <div
+                        key={pred.user.id}
+                        className="flex flex-col items-center w-12 h-12 min-w-[44px] min-h-[44px]"
+                      >
+                        <img
+                          src={pred.user.avatar_url}
+                          alt={pred.user.name}
+                          className="w-8 h-8 rounded-full object-cover"
+                        />
+                        <span className="text-xs mt-0.5 truncate w-full text-center">
+                          {pred.user.name}
+                        </span>
+                        {pred.is_ai && (
+                          <Sparkles className="w-2 h-2 -mt-1 text-ipl-gold shrink-0" />
+                        )}
+                      </div>
+                    ))}
+                  </div>
                   {/* Team Predictors Count Bar */}
                   <div className="flex items-center justify-between gap-1 md:gap-4 bg-black/40 border border-white/10 rounded-lg md:rounded-2xl p-0.5 md:p-2 select-none">
                     {/* Team 1 Predictors */}
@@ -1021,7 +1045,7 @@ export default function MatchPage() {
                         {getTeamShortName(match.team1)} PREDICTORS
                       </span>
                       <span className="text-xs md:text-xl font-display font-black" style={{ color: getTeamColor(match.team1) }}>
-                        {isLocked ? t1Predictors : '?'}
+                        {t1Predictors}
                       </span>
                     </div>
 
