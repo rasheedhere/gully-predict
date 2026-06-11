@@ -302,7 +302,7 @@ export default function LeaderboardSection({ leagueId, leagueName, tournamentNam
                         <div className="flex items-center gap-0.5">
                           <Zap className="w-2.5 h-2.5 text-ipl-live" />
                           <span className="text-[9px] font-mono font-bold text-ipl-live leading-none">
-                            {podiumUsers[1].remaining_powerups !== undefined ? podiumUsers[1].remaining_powerups : 10}
+                            {podiumUsers[1].remaining_powerups ?? 0}
                           </span>
                         </div>
                       )}
@@ -351,7 +351,7 @@ export default function LeaderboardSection({ leagueId, leagueName, tournamentNam
                         <div className="flex items-center gap-0.5">
                           <Zap className="w-2.5 h-2.5 text-ipl-live" />
                           <span className="text-[9px] font-mono font-bold text-ipl-live leading-none">
-                            {podiumUsers[0].remaining_powerups !== undefined ? podiumUsers[0].remaining_powerups : 10}
+                            {podiumUsers[0].remaining_powerups ?? 0}
                           </span>
                         </div>
                       )}
@@ -397,7 +397,7 @@ export default function LeaderboardSection({ leagueId, leagueName, tournamentNam
                         <div className="flex items-center gap-0.5">
                           <Zap className="w-2.5 h-2.5 text-ipl-live" />
                           <span className="text-[9px] font-mono font-bold text-ipl-live leading-none">
-                            {podiumUsers[2].remaining_powerups !== undefined ? podiumUsers[2].remaining_powerups : 10}
+                            {podiumUsers[2].remaining_powerups ?? 0}
                           </span>
                         </div>
                       )}
@@ -452,7 +452,7 @@ export default function LeaderboardSection({ leagueId, leagueName, tournamentNam
                               <div className="flex items-center gap-0.5">
                                 <Zap className="w-2.5 h-2.5 text-ipl-live" />
                                 <span className="text-[9px] font-mono font-bold text-ipl-live leading-none">
-                                  {entry.remaining_powerups !== undefined ? entry.remaining_powerups : 10}
+                                  {entry.remaining_powerups ?? 0}
                                 </span>
                               </div>
                             )}
@@ -605,7 +605,7 @@ export default function LeaderboardSection({ leagueId, leagueName, tournamentNam
                             ) : (
                               <div className="flex flex-col items-center">
                                 <span className="text-base md:text-lg font-display text-ipl-live">
-                                  {entry.remaining_powerups !== undefined ? entry.remaining_powerups : 10}
+                                  {entry.remaining_powerups ?? 0}
                                 </span>
                                 <span className="text-[7px] md:text-[8px] text-gray-500 uppercase tracking-widest leading-none">Left</span>
                               </div>

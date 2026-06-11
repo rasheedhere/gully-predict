@@ -47,6 +47,15 @@ async def fetch_leaderboard_data(db: AsyncSession, league_id: str):
         league_res = await db.execute(select(League.tournament_id).where(League.id == league_id))
         tournament_id = league_res.scalar_one_or_none()
 
+    # Fetch master campaign's max_powerups as the default
+    master_cam_res = await db.execute(
+        select(Campaign.max_powerups).where(
+            Campaign.tournament_id == tournament_id,
+            Campaign.is_master == True
+        ).limit(1)
+    )
+    default_max_powerups = master_cam_res.scalar_one_or_none() or 10
+
     # Get leaderboard entries reading directly from LeaderboardCache
     query = select(
         User.id,
@@ -56,7 +65,7 @@ async def fetch_leaderboard_data(db: AsyncSession, league_id: str):
         User.avatar_url,
         func.coalesce(LeaderboardCache.total_points, 0).label("total_points"),
         func.coalesce(TournamentUserMapping.base_points, 0).label("base_points"),
-        func.coalesce(TournamentUserMapping.base_powerups, 10).label("base_powerups"),
+        func.coalesce(TournamentUserMapping.base_powerups, default_max_powerups).label("base_powerups"),
     )
     
     if is_global:
@@ -116,7 +125,7 @@ async def fetch_leaderboard_data(db: AsyncSession, league_id: str):
     users_data = []
     for row in users_raw_data:
         global_used = user_global_used.get(row.id, 0)
-        global_max = row.base_powerups if row.base_powerups is not None else 10
+        global_max = row.base_powerups if row.base_powerups is not None else default_max_powerups
         global_remaining = max(0, global_max - global_used)
         
         balances = [
@@ -539,7 +548,7 @@ async def get_analysis_data(tournament_id: str = "ipl-2026", db: AsyncSession = 
                 "alias": alias,
                 "use_alias": use_alias,
                 "avatar_url": avatar,
-                "base_powerups": base or 10,
+                "base_powerups": base if base is not None else default_max_powerups,
                 "used_matches": [],
                 "total_powerup_points": 0,
                 "avg_points_per_powerup": 0
@@ -581,7 +590,7 @@ async def get_analysis_data(tournament_id: str = "ipl-2026", db: AsyncSession = 
                 "alias": alias,
                 "use_alias": use_alias,
                 "avatar_url": avatar,
-                "base_powerups": base or 10,
+                "base_powerups": base if base is not None else default_max_powerups,
                 "used_matches": []
             }
 
@@ -1028,7 +1037,7 @@ async def get_my_leagues(db: AsyncSession = Depends(get_db), current_user: User 
         
         mapping_res = await db.execute(select(TournamentUserMapping).where(TournamentUserMapping.user_id == current_user.id, TournamentUserMapping.tournament_id == t_id))
         mapping = mapping_res.scalars().first()
-        base_pu = mapping.base_powerups if mapping else 10
+        base_pu = mapping.base_powerups if mapping and mapping.base_powerups is not None else 10
         
         used_res = await db.execute(
             select(func.count(CampaignResponse.id))
@@ -1056,7 +1065,7 @@ async def get_my_leagues(db: AsyncSession = Depends(get_db), current_user: User 
     for t in tournaments:
         mapping_res = await db.execute(select(TournamentUserMapping).where(TournamentUserMapping.user_id == current_user.id, TournamentUserMapping.tournament_id == t.id))
         mapping = mapping_res.scalars().first()
-        base_pu = mapping.base_powerups if mapping else 10
+        base_pu = mapping.base_powerups if mapping and mapping.base_powerups is not None else 10
         
         used_res = await db.execute(
             select(func.count(CampaignResponse.id))

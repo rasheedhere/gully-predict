@@ -142,11 +142,19 @@ async def update_user_base_stats(user_id: str, payload: dict, db: AsyncSession =
         )
         mapping = res.scalars().first()
         if not mapping:
+            from backend.models import Campaign
+            cam_res = await db.execute(
+                select(Campaign.max_powerups).where(
+                    Campaign.tournament_id == tournament_id,
+                    Campaign.is_master == True
+                ).limit(1)
+            )
+            default_powerups = cam_res.scalar_one_or_none() or 10
             mapping = TournamentUserMapping(
                 tournament_id=tournament_id,
                 user_id=user_id,
                 base_points=0,
-                base_powerups=10,
+                base_powerups=default_powerups,
                 powerups_used=0
             )
             db.add(mapping)

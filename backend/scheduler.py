@@ -83,23 +83,6 @@ async def generate_ai_prediction(db, match: Match, ai_user: User):
     t1_prob = t1_strength / (t1_strength + t2_strength)
     match_winner = match.team1 if random.random() < t1_prob else match.team2
 
-    # Always fetch scoped mapping to track powerups properly
-    mapping_res = await db.execute(
-        select(TournamentUserMapping).where(
-            TournamentUserMapping.tournament_id == match.tournament_id,
-            TournamentUserMapping.user_id == ai_user.id
-        )
-    )
-    mapping = mapping_res.scalars().first()
-    if not mapping:
-        mapping = TournamentUserMapping(
-            tournament_id=match.tournament_id,
-            user_id=ai_user.id,
-            base_powerups=10,
-            powerups_used=0
-        )
-        db.add(mapping)
-
     # Find the master campaign for this tournament (handles multiple targeted campaigns)
     cam_res = await db.execute(
         select(Campaign).options(selectinload(Campaign.questions), selectinload(Campaign.target_matches))
@@ -121,6 +104,24 @@ async def generate_ai_prediction(db, match: Match, ai_user: User):
 
     if not master_cam:
         return  # No campaign to predict against
+
+    # Always fetch scoped mapping to track powerups properly
+    mapping_res = await db.execute(
+        select(TournamentUserMapping).where(
+            TournamentUserMapping.tournament_id == match.tournament_id,
+            TournamentUserMapping.user_id == ai_user.id
+        )
+    )
+    mapping = mapping_res.scalars().first()
+    if not mapping:
+        default_powerups = master_cam.max_powerups if master_cam.max_powerups is not None else 10
+        mapping = TournamentUserMapping(
+            tournament_id=match.tournament_id,
+            user_id=ai_user.id,
+            base_powerups=default_powerups,
+            powerups_used=0
+        )
+        db.add(mapping)
 
     is_heavy_favorite = abs(t1_strength - t2_strength) >= 3
     use_powerup = False
