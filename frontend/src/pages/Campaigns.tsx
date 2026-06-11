@@ -1,9 +1,9 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useSearchParams, useNavigate } from 'react-router-dom';
 import { Megaphone, CheckCircle, Lock, Trophy, Star, Hash } from 'lucide-react';
 import { useCampaigns, type Campaign } from '../api/hooks/useCampaigns';
 import { CampaignCountdown } from '../components/CampaignCountdown';
-import { useTournamentStore } from '../store/tournament';
+import LocalTournamentSelector from '../components/LocalTournamentSelector';
 
 function StatusBadge({ status }: { status: Campaign['status'] }) {
   if (status === 'active') {
@@ -96,7 +96,8 @@ function CampaignCard({ campaign }: { campaign: Campaign }) {
 }
 
 export default function Campaigns() {
-  const { activeTournamentId } = useTournamentStore();
+  const [searchParams] = useSearchParams();
+  const activeTournamentId = searchParams.get('tournament');
   const { data: campaigns, isLoading, error } = useCampaigns(activeTournamentId || undefined);
   const [activeTab, setActiveTab] = useState<'active' | 'past'>('active');
 
@@ -145,6 +146,9 @@ export default function Campaigns() {
           </p>
         </div>
       </header>
+
+      {/* Tournament Selector */}
+      <LocalTournamentSelector />
 
       {/* Tab Switcher (Styled as iOS Segmented Control) */}
       <div className="flex bg-white/5 p-1 rounded-2xl border border-white/10 w-full md:w-fit shrink-0 self-start md:self-end">

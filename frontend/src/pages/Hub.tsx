@@ -3,21 +3,18 @@ import { useNavigate } from 'react-router-dom';
 import { Trophy, ChevronRight, Sparkles } from 'lucide-react';
 import { useTournaments } from '../api/hooks/useTournaments';
 import { useMyLeagues } from '../api/hooks/useMatches';
-import { useTournamentStore } from '../store/tournament';
 
 export default function Hub() {
   const navigate = useNavigate();
   const { data: tournaments, isLoading: loadingTournaments } = useTournaments();
   const { data: leagues, isLoading: loadingLeagues } = useMyLeagues();
-  const { setActiveTournamentId } = useTournamentStore();
 
   // Auto-redirect if only 1 tournament exists in total
   useEffect(() => {
     if (!loadingTournaments && tournaments && tournaments.length === 1) {
-      setActiveTournamentId(tournaments[0].id);
-      navigate('/matchcenter', { replace: true });
+      navigate(`/matchcenter?tournament=${tournaments[0].id}`, { replace: true });
     }
-  }, [tournaments, loadingTournaments, navigate, setActiveTournamentId]);
+  }, [tournaments, loadingTournaments, navigate]);
 
   if (loadingTournaments || loadingLeagues) {
     return <div className="text-white text-center font-display tracking-widest animate-pulse mt-20">LOADING HUB...</div>;
@@ -37,8 +34,7 @@ export default function Hub() {
   const otherTournaments = tournaments?.filter(t => !activeTournaments.has(t.id) && t.status !== 'completed') || [];
 
   const handleEnterContext = (tournamentId: string, path: string = '/matchcenter') => {
-    setActiveTournamentId(tournamentId);
-    navigate(path);
+    navigate(`${path}?tournament=${tournamentId}`);
   };
 
   return (

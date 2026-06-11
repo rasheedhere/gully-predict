@@ -2,7 +2,6 @@ import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useMatches, useMyPredictionStatus } from '../api/hooks/useMatches';
 import { useAuthStore } from '../store/auth';
-import { useTournamentStore } from '../store/tournament';
 import { Sparkles, BarChart3 } from 'lucide-react';
 import { getTeamColor, getTeamShortName } from '../utils/teamColors';
 import { getTeamLogo } from '../utils/teamLogos';
@@ -32,8 +31,7 @@ const formatMatchTime = (isoString: string) => {
 
 export default function MatchCenter() {
   const { user } = useAuthStore();
-  const { activeTournamentId } = useTournamentStore();
-  const { data: matches, isLoading, error } = useMatches(activeTournamentId || undefined);
+  const { data: matches, isLoading, error } = useMatches(); // Fetch ALL matches
   const { data: predictionStatus } = useMyPredictionStatus();
 
   // Scroll index tracking for iOS-style pagination indicators
@@ -138,10 +136,17 @@ export default function MatchCenter() {
                     }}
                   >
                     {/* Card Top Header */}
-                    <div className="flex justify-between items-center mb-6">
-                      <span className="text-[10px] md:text-xs font-display tracking-[0.2em] uppercase text-gray-400 font-semibold">
-                        Match {matchNumber} • {match.venue}
-                      </span>
+                    <div className="flex justify-between items-start mb-6">
+                      <div className="flex flex-col">
+                        {match.tournament && (
+                          <span className="text-[10px] md:text-[11px] font-display font-bold text-ipl-gold mb-1 uppercase tracking-widest bg-white/5 px-2 py-0.5 rounded border border-ipl-gold/20 self-start">
+                            {match.tournament.name}
+                          </span>
+                        )}
+                        <span className="text-[10px] md:text-xs font-display tracking-[0.2em] uppercase text-gray-400 font-semibold mt-1">
+                          Match {matchNumber} • {match.venue}
+                        </span>
+                      </div>
                       <div className="flex items-center gap-1.5">
                         {hasPredicted ? (
                           <span className="text-[9px] font-display uppercase tracking-widest px-2.5 py-0.5 rounded-full border border-ipl-gold/30 bg-ipl-gold/5 text-ipl-gold font-bold">
@@ -281,7 +286,8 @@ export default function MatchCenter() {
 
                   {/* Right side: Time and Venue */}
                   <div className="text-right">
-                    <span className="text-[11px] font-display font-bold text-ipl-gold tracking-wider block">{timeFormatted}</span>
+                    {match.tournament && <span className="text-[8px] font-display font-bold text-ipl-gold uppercase tracking-widest block mb-0.5">{match.tournament.name}</span>}
+                    <span className="text-[11px] font-display font-bold text-white tracking-wider block">{timeFormatted}</span>
                     <span className="text-[9px] font-body text-gray-400 mt-0.5 block truncate max-w-[120px]">{match.venue}</span>
                   </div>
                 </Link>
@@ -320,10 +326,13 @@ export default function MatchCenter() {
                   className="relative bg-[#141822]/80 border border-white/5 rounded-2xl p-4 hover:bg-white/[0.02] transition-all duration-200 overflow-hidden flex flex-col justify-between min-h-[130px] shadow-sm"
                 >
                   {/* Top Row: Match Number & Win Badge */}
-                  <div className="flex justify-between items-center w-full">
-                    <span className="text-[9px] font-display uppercase tracking-widest text-gray-500 font-semibold">
-                      Match {matchNumber}
-                    </span>
+                  <div className="flex justify-between items-start w-full">
+                    <div className="flex flex-col">
+                      {match.tournament && <span className="text-[8px] font-display font-bold text-ipl-gold uppercase tracking-widest mb-0.5">{match.tournament.name}</span>}
+                      <span className="text-[9px] font-display uppercase tracking-widest text-gray-500 font-semibold">
+                        Match {matchNumber}
+                      </span>
+                    </div>
 
                     {hasPredicted && typeof pointsWon === 'number' && (
                       <span className="bg-ipl-gold text-ipl-navy text-[7px] font-display font-extrabold uppercase tracking-wider px-1.5 py-0.5 rounded select-none">

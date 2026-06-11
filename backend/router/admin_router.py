@@ -240,3 +240,33 @@ async def trigger_ai_predictions(db: AsyncSession = Depends(get_db), current_adm
     # Run the background job synchronously for the API response
     asyncio.create_task(auto_predict_daily_job())
     return {"message": "AI prediction job triggered in the background"}
+
+class TournamentStatusUpdate(BaseModel):
+    status: str
+
+@router.put("/tournaments/{tournament_id}/status")
+async def update_tournament_status(
+    tournament_id: str,
+    payload: TournamentStatusUpdate,
+    db: AsyncSession = Depends(get_db),
+    current_admin: User = Depends(get_current_admin)
+):
+    from backend.models import Tournament, TournamentStatus
+    try:
+        new_status = TournamentStatus(payload.status)
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Invalid tournament status")
+
+    res = await db.execute(select(Tournament).where(Tournament.id == tournament_id))
+    tournament = res.scalars().first()
+    if not tournament:
+        raise HTTPException(status_code=404, detail="Tournament not found")
+
+    tournament.status = new_status
+    await db.commit()
+    
+    # Invalidate cache
+    backend_cache.invalidate("matches_*")
+    backend_cache.invalidate("tournaments_*")
+    
+    return {"message": f"Tournament status updated to {new_status.value}"}

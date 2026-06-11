@@ -16,6 +16,10 @@ export interface Match {
   reported_by_name?: string;
   reported_by_email?: string;
   report_method?: string;
+  tournament?: {
+    id: string;
+    name: string;
+  };
 }
 
 export function useMyPredictionStatus() {

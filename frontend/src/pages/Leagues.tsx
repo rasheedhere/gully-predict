@@ -3,17 +3,14 @@ import { useMyLeagues, useJoinLeague } from '../api/hooks/useLeagues';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Trophy, Plus, Sparkles, ShieldCheck, ChevronRight } from 'lucide-react';
 import toast from 'react-hot-toast';
-import { useTournamentStore } from '../store/tournament';
 
 export default function Leagues() {
-  const { data: allLeagues, isLoading } = useMyLeagues();
-  const { activeTournamentId } = useTournamentStore();
+  const { data: leagues, isLoading } = useMyLeagues();
   const joinLeague = useJoinLeague();
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
 
   const showJoinModal = searchParams.get('join') === 'true';
-  const leagues = allLeagues?.filter((l: any) => l.tournament_id === activeTournamentId) || [];
   const [joinCode, setJoinCode] = useState('');
 
   const handleJoin = async (e: React.FormEvent) => {
@@ -113,38 +110,47 @@ export default function Leagues() {
           </div>
 
           <div className="grid gap-4 w-full">
-            {leagues?.map((league) => (
+            {leagues?.map((league: any) => (
               <div
                 key={league.id}
                 onClick={() => navigate(`/leagues/${league.id}`)}
                 className="w-full active:scale-[0.98] transition-transform select-none"
               >
                 <div className="bg-white/5 border border-white/10 hover:border-white/20 p-4 md:p-5 rounded-[22px] transition-all cursor-pointer flex items-center justify-between group shadow-sm hover:shadow-xl">
-                  <div className="flex items-center gap-4 md:gap-6 min-w-0 flex-1 mr-4">
-                    <div className={`w-12 h-12 md:w-16 md:h-16 rounded-[18px] flex items-center justify-center text-xl md:text-2xl font-display font-bold shadow-2xl shrink-0 border-2
-                      ${league.id === 'global-league' || league.id.endsWith('-global')
-                        ? 'bg-gradient-to-br from-ipl-gold to-yellow-600 text-ipl-navy border-white/20'
-                        : 'bg-black/40 text-ipl-gold border-white/10 group-hover:border-ipl-gold/50'}
-                    `}>
-                      {league.name.charAt(0)}
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <h3 className="text-lg md:text-xl font-display font-bold text-white flex items-center gap-2 group-hover:text-ipl-gold transition-colors italic uppercase tracking-tight leading-tight truncate">
-                        {league.name}
-                        {league.is_admin && (
-                          <span className="p-1 bg-ipl-gold/10 rounded-lg shrink-0">
-                            <ShieldCheck className="w-3.5 h-3.5 text-ipl-gold" />
+                  <div className="flex flex-col gap-2 min-w-0 flex-1 mr-4">
+                    <div className="flex items-center gap-4 md:gap-6 w-full">
+                      <div className={`w-12 h-12 md:w-16 md:h-16 rounded-[18px] flex items-center justify-center text-xl md:text-2xl font-display font-bold shadow-2xl shrink-0 border-2
+                        ${league.id === 'global-league' || league.id.endsWith('-global')
+                          ? 'bg-gradient-to-br from-ipl-gold to-yellow-600 text-ipl-navy border-white/20'
+                          : 'bg-black/40 text-ipl-gold border-white/10 group-hover:border-ipl-gold/50'}
+                      `}>
+                        {league.name.charAt(0)}
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <div className="flex flex-col items-start gap-1 mb-1">
+                          {league.tournament_name && (
+                            <span className="text-[9px] font-display uppercase tracking-widest px-2 py-0.5 rounded bg-white/5 border border-white/10 text-ipl-gold">
+                              {league.tournament_name}
+                            </span>
+                          )}
+                          <h3 className="text-lg md:text-xl font-display font-bold text-white flex items-center gap-2 group-hover:text-ipl-gold transition-colors italic uppercase tracking-tight leading-tight truncate">
+                            {league.name}
+                            {league.is_admin && (
+                              <span className="p-1 bg-ipl-gold/10 rounded-lg shrink-0">
+                                <ShieldCheck className="w-3.5 h-3.5 text-ipl-gold" />
+                              </span>
+                            )}
+                          </h3>
+                        </div>
+                        <div className="flex items-center gap-2 mt-1 min-w-0">
+                          <span className="text-[9px] font-display uppercase tracking-widest text-gray-500 font-bold shrink-0">
+                            {league.id === 'global-league' || league.id.endsWith('-global') ? 'Official' : 'Private'}
                           </span>
-                        )}
-                      </h3>
-                      <div className="flex items-center gap-2 mt-1 min-w-0">
-                        <span className="text-[9px] font-display uppercase tracking-widest text-gray-500 font-bold shrink-0">
-                          {league.id === 'global-league' || league.id.endsWith('-global') ? 'Official' : 'Private'}
-                        </span>
-                        <div className="w-1 h-1 bg-gray-700 rounded-full shrink-0" />
-                        <span className="text-[9px] font-display uppercase tracking-widest text-gray-600 truncate">
-                          Code: {league.join_code}
-                        </span>
+                          <div className="w-1 h-1 bg-gray-700 rounded-full shrink-0" />
+                          <span className="text-[9px] font-display uppercase tracking-widest text-gray-600 truncate">
+                            Code: {league.join_code}
+                          </span>
+                        </div>
                       </div>
                     </div>
                   </div>

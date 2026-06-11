@@ -1,16 +1,15 @@
 import { Outlet, Navigate, Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../store/auth';
-import { 
-  Trophy, 
-  LayoutDashboard, 
-  Settings, 
-  LogOut, 
-  BarChart2, 
+import {
+  Trophy,
+  LayoutDashboard,
+  Settings,
+  LogOut,
+  BarChart2,
   BarChart3,
-  Megaphone, 
-  Users, 
-  Activity as ActivityIcon, 
-  ChevronDown, 
+  Megaphone,
+  Users,
+  Activity as ActivityIcon,
   ChevronLeft,
   LayoutGrid,
   Plus
@@ -20,8 +19,6 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { apiClient } from '../api/client';
 import ProfileModal from './ProfileModal';
 import { getUserDisplayName } from '../utils/userUtils';
-import { useTournaments } from '../api/hooks/useTournaments';
-import { useTournamentStore } from '../store/tournament';
 import { useUiStore } from '../store/ui';
 
 export default function Layout() {
@@ -42,13 +39,6 @@ export default function Layout() {
     localStorage.removeItem('redirect_after_login');
   };
 
-  const { activeTournamentId, setActiveTournamentId } = useTournamentStore();
-  const { data: tournaments } = useTournaments();
-
-  // Redirect to hub if trying to access a tournament-specific page without selecting one
-  const isRestrictedRoute = ['/matchcenter', '/leaderboard', '/analysis', '/campaigns', '/leagues'].some(
-    path => location.pathname.startsWith(path)
-  );
 
   // Keep profile in sync
   const { data: profile } = useQuery({
@@ -71,11 +61,7 @@ export default function Layout() {
     return <Navigate to="/login" state={{ from: location }} replace />;
   }
 
-  if (isRestrictedRoute && !activeTournamentId) {
-    return <Navigate to="/" replace />;
-  }
-
-  // Dynamic header page title mapping
+  // Determine if we should show a back button instead of the tournament selector
   const getPageTitle = (pathname: string) => {
     if (pathname === '/') return 'TOURNAMENT HUB';
     if (pathname.startsWith('/matchcenter')) return 'MATCH CENTER';
@@ -115,30 +101,17 @@ export default function Layout() {
           {/* Left Element: Back Button or Tournament Selector */}
           <div className="w-[30%] flex justify-start">
             {isDetailRoute ? (
-              <button 
-                onClick={() => navigate(-1)} 
+              <button
+                onClick={() => navigate(-1)}
                 className="flex items-center gap-0.5 text-xs font-display uppercase tracking-widest text-gray-300 active:opacity-60 p-2 -ml-2 min-h-[44px] min-w-[44px]"
               >
                 <ChevronLeft className="w-4 h-4 text-ipl-gold shrink-0" />
                 Back
               </button>
             ) : (
-              activeTournamentId && tournaments && tournaments.length > 0 && (
-                <div className="relative flex items-center">
-                  <select 
-                    value={activeTournamentId}
-                    onChange={(e) => setActiveTournamentId(e.target.value)}
-                    className="appearance-none bg-transparent border-none pr-5 py-1 text-sm font-display font-bold uppercase tracking-wider text-ipl-gold focus:outline-none cursor-pointer"
-                  >
-                    {tournaments.map(t => (
-                      <option key={t.id} value={t.id} className="bg-ipl-surface text-white">
-                        {t.name.split(' ')[0] || t.name}
-                      </option>
-                    ))}
-                  </select>
-                  <ChevronDown className="absolute right-0 w-3.5 h-3.5 text-ipl-gold pointer-events-none" />
-                </div>
-              )
+              <div className="w-8 h-8 rounded-full bg-white/5 border border-white/10 flex items-center justify-center shrink-0 opacity-0 pointer-events-none">
+                {/* Placeholder for alignment */}
+              </div>
             )}
           </div>
 
@@ -152,7 +125,7 @@ export default function Layout() {
           {/* Right Element: User Avatar Link */}
           <div className="w-[30%] flex justify-end items-center gap-2.5">
             {location.pathname === '/leagues' && (
-              <button 
+              <button
                 onClick={() => navigate('/leagues?join=true')}
                 className="w-7 h-7 rounded-lg bg-white/5 border border-white/10 flex items-center justify-center text-ipl-gold active:scale-90 transition-transform shrink-0"
                 title="Join Battleground"
@@ -161,14 +134,14 @@ export default function Layout() {
               </button>
             )}
             {user && (
-              <button 
-                onClick={() => setIsProfileOpen(true)} 
+              <button
+                onClick={() => setIsProfileOpen(true)}
                 className="relative active:scale-95 transition-transform shrink-0 min-w-[44px] min-h-[44px] flex items-center justify-end"
               >
-                <img 
-                  src={user.avatar || `https://ui-avatars.com/api/?name=${getUserDisplayName(user)}&background=0B0E1A&color=F4C430`} 
-                  alt="avatar" 
-                  className="w-8 h-8 rounded-full border border-white/20 object-cover" 
+                <img
+                  src={user.avatar || `https://ui-avatars.com/api/?name=${getUserDisplayName(user)}&background=0B0E1A&color=F4C430`}
+                  alt="avatar"
+                  className="w-8 h-8 rounded-full border border-white/20 object-cover"
                 />
               </button>
             )}
@@ -185,25 +158,6 @@ export default function Layout() {
                 <Trophy className="w-6 h-6" />
                 Gully Predict
               </Link>
-
-              {activeTournamentId && (
-                <div className="relative group">
-                  <select 
-                    value={activeTournamentId}
-                    onChange={(e) => setActiveTournamentId(e.target.value)}
-                    className="appearance-none bg-white/5 border border-white/10 rounded-lg pl-3 pr-8 py-1.5 text-xs font-display text-white focus:outline-none focus:border-ipl-gold focus:ring-1 focus:ring-ipl-gold cursor-pointer transition-colors hover:bg-white/10"
-                  >
-                    {tournaments?.map(t => (
-                      <option key={t.id} value={t.id} className="bg-ipl-surface text-white">
-                        {t.name}
-                      </option>
-                    ))}
-                  </select>
-                  <div className="absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none text-gray-400 group-hover:text-white transition-colors">
-                    <ChevronDown className="w-3 h-3" />
-                  </div>
-                </div>
-              )}
 
               <div className="flex space-x-4">
                 <Link to="/matchcenter" className="text-gray-300 hover:text-white flex items-center gap-2 px-3 py-2 text-sm font-medium transition-colors">
@@ -242,7 +196,7 @@ export default function Layout() {
             <div className="flex items-center gap-4">
               {user && (
                 <div className="flex items-center gap-3 group">
-                  <button 
+                  <button
                     onClick={() => setIsProfileOpen(true)}
                     className="flex flex-col items-end hover:text-ipl-gold transition-colors text-right"
                   >
@@ -275,13 +229,12 @@ export default function Layout() {
       <nav className="fixed bottom-0 left-0 right-0 z-50 md:hidden bg-ipl-surface/85 backdrop-blur-xl border-t border-white/5 pb-[env(safe-area-inset-bottom)] select-none [-webkit-touch-callout:none]">
         <div className="flex items-center justify-around h-14">
           {/* Matches Tab */}
-          <Link 
+          <Link
             to="/matchcenter"
-            className={`flex flex-col items-center justify-center w-16 h-12 transition-all duration-150 active:scale-95 relative ${
-              location.pathname.startsWith('/matchcenter') || location.pathname.startsWith('/match/')
-                ? 'text-ipl-gold font-bold' 
+            className={`flex flex-col items-center justify-center w-16 h-12 transition-all duration-150 active:scale-95 relative ${location.pathname.startsWith('/matchcenter') || location.pathname.startsWith('/match/')
+                ? 'text-ipl-gold font-bold'
                 : 'text-[#5e6675]'
-            }`}
+              }`}
           >
             <LayoutGrid className="w-5 h-5" />
             <span className="text-[9px] font-display uppercase tracking-widest mt-1">Matches</span>
@@ -291,11 +244,10 @@ export default function Layout() {
           </Link>
 
           {/* Leagues Tab */}
-          <Link 
+          <Link
             to="/leagues"
-            className={`flex flex-col items-center justify-center w-16 h-12 transition-all duration-150 active:scale-95 relative ${
-              location.pathname.startsWith('/leagues') ? 'text-ipl-gold font-bold' : 'text-[#5e6675]'
-            }`}
+            className={`flex flex-col items-center justify-center w-16 h-12 transition-all duration-150 active:scale-95 relative ${location.pathname.startsWith('/leagues') ? 'text-ipl-gold font-bold' : 'text-[#5e6675]'
+              }`}
           >
             <Users className="w-5 h-5" />
             <span className="text-[9px] font-display uppercase tracking-widest mt-1">Leagues</span>
@@ -305,11 +257,10 @@ export default function Layout() {
           </Link>
 
           {/* Standings Tab */}
-          <Link 
+          <Link
             to="/leaderboard"
-            className={`flex flex-col items-center justify-center w-16 h-12 transition-all duration-150 active:scale-95 relative ${
-              location.pathname.startsWith('/leaderboard') ? 'text-ipl-gold font-bold' : 'text-[#5e6675]'
-            }`}
+            className={`flex flex-col items-center justify-center w-16 h-12 transition-all duration-150 active:scale-95 relative ${location.pathname.startsWith('/leaderboard') ? 'text-ipl-gold font-bold' : 'text-[#5e6675]'
+              }`}
           >
             <Trophy className="w-5 h-5" />
             <span className="text-[9px] font-display uppercase tracking-widest mt-1">Standings</span>
@@ -319,11 +270,10 @@ export default function Layout() {
           </Link>
 
           {/* Analysis Tab */}
-          <Link 
+          <Link
             to="/analysis"
-            className={`flex flex-col items-center justify-center w-16 h-12 transition-all duration-150 active:scale-95 relative ${
-              location.pathname.startsWith('/analysis') ? 'text-ipl-gold font-bold' : 'text-[#5e6675]'
-            }`}
+            className={`flex flex-col items-center justify-center w-16 h-12 transition-all duration-150 active:scale-95 relative ${location.pathname.startsWith('/analysis') ? 'text-ipl-gold font-bold' : 'text-[#5e6675]'
+              }`}
           >
             <BarChart3 className="w-5 h-5" />
             <span className="text-[9px] font-display uppercase tracking-widest mt-1">Analysis</span>
@@ -333,13 +283,12 @@ export default function Layout() {
           </Link>
 
           {/* More Tab */}
-          <Link 
+          <Link
             to="/more"
-            className={`flex flex-col items-center justify-center w-16 h-12 transition-all duration-150 active:scale-95 relative ${
-              location.pathname.startsWith('/more') || location.pathname.startsWith('/campaigns') || location.pathname.startsWith('/activity') || location.pathname.startsWith('/admin')
-                ? 'text-ipl-gold font-bold' 
+            className={`flex flex-col items-center justify-center w-16 h-12 transition-all duration-150 active:scale-95 relative ${location.pathname.startsWith('/more') || location.pathname.startsWith('/campaigns') || location.pathname.startsWith('/activity') || location.pathname.startsWith('/admin')
+                ? 'text-ipl-gold font-bold'
                 : 'text-[#5e6675]'
-            }`}
+              }`}
           >
             <Settings className="w-5 h-5" />
             <span className="text-[9px] font-display uppercase tracking-widest mt-1">More</span>
@@ -351,9 +300,9 @@ export default function Layout() {
       </nav>
 
       {/* Global Profile Editor Sheet */}
-      <ProfileModal 
-        isOpen={isProfileOpen} 
-        onClose={() => setIsProfileOpen(false)} 
+      <ProfileModal
+        isOpen={isProfileOpen}
+        onClose={() => setIsProfileOpen(false)}
       />
     </div>
   );

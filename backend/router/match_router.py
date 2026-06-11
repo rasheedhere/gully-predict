@@ -68,16 +68,19 @@ def _is_locked(match: Match) -> bool:
 async def list_matches(tournament_id: Optional[str] = None, db: AsyncSession = Depends(get_db)):
     now = datetime.now(UTC)
     today_start = now.replace(hour=0, minute=0, second=0, microsecond=0)
-    cutoff = today_start + timedelta(days=3)
+    past_cutoff = today_start - timedelta(days=2)
+    future_cutoff = today_start + timedelta(days=3)
 
-    query = select(Match).options(selectinload(Match.reporter))
+    query = select(Match).options(selectinload(Match.reporter), selectinload(Match.tournament))
 
     if tournament_id:
         query = query.where(Match.tournament_id == tournament_id)
     else:
-        query = query.where(
-            ((Match.start_time >= today_start) & (Match.start_time <= cutoff)) &
-            ((Match.status == MatchStatus.upcoming) | (Match.status == MatchStatus.completed))
+        # Fetch matches from active/upcoming tournaments within the [-2 days, +3 days] window
+        query = query.join(Match.tournament).where(
+            (Tournament.status != "completed") &
+            (Match.start_time >= past_cutoff) & 
+            (Match.start_time <= future_cutoff)
         )
 
     result = await db.execute(query.order_by(Match.start_time.asc()))
@@ -96,6 +99,10 @@ async def list_matches(tournament_id: Optional[str] = None, db: AsyncSession = D
             "reported_by_email": m.reporter.email if m.reporter else None,
             "winner": m.raw_result_json.get("winner") if m.raw_result_json else None,
             "raw_result_json": m.raw_result_json,
+            "tournament": {
+                "id": m.tournament.id,
+                "name": m.tournament.name
+            } if m.tournament else None
         })
     return matches
 

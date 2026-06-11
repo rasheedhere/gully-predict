@@ -13,9 +13,10 @@ interface MatchCardProps {
   tossTime: string;
   status: 'upcoming' | 'live' | 'completed';
   has_predicted?: boolean;
+  tournament?: { id: string; name: string };
 }
 
-export default function MatchCard({ id, team1, team2, venue, tossTime, status, has_predicted }: MatchCardProps) {
+export default function MatchCard({ id, team1, team2, venue, tossTime, status, has_predicted, tournament }: MatchCardProps) {
   const { user } = useAuthStore();
   const t1Color = getTeamColor(team1);
   const t2Color = getTeamColor(team2);
@@ -42,7 +43,10 @@ export default function MatchCard({ id, team1, team2, venue, tossTime, status, h
         
         {/* Top Header */}
         <div className="w-full flex justify-center items-center mb-8 relative">
-          {matchNumber && <span className="text-[10px] md:text-xs font-display tracking-[0.3em] uppercase text-gray-400">Match {matchNumber}</span>}
+          <div className="flex flex-col items-center">
+            {tournament && <span className="text-[10px] md:text-[11px] font-display font-bold text-ipl-gold mb-1 uppercase tracking-widest bg-white/5 px-2 py-0.5 rounded border border-ipl-gold/20">{tournament.name}</span>}
+            {matchNumber && <span className="text-[10px] md:text-xs font-display tracking-[0.3em] uppercase text-gray-400">Match {matchNumber}</span>}
+          </div>
           {status === 'live' && (
             <span className="absolute right-0 top-1/2 -translate-y-1/2 text-[9px] font-display uppercase tracking-widest px-2 py-0.5 rounded bg-[#E84040]/10 text-[#E84040] animate-pulse">LIVE</span>
           )}

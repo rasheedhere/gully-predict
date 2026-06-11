@@ -27,7 +27,10 @@ A private Gully Predict prediction platform for a group of friends. Users sign i
 
 ### Frontend (React/TS)
 - **Tailwind CSS**: "Bold & sporty" IPL theme with custom tokens (`ipl-navy`, `ipl-gold`, `ipl-live`).
-- **State & Routing**: Zustand for auth (`src/store/auth.ts`); TanStack Query v5 for server state. **URL Search Params** (`react-router-dom`'s `useSearchParams`) are used for complex UI state (like Admin tabs) to enable deep-linking and bookmarking.
+- **State & Routing**: Zustand for auth (`src/store/auth.ts`); TanStack Query v5 for server state. **URL Search Params** (`react-router-dom`'s `useSearchParams`) are heavily used for UI state (like Admin tabs) and **Tournament Scoping** (`?tournament=id`) to enable deep-linking and bookmarking.
+- **Tournament Scoping & UI**: The app supports multiple concurrent tournaments. There is **no global tournament state** (e.g. no Zustand tournament store). 
+  - **Unified Views**: `MatchCenter` and `Leagues` pages display aggregate views of all non-completed tournaments at once. Matches and leagues display a badge of their parent tournament.
+  - **Scoped Views**: Pages requiring specific tournament contexts (`Leaderboard`, `Campaigns`, `Analysis`) use the `LocalTournamentSelector` component which syncs with the `?tournament=` URL param. If missing, it auto-defaults to the most recently active tournament.
 - **Team Colors**: `frontend/src/utils/teamColors.ts`. `getTeamColor(val)` and `getTeamShortName(val)` accept `any` type (safe against numbers/undefined).
 - **Layout & Mobile-First**: `Layout.tsx` main wrapper uses `max-w-[1280px]`. We aggressively employ `env(safe-area-inset-*)` padding to avoid iOS notches and home indicators. Forms inside complex lists are wrapped in full-screen modal overlays (`AdminModal`) to preserve scroll context and improve mobile usability.
 - **Dynamic Rendering**: `renderPredictionCard` in `MatchPage.tsx` iterates over `pred.answers` keys — **never hardcode question IDs**.

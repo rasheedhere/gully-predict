@@ -140,6 +140,20 @@ export function useCreateTournament() {
   });
 }
 
+export function useUpdateTournamentStatus() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ tournamentId, status }: { tournamentId: string; status: string }) => {
+      const response = await apiClient.put(`/admin/tournaments/${tournamentId}/status`, { status });
+      return response.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['tournaments'] });
+      queryClient.invalidateQueries({ queryKey: ['matches'] });
+    },
+  });
+}
+
 export function useCreateMatch() {
   const queryClient = useQueryClient();
   return useMutation({

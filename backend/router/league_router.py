@@ -78,14 +78,14 @@ async def get_my_leagues(
     if current_user.is_admin:
         result = await db.execute(
             select(League)
-            .options(selectinload(League.admins))
+            .options(selectinload(League.admins), selectinload(League.tournament))
         )
     else:
         result = await db.execute(
             select(League)
             .join(LeagueUserMapping, League.id == LeagueUserMapping.league_id)
             .where(LeagueUserMapping.user_id == current_user.id)
-            .options(selectinload(League.admins))
+            .options(selectinload(League.admins), selectinload(League.tournament))
         )
     leagues = result.scalars().all()
     
@@ -96,6 +96,7 @@ async def get_my_leagues(
             "id": l.id,
             "name": l.name,
             "tournament_id": l.tournament_id,
+            "tournament_name": l.tournament.name if l.tournament else None,
             "is_admin": is_admin,
             "join_code": l.join_code if is_admin else None,
             "created_at": l.created_at

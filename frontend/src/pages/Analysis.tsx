@@ -1,10 +1,12 @@
 import { useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { useAnalysis, useLeaderboard } from '../api/hooks/useMatches';
 import { Trophy, TrendingUp, Medal, Calendar, BarChart3, Star, Zap, Crown, Target, ShieldAlert, ShieldCheck, Info, RotateCcw, UserPlus } from 'lucide-react';
-import { useTournamentStore } from '../store/tournament';
+import LocalTournamentSelector from '../components/LocalTournamentSelector';
 
 export default function Analysis() {
-  const { activeTournamentId } = useTournamentStore();
+  const [searchParams] = useSearchParams();
+  const activeTournamentId = searchParams.get('tournament');
   const { data, isLoading: isAnalysisLoading } = useAnalysis(activeTournamentId || undefined);
   const { data: leaderboard, isLoading: isLBLoading } = useLeaderboard(activeTournamentId ? `${activeTournamentId}-global` : undefined);
   const [trendingTab, setTrendingTab] = useState<'weekly' | 'today'>('today');
@@ -35,6 +37,7 @@ export default function Analysis() {
 
   return (
     <div className="space-y-12 pb-12">
+      <LocalTournamentSelector />
       {/* Hall of Fame Widget */}
       <section>
         <div className="flex items-center gap-3 mb-6">

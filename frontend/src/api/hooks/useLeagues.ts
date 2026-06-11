@@ -24,6 +24,7 @@ export interface LeagueListItem {
   id: string;
   name: string;
   tournament_id: string;
+  tournament_name: string | null;
   is_admin: boolean;
   join_code: string | null;
   created_at: string;

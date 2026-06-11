@@ -1,11 +1,13 @@
 import { useState, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { useMyLeagues } from '../api/hooks/useMatches';
-import { useTournamentStore } from '../store/tournament';
 import LeaderboardSection from '../components/LeaderboardSection';
+import LocalTournamentSelector from '../components/LocalTournamentSelector';
 
 export default function Leaderboard() {
   const { data: leagues } = useMyLeagues();
-  const { activeTournamentId } = useTournamentStore();
+  const [searchParams] = useSearchParams();
+  const activeTournamentId = searchParams.get('tournament');
   const [activeLeagueId, setActiveLeagueId] = useState<string | null>(null);
 
   const globalLeagueId = `${activeTournamentId}-global`;
@@ -45,8 +47,11 @@ export default function Leaderboard() {
 
   return (
     <div className="space-y-6">
+      {/* Tournament Selector */}
+      <LocalTournamentSelector />
+
       {/* Tab Pills Navigation (Leaderboards selector) */}
-      {sortedLeagues.length > 1 && (
+      {activeTournamentId && sortedLeagues.length > 1 && (
         <div className="flex gap-2.5 overflow-x-auto pb-4 scrollbar-hide -mx-4 px-4 w-[calc(100%+2rem)] select-none">
           {sortedLeagues.map((league: any) => {
             const isActive = activeLeagueId === league.id;
@@ -68,7 +73,7 @@ export default function Leaderboard() {
       )}
 
       {/* Render Active Leaderboard Section */}
-      {sortedLeagues.map((league: any) => {
+      {activeTournamentId && sortedLeagues.map((league: any) => {
         if (league.id !== activeLeagueId) return null;
         return (
           <LeaderboardSection
@@ -80,9 +85,9 @@ export default function Leaderboard() {
         );
       })}
 
-      {!sortedLeagues.length && (
-        <div className="p-8 text-center text-white font-display text-xl tracking-widest">
-          LOADING STANDINGS...
+      {!activeTournamentId && (
+        <div className="p-8 text-center text-white font-display text-xl tracking-widest animate-pulse">
+          LOCATING ARENA...
         </div>
       )}
     </div>

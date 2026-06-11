@@ -21,7 +21,8 @@ import {
   useUpdateTournamentQuestion,
   useDeleteTournamentQuestion,
   useTournamentMatchAnswers,
-  useUpdateTournamentMatchAnswers
+  useUpdateTournamentMatchAnswers,
+  useUpdateTournamentStatus
 } from '../api/hooks/useAdmin';
 import { getUserDisplayName } from '../utils/userUtils';
 import { useMatches } from '../api/hooks/useMatches';
@@ -774,6 +775,7 @@ function SystemManagement() {
 function TournamentRegistry({ onManageMatches }: { onManageMatches: (id: string) => void }) {
   const { data: tournaments, isLoading, refetch } = useTournaments();
   const createTournament = useCreateTournament();
+  const updateStatus = useUpdateTournamentStatus();
 
   const [newId, setNewId] = useState('');
   const [newName, setNewName] = useState('');
@@ -893,9 +895,16 @@ function TournamentRegistry({ onManageMatches }: { onManageMatches: (id: string)
                     </div>
                   </td>
                   <td className="p-4">
-                    <span className="px-3 py-1 bg-white/5 border border-white/10 rounded-full text-[9px] uppercase tracking-widest">
-                      {t.status}
-                    </span>
+                    <select
+                      value={t.status}
+                      onChange={(e) => updateStatus.mutate({ tournamentId: t.id, status: e.target.value })}
+                      className="px-3 py-1 bg-white/5 border border-white/10 rounded-full text-[9px] uppercase tracking-widest focus:outline-none focus:border-ipl-gold transition-colors"
+                      disabled={updateStatus.isPending}
+                    >
+                      <option value="upcoming" className="bg-ipl-navy">Upcoming</option>
+                      <option value="active" className="bg-ipl-navy">Active</option>
+                      <option value="completed" className="bg-ipl-navy">Completed</option>
+                    </select>
                   </td>
                   <td className="p-4 font-mono text-[10px] tracking-tight">
                     {t.starts_at ? new Date(t.starts_at).toLocaleDateString() : 'N/A'} — {t.ends_at ? new Date(t.ends_at).toLocaleDateString() : 'N/A'}
@@ -928,9 +937,16 @@ function TournamentRegistry({ onManageMatches }: { onManageMatches: (id: string)
                   <span className="text-base text-white font-bold font-display">{t.name}</span>
                   <span className="text-[9px] text-gray-500 font-mono tracking-widest uppercase">{t.id}</span>
                 </div>
-                <span className="px-2.5 py-0.5 bg-white/5 border border-white/10 rounded-full text-[9px] uppercase tracking-widest font-bold">
-                  {t.status}
-                </span>
+                <select
+                  value={t.status}
+                  onChange={(e) => updateStatus.mutate({ tournamentId: t.id, status: e.target.value })}
+                  className="px-2.5 py-0.5 bg-white/5 border border-white/10 rounded-full text-[9px] uppercase tracking-widest font-bold focus:outline-none focus:border-ipl-gold transition-colors"
+                  disabled={updateStatus.isPending}
+                >
+                  <option value="upcoming" className="bg-ipl-navy">Upcoming</option>
+                  <option value="active" className="bg-ipl-navy">Active</option>
+                  <option value="completed" className="bg-ipl-navy">Completed</option>
+                </select>
               </div>
               <div className="flex justify-between items-center pt-2 border-t border-white/5">
                 <span className="text-[10px] font-mono text-gray-400">
