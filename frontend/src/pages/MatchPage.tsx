@@ -70,9 +70,13 @@ export default function MatchPage() {
 
   const winnerQId = useMemo(() => {
     if (!match) return null;
+    // Prefer stable slug "match_winner"
+    const bySlug = questions.find((q: any) => q.slug === 'match_winner');
+    if (bySlug) return bySlug.key;
+    // Fallback: first question whose options include both team names
     const teamSet = new Set([match.team1, match.team2]);
     return questions.find((q: any) =>
-      q.options && q.options.length === 2 && q.options.every((opt: string) => teamSet.has(opt))
+      q.options && q.options.length >= 2 && Array.from(teamSet).every((team: string) => q.options.includes(team))
     )?.key || null;
   }, [questions, match]);
 

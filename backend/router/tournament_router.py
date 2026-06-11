@@ -273,7 +273,7 @@ async def update_tournament_question(
     if not q:
         raise HTTPException(status_code=404, detail="Question not found")
 
-    # Check if used
+    # Check if used in any campaign
     from backend.models import Campaign, CampaignQuestion
     used_res = await db.execute(
         select(CampaignQuestion).join(Campaign).where(
@@ -284,7 +284,19 @@ async def update_tournament_question(
     is_used = used_res.scalars().first() is not None
 
     if is_used and q.key != payload.key:
-         raise HTTPException(status_code=400, detail="Cannot change the key of a question that is already in use.")
+        # Allow slug/key rename if question_type and options stay the same
+        # (answers are stored by question UUID, not slug — so renaming the slug is safe)
+        type_changed = q.question_type != payload.question_type
+        options_changed = q.options != payload.options
+        if type_changed or options_changed:
+            raise HTTPException(
+                status_code=400,
+                detail="Cannot change the key, type, and options of a question that is already in use."
+            )
+        import logging
+        logging.getLogger(__name__).warning(
+            f"Slug/key changed on in-use question {question_id}: '{q.key}' -> '{payload.key}'"
+        )
 
     q.key = payload.key
     q.question_text = payload.question_text
