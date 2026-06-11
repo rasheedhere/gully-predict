@@ -71,7 +71,7 @@ export default function MatchPage() {
   const winnerQId = useMemo(() => {
     if (!match) return null;
     // Prefer stable slug "match_winner"
-    const bySlug = questions.find((q: any) => q.slug === 'match_winner');
+    const bySlug = questions.find((q: any) => q.key === 'match_winner');
     if (bySlug) return bySlug.key;
     // Fallback: first question whose options include both team names
     const teamSet = new Set([match.team1, match.team2]);
