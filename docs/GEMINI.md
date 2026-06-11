@@ -157,15 +157,25 @@ When a match is completed and graded (scored), the system follows this multi-ste
     *   Leaderboard caches are invalidated so that users see updated rankings immediately on the frontend.
 
 ### 4. Late Entrants & Handicaps
-- **Tournament Scoping**: Stats (`base_points`, `base_powerups`) are stored in `TournamentUserMapping`.
-- **Campaign Scoping**: Master campaigns can specify their own `max_powerups` (e.g. for Playoffs).
-- **Powerup Balances**: The scoring and leaderboard systems maintain distinct powerup balances:
-  - **Global**: Remaining = `base_powerups` (from `TournamentUserMapping`, defaults to `10`) minus total global powerups used.
-  - **Campaign-Scoped**: Remaining = `max_powerups` (from `Campaign`) minus powerups used on that specific campaign.
+- **Tournament Scoping**: Stats (`base_points`, `base_powerups`) are stored in `TournamentUserMapping`. This is an optional per-user override.
+- **Campaign Scoping**: Master campaigns can specify their own `max_powerups` (e.g. for Playoffs, or as the default for the entire tournament like FIFA 2026).
+- **Powerup Balances Configuration**: 
+  - The **Master Campaign's `max_powerups`** acts as the single source of truth and default limit for the tournament.
+  - The system dynamically counts powerup usage by querying `CampaignResponse` where `use_powerup=True`. It does not rely on a static `powerups_used` counter.
+  - If a user lacks a `TournamentUserMapping` row, the leaderboard and logic gracefully fall back to the Master Campaign's limit, ensuring new users automatically receive the correct default powerups (e.g., instead of a hardcoded 10).
+  - Admins can still grant custom powerup limits to specific users by explicitly updating their `TournamentUserMapping.base_powerups`.
   Both balances are displayed dynamically in all desktop and mobile leaderboard interfaces.
 - **Handicaps**: Late entrants get base_powerups and can be given a catch-up handicap (`base_points`). They are immune to non-participation penalties for matches starting before their `created_at` timestamp.
 
-### 5. Match Questions Display & Submission Mapping
+### 5. `match_winner` Slug & Question Identification
+The system relies on identifying the primary "Match Winner" question to drive several critical UI and UX behaviors. The question's `key` (exposed as `slug` in the frontend) should ideally be set to `"match_winner"`.
+
+**What the `match_winner` slug drives:**
+1. **Visual Presentation (`isMatchWinner`)**: In `MatchPage.tsx`, the question identified as the match winner is rendered with large, prominently-sized, team-colored selection buttons, whereas other binary choices use smaller standard buttons.
+2. **Community Reveal Sorting**: In the community predictions list, users are grouped and sorted by their match winner selection (Team 1 supporters first, then Team 2 supporters). This powers the "Supporters" count UI after the lock period.
+3. **Fallback Logic**: If the `match_winner` slug is missing, the frontend attempts to fallback by finding the first question whose options exactly contain both match team names.
+
+### 6. Match Questions Display & Submission Mapping
 The system dynamically displays both global (Master) and league-specific questions on a single Match prediction form and handles collisions seamlessly:
 
 *   **API Retrieval & Key Collision Prevention**:
