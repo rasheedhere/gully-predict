@@ -97,9 +97,9 @@ export function useTriggerAIPredictions() {
 
 export function useTournaments() {
   return useQuery({
-    queryKey: ['tournaments'],
+    queryKey: ['tournaments', 'admin'],
     queryFn: async () => {
-      const response = await apiClient.get<any[]>('/tournaments');
+      const response = await apiClient.get<any[]>('/tournaments?include_completed=true');
       return response.data;
     },
   });

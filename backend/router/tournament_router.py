@@ -116,13 +116,13 @@ async def bulk_import_matches(
     return {"message": f"Successfully imported {imported_count} matches"}
 
 @router.get("")
-async def list_tournaments(db: AsyncSession = Depends(get_db)):
+async def list_tournaments(include_completed: bool = False, db: AsyncSession = Depends(get_db)):
     # Include leagues as part of the response
-    result = await db.execute(
-        select(Tournament)
-        .where(Tournament.status != TournamentStatus.completed)
-        .options(selectinload(Tournament.leagues))
-    )
+    query = select(Tournament).options(selectinload(Tournament.leagues))
+    if not include_completed:
+        query = query.where(Tournament.status != TournamentStatus.completed)
+        
+    result = await db.execute(query)
     return result.scalars().all()
 
 @router.get("/{tournament_id}/leagues")
