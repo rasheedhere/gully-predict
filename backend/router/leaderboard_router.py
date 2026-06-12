@@ -31,7 +31,7 @@ async def get_league_leaderboard(league_id: str = "ipl-2026-global", db: AsyncSe
 
 async def fetch_leaderboard_data(db: AsyncSession, league_id: str):
     cache_key = f"leaderboard_{league_id}"
-    cached = backend_cache.get(cache_key)
+    cached = await backend_cache.get(cache_key)
     if cached:
         return cached
 
@@ -332,13 +332,13 @@ async def fetch_leaderboard_data(db: AsyncSession, league_id: str):
             "accuracy_pct": 0
         })
     
-    backend_cache.set(cache_key, entries)
+    await backend_cache.set(cache_key, entries)
     return entries
 
 @router.get("/match/{match_id}")
 async def get_match_leaderboard(match_id: str, db: AsyncSession = Depends(get_db)):
     cache_key = f"match_leaderboard_{match_id}"
-    cached = backend_cache.get(cache_key)
+    cached = await backend_cache.get(cache_key)
     if cached:
         return cached
 
@@ -365,13 +365,13 @@ async def get_match_leaderboard(match_id: str, db: AsyncSession = Depends(get_db
             "match_points": points
         })
     
-    backend_cache.set(cache_key, entries)
+    await backend_cache.set(cache_key, entries)
     return entries
 
 @router.get("/match-podiums")
 async def get_match_podiums(db: AsyncSession = Depends(get_db)):
     cache_key = "match_podiums"
-    # cached = backend_cache.get(cache_key)
+    # cached = await backend_cache.get(cache_key)
     # if cached: return cached
 
     matches_res = await db.execute(
@@ -427,13 +427,13 @@ async def get_match_podiums(db: AsyncSession = Depends(get_db)):
             "top_players": top_players
         })
     
-    backend_cache.set(cache_key, podiums)
+    await backend_cache.set(cache_key, podiums)
     return podiums
 
 @router.get("/analysis")
 async def get_analysis_data(tournament_id: str = "ipl-2026", db: AsyncSession = Depends(get_db)):
     cache_key = f"analysis_{tournament_id}"
-    cached = backend_cache.get(cache_key)
+    cached = await backend_cache.get(cache_key)
     if cached: 
         return cached
 
@@ -1000,7 +1000,7 @@ async def get_analysis_data(tournament_id: str = "ipl-2026", db: AsyncSession = 
     for stat in analysis_data["accuracy_stats"]:
         stat["badges"] = [b for b in stat["badges"] if b is not None]
     
-    backend_cache.set(cache_key, analysis_data)
+    await backend_cache.set(cache_key, analysis_data)
     return analysis_data
 
 

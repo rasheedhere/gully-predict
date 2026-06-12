@@ -44,7 +44,7 @@ async def auth_callback(request: Request, db: AsyncSession = Depends(get_db)):
         
         # 1. Check Allowlist or Existing User
         allowlisted_entry = None
-        cached_allowlist = backend_cache.get("allowlist")
+        cached_allowlist = await backend_cache.get("allowlist")
         if cached_allowlist:
             for entry in cached_allowlist:
                 if entry.email == email:
@@ -155,7 +155,7 @@ async def verify_google_token(payload: VerifyTokenRequest, db: AsyncSession = De
         
     # 1. Check Allowlist or Existing User
     allowlisted_entry = None
-    cached_allowlist = backend_cache.get("allowlist")
+    cached_allowlist = await backend_cache.get("allowlist")
     if cached_allowlist:
         for entry in cached_allowlist:
             if entry.email == email:

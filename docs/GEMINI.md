@@ -21,6 +21,7 @@ A private Gully Predict prediction platform for a group of friends. Users sign i
 - **Async Throughout**: Use `async def` and `await` for all DB and external I/O.
 - **Models**: `backend/models.py` — all SQLAlchemy models in one file.
 - **Routers**: Organized by domain (`auth`, `match`, `admin`, `campaigns`, `leaderboard`, `tournament`, `league`, `external`, `events`).
+- **Caching**: Dual-cache architecture via `backend/utils/cache.py`. Supports in-memory `SimpleCache` for local dev (`CACHE_TYPE=memory`) and Aiven `ValkeyCache` for production scaling (`CACHE_TYPE=valkey`).
 - **Scoring Engine**: `backend/scoring.py` (match scoring) + `backend/campaigns_scoring.py` (campaign-specific scoring).
 - **Permissions**: `backend/utils/permissions.py` — RBAC helpers for league admin checks.
 - **Event Bus**: `backend/utils/events.py` — `dispatch_event` utility for audit logging.

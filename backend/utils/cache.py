@@ -1,4 +1,6 @@
+import os
 import time
+import json
 from typing import Any, Optional
 
 class SimpleCache:
@@ -6,10 +8,9 @@ class SimpleCache:
         self._cache = {}
         self._default_ttl = default_ttl
 
-    def get(self, key: str) -> Optional[Any]:
+    async def get(self, key: str) -> Optional[Any]:
         if key in self._cache:
             value, timestamp, ttl = self._cache[key]
-            # Use specific TTL if provided, otherwise default
             effective_ttl = ttl if ttl is not None else self._default_ttl
             if time.time() - timestamp < effective_ttl:
                 return value
@@ -17,21 +18,65 @@ class SimpleCache:
                 del self._cache[key]
         return None
 
-    def set(self, key: str, value: Any, ttl: Optional[int] = None):
+    async def set(self, key: str, value: Any, ttl: Optional[int] = None):
         self._cache[key] = (value, time.time(), ttl)
 
-    def invalidate(self, key: str):
+    async def invalidate(self, key: str):
         if key in self._cache:
             del self._cache[key]
-        # Handle wildcard invalidation for match leaderboards
         if key.endswith("*"):
             prefix = key[:-1]
             keys_to_del = [k for k in self._cache.keys() if k.startswith(prefix)]
             for k in keys_to_del:
                 del self._cache[k]
 
-    def clear(self):
+    async def clear(self):
         self._cache = {}
 
-# Global instance for app-wide caching
-backend_cache = SimpleCache(default_ttl=86400) # 24 hours
+class ValkeyCache:
+    def __init__(self, default_ttl: int = 86400):
+        import redis.asyncio as redis
+        redis_url = os.environ.get("VALKEY_URL", os.environ.get("REDIS_URL", "redis://localhost:6379"))
+        self.redis = redis.from_url(redis_url, decode_responses=True)
+        self._default_ttl = default_ttl
+
+    async def get(self, key: str) -> Optional[Any]:
+        try:
+            val = await self.redis.get(key)
+            if val:
+                return json.loads(val)
+        except Exception as e:
+            print(f"Valkey cache get error: {e}")
+        return None
+
+    async def set(self, key: str, value: Any, ttl: Optional[int] = None):
+        try:
+            effective_ttl = ttl if ttl is not None else self._default_ttl
+            await self.redis.set(key, json.dumps(value), ex=effective_ttl)
+        except Exception as e:
+            print(f"Valkey cache set error: {e}")
+
+    async def invalidate(self, key: str):
+        try:
+            if key.endswith("*"):
+                keys = await self.redis.keys(key)
+                if keys:
+                    await self.redis.delete(*keys)
+            else:
+                await self.redis.delete(key)
+        except Exception as e:
+            print(f"Valkey cache invalidate error: {e}")
+
+    async def clear(self):
+        try:
+            await self.redis.flushdb()
+        except Exception as e:
+            print(f"Valkey cache clear error: {e}")
+
+CACHE_TYPE = os.environ.get("CACHE_TYPE", "memory").lower()
+
+if CACHE_TYPE in ("valkey", "redis"):
+    backend_cache = ValkeyCache(default_ttl=86400)
+else:
+    backend_cache = SimpleCache(default_ttl=86400)
+

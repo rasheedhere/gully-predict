@@ -447,10 +447,10 @@ async def set_tournament_match_answers(
 
     # Invalidate cache for leaderboards & podiums
     from backend.utils.cache import backend_cache
-    backend_cache.invalidate("leaderboard_*")
-    backend_cache.invalidate("analysis_*")
-    backend_cache.invalidate("match_podiums")
-    backend_cache.invalidate(f"match_leaderboard_{match_id}")
+    await backend_cache.invalidate("leaderboard_*")
+    await backend_cache.invalidate("analysis_*")
+    await backend_cache.invalidate("match_podiums")
+    await backend_cache.invalidate(f"match_leaderboard_{match_id}")
 
     return {
         "message": f"Answers saved. Scored {len(campaigns)} campaign(s).",

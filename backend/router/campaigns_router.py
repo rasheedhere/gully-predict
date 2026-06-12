@@ -308,7 +308,7 @@ async def create_campaign(
             db.add(CampaignResult(campaign_id=campaign.id, correct_answers=correct_answers))
 
     await db.commit()
-    backend_cache.invalidate("campaigns_list")
+    await backend_cache.invalidate("campaigns_list")
     return {"id": campaign.id, "message": "Campaign created"}
 
 
@@ -451,8 +451,8 @@ async def update_campaign(
                     db.add(CampaignResult(campaign_id=campaign.id, correct_answers=correct_answers))
 
     await db.commit()
-    backend_cache.invalidate("campaigns_list")
-    backend_cache.invalidate(f"campaign_{campaign_id}")
+    await backend_cache.invalidate("campaigns_list")
+    await backend_cache.invalidate(f"campaign_{campaign_id}")
     return {"message": "Campaign updated"}
 
 
@@ -469,8 +469,8 @@ async def delete_campaign(
     await _check_campaign_permission(db, campaign, current_user)
     await db.delete(campaign)
     await db.commit()
-    backend_cache.invalidate("campaigns_list")
-    backend_cache.invalidate(f"campaign_{campaign_id}")
+    await backend_cache.invalidate("campaigns_list")
+    await backend_cache.invalidate(f"campaign_{campaign_id}")
     return {"message": "Campaign deleted"}
 
 
@@ -488,8 +488,8 @@ async def update_campaign_status(
     await _check_campaign_permission(db, campaign, current_user)
     campaign.status = payload.status
     await db.commit()
-    backend_cache.invalidate("campaigns_list")
-    backend_cache.invalidate(f"campaign_{campaign_id}")
+    await backend_cache.invalidate("campaigns_list")
+    await backend_cache.invalidate(f"campaign_{campaign_id}")
     return {"message": f"Campaign status updated to {payload.status}"}
 
 
@@ -510,7 +510,7 @@ async def trigger_campaign_scoring(
     if campaign.tournament_id:
         from backend.scoring import update_leaderboard_cache
         await update_leaderboard_cache(db, campaign.tournament_id)
-    backend_cache.invalidate(f"campaign_{campaign_id}")
+    await backend_cache.invalidate(f"campaign_{campaign_id}")
     return {"message": "Scoring complete"}
 
 
@@ -559,7 +559,7 @@ async def set_campaign_result(
     if campaign.tournament_id:
         from backend.scoring import update_leaderboard_cache
         await update_leaderboard_cache(db, campaign.tournament_id)
-    backend_cache.invalidate(f"campaign_{campaign_id}")
+    await backend_cache.invalidate(f"campaign_{campaign_id}")
     return {"message": "Result saved and scoring complete"}
 
 
@@ -951,6 +951,6 @@ async def submit_response(
         db.add(response)
 
     await db.commit()
-    backend_cache.invalidate("campaigns_list")
-    backend_cache.invalidate(f"campaign_{campaign_id}")
+    await backend_cache.invalidate("campaigns_list")
+    await backend_cache.invalidate(f"campaign_{campaign_id}")
     return {"message": "Response submitted", "response_id": response.id}

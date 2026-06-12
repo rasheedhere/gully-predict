@@ -23,13 +23,13 @@ class AllowlistEmailsRequest(BaseModel):
 @router.get("/allowlist")
 async def get_allowlist(db: AsyncSession = Depends(get_db), current_admin: User = Depends(get_current_admin)):
     cache_key = "allowlist"
-    cached = backend_cache.get(cache_key)
+    cached = await backend_cache.get(cache_key)
     if cached:
         return cached
 
     result = await db.execute(select(AllowlistedEmail).order_by(AllowlistedEmail.added_at.desc()))
     entries = result.scalars().all()
-    backend_cache.set(cache_key, entries)
+    await backend_cache.set(cache_key, entries)
     return entries
 
 @router.post("/allowlist")
@@ -48,7 +48,7 @@ async def add_to_allowlist(data: AllowlistEmailsRequest, db: AsyncSession = Depe
             added.append(clean_email)
             
     await db.commit()
-    backend_cache.invalidate("allowlist")
+    await backend_cache.invalidate("allowlist")
     return {"message": f"Added {len(added)} emails", "added": added}
 
 @router.delete("/allowlist/{email}")
@@ -61,7 +61,7 @@ async def remove_from_allowlist(email: str, db: AsyncSession = Depends(get_db), 
         
     await db.delete(entry)
     await db.commit()
-    backend_cache.invalidate("allowlist")
+    await backend_cache.invalidate("allowlist")
     return {"message": f"Removed {email} from allowlist"}
 
 @router.get("/users")
@@ -110,10 +110,10 @@ async def trigger_match_scoring(match_id: str, payload: MatchResultUpdate, db: A
     await calculate_match_scores(match_id, db)
     
     # Invalidate Leaderboards after scoring update
-    backend_cache.invalidate("leaderboard_*")
-    backend_cache.invalidate("analysis_*")
-    backend_cache.invalidate("match_podiums")
-    backend_cache.invalidate(f"match_leaderboard_{match_id}")
+    await backend_cache.invalidate("leaderboard_*")
+    await backend_cache.invalidate("analysis_*")
+    await backend_cache.invalidate("match_podiums")
+    await backend_cache.invalidate(f"match_leaderboard_{match_id}")
     
     return {"message": "Results saved and scoring triggered successfully"}
 
@@ -167,8 +167,8 @@ async def update_user_base_stats(user_id: str, payload: dict, db: AsyncSession =
     await db.commit()
     
     # Invalidate Leaderboards
-    backend_cache.invalidate("leaderboard_*")
-    backend_cache.invalidate("analysis_*")
+    await backend_cache.invalidate("leaderboard_*")
+    await backend_cache.invalidate("analysis_*")
     
     return {
         "message": "User stats updated", 
@@ -225,9 +225,9 @@ async def update_prediction(
         await calculate_campaign_scores(db, c_resp.campaign_id)
 
     # Invalidate cache
-    backend_cache.invalidate("leaderboard_*")
-    backend_cache.invalidate("analysis_*")
-    backend_cache.invalidate(f"user_pred_status:{c_resp.user_id}")
+    await backend_cache.invalidate("leaderboard_*")
+    await backend_cache.invalidate("analysis_*")
+    await backend_cache.invalidate(f"user_pred_status:{c_resp.user_id}")
 
     await db.commit()
     return {"message": "Prediction updated"}
@@ -266,7 +266,7 @@ async def update_tournament_status(
     await db.commit()
     
     # Invalidate cache
-    backend_cache.invalidate("matches_*")
-    backend_cache.invalidate("tournaments_*")
+    await backend_cache.invalidate("matches_*")
+    await backend_cache.invalidate("tournaments_*")
     
     return {"message": f"Tournament status updated to {new_status.value}"}

@@ -49,6 +49,7 @@ A sophisticated, private Gully Predict Cricket prediction platform for competiti
 |---|---|
 | **Backend** | Python 3.12 · FastAPI (Async) · Uvicorn |
 | **Database** | SQLite (dev) / PostgreSQL Neon (prod) · SQLAlchemy 2.0 Async · Alembic |
+| **Caching** | Dual-Cache System (In-Memory `SimpleCache` / Aiven Valkey) |
 | **Frontend** | React 18 · Vite · TypeScript |
 | **Styling** | Tailwind CSS v4 · Custom IPL theme |
 | **State Management** | Zustand (Auth) · TanStack Query v5 (Server State) |
@@ -72,7 +73,15 @@ git clone <repo>
 cd ipl-fantasy
 cp .env.example .env
 # Fill in: GOOGLE_CLIENT_ID, DATABASE_URL, GEMINI_API_KEY
+
+# Optional Cache Settings:
+# CACHE_TYPE=memory (default) or CACHE_TYPE=valkey
+# VALKEY_URL=redis://... (if using valkey)
 ```
+
+**Caching Strategy:**
+By default, the application runs an in-memory `SimpleCache` for fast local development without needing a Redis server. 
+For production deployments, set `CACHE_TYPE=valkey` and provide your Aiven for Valkey connection string via `VALKEY_URL`. This allows the API to seamlessly scale across multiple workers.
 
 ### 2. Start Everything
 ```bash

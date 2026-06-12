@@ -515,9 +515,9 @@ async def post_autopredict(
             await upsert_response(c.id, c_answers)
 
     await db.commit()
-    backend_cache.invalidate(f"user_pred_status:{current_user.id}")
-    backend_cache.invalidate("leaderboard_*")
-    backend_cache.invalidate("analysis_*")
+    await backend_cache.invalidate(f"user_pred_status:{current_user.id}")
+    await backend_cache.invalidate("leaderboard_*")
+    await backend_cache.invalidate("analysis_*")
 
     return {**combined_frontend_answers, "use_powerup": "No"}
 
@@ -678,9 +678,9 @@ async def submit_prediction(
     )
     await db.commit()
 
-    backend_cache.invalidate(f"user_pred_status:{current_user.id}")
-    backend_cache.invalidate("leaderboard_*")
-    backend_cache.invalidate("analysis_*")
+    await backend_cache.invalidate(f"user_pred_status:{current_user.id}")
+    await backend_cache.invalidate("leaderboard_*")
+    await backend_cache.invalidate("analysis_*")
     return {"message": "Predictions submitted successfully"}
 
 
@@ -912,7 +912,7 @@ async def get_my_prediction_status(
         return {}
 
     cache_key = f"user_pred_status:{current_user.id}"
-    cached = backend_cache.get(cache_key)
+    cached = await backend_cache.get(cache_key)
     if cached:
         return cached
 
@@ -927,7 +927,7 @@ async def get_my_prediction_status(
     )
     rows = res.all()
     match_status = {row[0]: row[1] for row in rows if row[0] is not None}
-    backend_cache.set(cache_key, match_status)
+    await backend_cache.set(cache_key, match_status)
     return match_status
 
 
