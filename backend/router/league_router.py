@@ -184,7 +184,12 @@ async def get_league_details(
     powerups_used_res = await db.execute(
         select(CampaignResponse.user_id, func.count(CampaignResponse.id))
         .join(Campaign, CampaignResponse.campaign_id == Campaign.id)
+        .outerjoin(Match, CampaignResponse.match_id == Match.id)
         .where(Campaign.tournament_id == league.tournament_id, CampaignResponse.use_powerup == True)
+        .where(or_(
+            CampaignResponse.match_id.is_(None),
+            Match.status != "upcoming"
+        ))
         .group_by(CampaignResponse.user_id)
     )
     powerups_used_map = {uid: count for uid, count in powerups_used_res.all()}

@@ -100,8 +100,13 @@ async def fetch_leaderboard_data(db: AsyncSession, league_id: str):
             func.count(CampaignResponse.id)
         )
         .join(Campaign, CampaignResponse.campaign_id == Campaign.id)
+        .outerjoin(Match, CampaignResponse.match_id == Match.id)
         .where(Campaign.tournament_id == tournament_id)
         .where(CampaignResponse.use_powerup == True)
+        .where(or_(
+            CampaignResponse.match_id.is_(None),
+            Match.status != "upcoming"
+        ))
         .group_by(CampaignResponse.user_id, CampaignResponse.campaign_id, Campaign.title, Campaign.max_powerups)
     )
     
@@ -536,6 +541,7 @@ async def get_analysis_data(tournament_id: str = "ipl-2026", db: AsyncSession = 
         .outerjoin(TournamentUserMapping, (User.id == TournamentUserMapping.user_id) & (TournamentUserMapping.tournament_id == tournament_id))
         .where(CampaignResponse.use_powerup == True)
         .where(Match.id.in_(valid_match_ids))
+        .where(Match.status != "upcoming")
         .where(User.is_guest == False, User.is_dev == False)
         .order_by(User.name, Match.start_time.desc())
     )
