@@ -28,6 +28,7 @@ A private Gully Predict prediction platform for a group of friends. Users sign i
 ### Frontend (React/TS)
 - **Tailwind CSS**: "Bold & sporty" IPL theme with custom tokens (`ipl-navy`, `ipl-gold`, `ipl-live`).
 - **State & Routing**: Zustand for auth (`src/store/auth.ts`); TanStack Query v5 for server state. **URL Search Params** (`react-router-dom`'s `useSearchParams`) are heavily used for UI state (like Admin tabs) and **Tournament Scoping** (`?tournament=id`) to enable deep-linking and bookmarking.
+- **API Client (`apiClient`)**: The central axios client (`src/api/client.ts`) uses a `baseURL` that already points to `/api` (e.g. `http://localhost:8000/api`). **Do NOT prepend `/api/`** when making requests via `apiClient` (e.g. use `apiClient.get('/announcements')`, NOT `apiClient.get('/api/announcements')`) to avoid duplicate `/api/api/...` routing errors.
 - **Tournament Scoping & UI**: The app supports multiple concurrent tournaments. There is **no global tournament state** (e.g. no Zustand tournament store). 
   - **Unified Views**: `MatchCenter` and `Leagues` pages display aggregate views of all non-completed tournaments at once. Matches and leagues display a badge of their parent tournament.
   - **Scoped Views**: Pages requiring specific tournament contexts (`Leaderboard`, `Campaigns`, `Analysis`) use the `LocalTournamentSelector` component which syncs with the `?tournament=` URL param. If missing, it auto-defaults to the most recently active tournament.
