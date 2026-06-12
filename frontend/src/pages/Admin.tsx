@@ -2205,38 +2205,73 @@ function AnnouncementManagement() {
   const updateAnnouncement = useUpdateAnnouncement();
   const deleteAnnouncement = useDeleteAnnouncement();
 
+  const [editingId, setEditingId] = useState<number | null>(null);
   const [title, setTitle] = useState('');
   const [content, setContent] = useState('');
   const [actionLabel, setActionLabel] = useState('');
   const [actionUrl, setActionUrl] = useState('');
 
-  const handleCreate = (e: React.FormEvent) => {
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    createAnnouncement.mutate({
+    const data = {
       title,
       content,
       action_label: actionLabel || undefined,
       action_url: actionUrl || undefined,
       is_active: true
-    }, {
-      onSuccess: () => {
-        toast.success('Announcement created!');
-        setTitle('');
-        setContent('');
-        setActionLabel('');
-        setActionUrl('');
-      }
-    });
+    };
+
+    if (editingId) {
+      updateAnnouncement.mutate({ id: editingId, data }, {
+        onSuccess: () => {
+          toast.success('Announcement updated!');
+          resetForm();
+        }
+      });
+    } else {
+      createAnnouncement.mutate(data, {
+        onSuccess: () => {
+          toast.success('Announcement created!');
+          resetForm();
+        }
+      });
+    }
+  };
+
+  const resetForm = () => {
+    setEditingId(null);
+    setTitle('');
+    setContent('');
+    setActionLabel('');
+    setActionUrl('');
+  };
+
+  const handleEditClick = (a: any) => {
+    setEditingId(a.id);
+    setTitle(a.title);
+    setContent(a.content);
+    setActionLabel(a.action_label || '');
+    setActionUrl(a.action_url || '');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   return (
     <div className="max-w-4xl mx-auto space-y-8">
       <section className="glass-panel p-6 border-t-2 border-ipl-gold rounded-3xl">
-        <div className="flex items-center gap-3 mb-6">
-          <Megaphone className="w-6 h-6 text-ipl-gold" />
-          <h2 className="text-xl font-display text-white italic uppercase tracking-tight">Create Announcement</h2>
+        <div className="flex items-center justify-between mb-6">
+          <div className="flex items-center gap-3">
+            <Megaphone className="w-6 h-6 text-ipl-gold" />
+            <h2 className="text-xl font-display text-white italic uppercase tracking-tight">
+              {editingId ? 'Edit Announcement' : 'Create Announcement'}
+            </h2>
+          </div>
+          {editingId && (
+            <button onClick={resetForm} className="text-[10px] text-gray-500 hover:text-white uppercase tracking-widest font-display flex items-center gap-1">
+              <X className="w-3 h-3" /> Cancel
+            </button>
+          )}
         </div>
-        <form onSubmit={handleCreate} className="space-y-4">
+        <form onSubmit={handleSubmit} className="space-y-4">
           <div>
             <label className="block text-[10px] font-display uppercase tracking-widest text-gray-500 mb-2">Title</label>
             <input required type="text" value={title} onChange={(e) => setTitle(e.target.value)} className="w-full bg-black/40 border border-white/10 p-3 rounded-xl text-white font-display focus:border-ipl-gold outline-none" />
@@ -2255,8 +2290,8 @@ function AnnouncementManagement() {
               <input type="text" value={actionUrl} onChange={(e) => setActionUrl(e.target.value)} className="w-full bg-black/40 border border-white/10 p-3 rounded-xl text-white font-display focus:border-ipl-gold outline-none" placeholder="e.g. /campaigns" />
             </div>
           </div>
-          <button type="submit" disabled={createAnnouncement.isPending || !title || !content} className="w-full py-4 bg-ipl-gold text-ipl-navy font-display text-[10px] uppercase tracking-widest font-bold rounded-xl active:scale-[0.98]">
-            {createAnnouncement.isPending ? 'CREATING...' : 'PUBLISH ANNOUNCEMENT'}
+          <button type="submit" disabled={(editingId ? updateAnnouncement.isPending : createAnnouncement.isPending) || !title || !content} className="w-full py-4 bg-ipl-gold text-ipl-navy font-display text-[10px] uppercase tracking-widest font-bold rounded-xl active:scale-[0.98]">
+            {editingId ? (updateAnnouncement.isPending ? 'UPDATING...' : 'UPDATE ANNOUNCEMENT') : (createAnnouncement.isPending ? 'CREATING...' : 'PUBLISH ANNOUNCEMENT')}
           </button>
         </form>
       </section>
@@ -2272,7 +2307,10 @@ function AnnouncementManagement() {
                   <button onClick={() => updateAnnouncement.mutate({ id: a.id, data: { is_active: !a.is_active } })} className={`px-2 py-1 text-[8px] uppercase tracking-widest font-bold rounded ${a.is_active ? 'bg-ipl-live/10 text-ipl-live' : 'bg-gray-500/20 text-gray-400'}`}>
                     {a.is_active ? 'Active' : 'Inactive'}
                   </button>
-                  <button onClick={() => deleteAnnouncement.mutate(a.id)} className="p-1 text-gray-500 hover:text-red-500 transition-colors">
+                  <button onClick={() => handleEditClick(a)} className="p-1 text-gray-400 hover:text-white transition-colors" title="Edit">
+                    <Pencil className="w-4 h-4" />
+                  </button>
+                  <button onClick={() => deleteAnnouncement.mutate(a.id)} className="p-1 text-gray-500 hover:text-red-500 transition-colors" title="Delete">
                     <Trash2 className="w-4 h-4" />
                   </button>
                 </div>
