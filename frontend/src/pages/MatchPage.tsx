@@ -678,8 +678,8 @@ export default function MatchPage() {
         <div className="flex items-start justify-center gap-4 md:gap-16 mt-6 md:mt-8">
           <div className="flex flex-col items-center gap-3 flex-1 min-w-0">
             <div
-              className="w-20 h-20 md:w-32 md:h-32 rounded-2xl md:rounded-3xl flex items-center justify-center border-2 shadow-2xl overflow-hidden p-2 md:p-3 bg-black/40 relative group shrink-0"
-              style={{ borderColor: `${getTeamColor(match.team1, match.team2)}50`, boxShadow: `0 0 40px ${getTeamColor(match.team1, match.team2)}20` }}
+              className="w-20 h-20 md:w-32 md:h-32 rounded-2xl md:rounded-3xl flex items-center justify-center shadow-2xl overflow-hidden p-2 md:p-3 bg-black/40 relative group shrink-0"
+              style={{ boxShadow: `0 0 40px ${getTeamColor(match.team1, match.team2)}20` }}
             >
               <div className="absolute inset-0 bg-gradient-to-br from-white/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
               {getTeamLogo(match.team1) ? (
@@ -701,8 +701,8 @@ export default function MatchPage() {
 
           <div className="flex flex-col items-center gap-3 flex-1 min-w-0">
             <div
-              className="w-20 h-20 md:w-32 md:h-32 rounded-2xl md:rounded-3xl flex items-center justify-center border-2 shadow-2xl overflow-hidden p-2 md:p-3 bg-black/40 relative group shrink-0"
-              style={{ borderColor: `${getTeamColor(match.team2, match.team1)}50`, boxShadow: `0 0 40px ${getTeamColor(match.team2, match.team1)}20` }}
+              className="w-20 h-20 md:w-32 md:h-32 rounded-2xl md:rounded-3xl flex items-center justify-center shadow-2xl overflow-hidden p-2 md:p-3 bg-black/40 relative group shrink-0"
+              style={{ boxShadow: `0 0 40px ${getTeamColor(match.team2, match.team1)}20` }}
             >
               <div className="absolute inset-0 bg-gradient-to-br from-white/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
               {getTeamLogo(match.team2) ? (
@@ -734,8 +734,8 @@ export default function MatchPage() {
               {getTeamShortName(match.team1)}
             </span>
             <div
-              className="w-10 h-10 rounded-xl flex items-center justify-center border bg-black/40 p-1 shrink-0"
-              style={{ borderColor: `${getTeamColor(match.team1, match.team2)}40`, boxShadow: `0 0 15px ${getTeamColor(match.team1, match.team2)}15` }}
+              className="w-10 h-10 rounded-xl flex items-center justify-center bg-black/40 p-1 shrink-0"
+              style={{ boxShadow: `0 0 15px ${getTeamColor(match.team1, match.team2)}15` }}
             >
               {getTeamLogo(match.team1) ? (
                 <img src={getTeamLogo(match.team1)!} alt={match.team1} className="w-full h-full object-contain" />
@@ -751,8 +751,8 @@ export default function MatchPage() {
           {/* Team 2 Logo & Shortname */}
           <div className="flex items-center gap-2 flex-1 justify-start min-w-0">
             <div
-              className="w-10 h-10 rounded-xl flex items-center justify-center border bg-black/40 p-1 shrink-0"
-              style={{ borderColor: `${getTeamColor(match.team2, match.team1)}40`, boxShadow: `0 0 15px ${getTeamColor(match.team2, match.team1)}15` }}
+              className="w-10 h-10 rounded-xl flex items-center justify-center bg-black/40 p-1 shrink-0"
+              style={{ boxShadow: `0 0 15px ${getTeamColor(match.team2, match.team1)}15` }}
             >
               {getTeamLogo(match.team2) ? (
                 <img src={getTeamLogo(match.team2)!} alt={match.team2} className="w-full h-full object-contain" />
