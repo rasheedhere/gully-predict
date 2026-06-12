@@ -117,8 +117,8 @@ export default function MatchCenter() {
             todayMatches.map((match: any) => {
               const matchNoMatch = match.id.match(/ipl-\d{4}-(\d+)/);
               const matchNumber = matchNoMatch ? matchNoMatch[1] : null;
-              const t1Color = getTeamColor(match.team1);
-              const t2Color = getTeamColor(match.team2);
+              const t1Color = getTeamColor(match.team1, match.team2);
+              const t2Color = getTeamColor(match.team2, match.team1);
               const t1Logo = getTeamLogo(match.team1);
               const t2Logo = getTeamLogo(match.team2);
               const t1Short = getTeamShortName(match.team1);

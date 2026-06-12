@@ -1167,8 +1167,8 @@ function TournamentMatchManager({ tournamentId, onBack }: { tournamentId: string
               ) : filteredAndReversedMatches.length === 0 ? (
                 <div className="text-center py-20 bg-black/20 border border-dashed border-white/10 rounded-2xl text-[10px] uppercase tracking-widest text-gray-600">No matches found.</div>
               ) : filteredAndReversedMatches.map((match, idx) => {
-                const t1Color = getTeamColor(match.team1);
-                const t2Color = getTeamColor(match.team2);
+                const t1Color = getTeamColor(match.team1, match.team2);
+                const t2Color = getTeamColor(match.team2, match.team1);
                 const t1Short = getTeamShortName(match.team1);
                 const t2Short = getTeamShortName(match.team2);
                 const t1Logo = getTeamLogo(match.team1);
@@ -1254,8 +1254,8 @@ function TournamentMatchManager({ tournamentId, onBack }: { tournamentId: string
               ) : filteredAndReversedMatches.length === 0 ? (
                 <div className="text-center py-10 text-[10px] uppercase tracking-widest text-gray-500">No matches found.</div>
               ) : filteredAndReversedMatches.map((match, idx) => {
-                const t1Color = getTeamColor(match.team1);
-                const t2Color = getTeamColor(match.team2);
+                const t1Color = getTeamColor(match.team1, match.team2);
+                const t2Color = getTeamColor(match.team2, match.team1);
                 const t1Short = getTeamShortName(match.team1);
                 const t2Short = getTeamShortName(match.team2);
                 const t1Logo = getTeamLogo(match.team1);
@@ -1500,8 +1500,8 @@ function TournamentMatchManager({ tournamentId, onBack }: { tournamentId: string
             ) : filteredAndReversedMatches.map(match => {
               const t1Logo = getTeamLogo(match.team1);
               const t2Logo = getTeamLogo(match.team2);
-              const t1Color = getTeamColor(match.team1);
-              const t2Color = getTeamColor(match.team2);
+              const t1Color = getTeamColor(match.team1, match.team2);
+              const t2Color = getTeamColor(match.team2, match.team1);
 
               return (
                 <button
