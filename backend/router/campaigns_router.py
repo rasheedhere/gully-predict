@@ -709,6 +709,7 @@ async def admin_get_campaign_responses(
 
 @router.get("")
 async def list_campaigns(
+    tournament_id: Optional[str] = None,
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
@@ -720,6 +721,8 @@ async def list_campaigns(
     # Only show active/closed campaigns. Exclude drafts.
     # Also filter by league_id: show if league_id is None OR user is in that league
     stmt = select(Campaign).where(Campaign.status != CampaignStatus.draft)
+    if tournament_id:
+        stmt = stmt.where(Campaign.tournament_id == tournament_id)
     
     result = await db.execute(
         stmt.options(selectinload(Campaign.questions), selectinload(Campaign.target_matches))
