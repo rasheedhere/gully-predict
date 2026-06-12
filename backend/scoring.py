@@ -243,9 +243,14 @@ async def calculate_match_scores(match_id: str, db: AsyncSession):
     except (ValueError, IndexError):
         pass
     penalty_points = master_cam.non_participation_penalty
+    
+    import logging
+    logger = logging.getLogger(__name__)
+    logger.info(f"Match scoring for {match_id} (Tournament {match.tournament_id}): Penalty configured as {penalty_points}")
 
     # ── Score each user ───────────────────────────────────────────────────────
     user_points: dict[str, int] = {}
+    user_breakdowns: dict[str, dict] = {}
     users_res = await db.execute(select(User).where(User.is_guest == False, User.is_dev == False))
     all_users = users_res.scalars().all()
 
@@ -265,6 +270,22 @@ async def calculate_match_scores(match_id: str, db: AsyncSession):
                 if user.is_ai and match_number < 25:
                     current_penalty = 0
             user_points[user.id] = current_penalty
+            
+            if current_penalty != 0:
+                user_breakdowns[user.id] = {
+                    "rules": [{
+                        "question_id": "penalty",
+                        "category": "Non-participation Penalty",
+                        "key": "penalty",
+                        "status": "miss",
+                        "points": current_penalty,
+                        "predicted": "-",
+                        "actual": "-",
+                        "was_boosted": False
+                    }],
+                    "powerup": {"used": False, "multiplier": 1},
+                    "total": current_penalty
+                }
             continue
 
         answers = response.answers or {}  # {question_id: answer_value}
@@ -328,8 +349,10 @@ async def calculate_match_scores(match_id: str, db: AsyncSession):
             )
         )
         lb_entry = lb_res.scalars().first()
-        breakdown = (responses_by_user.get(uid).points_breakdown
-                     if uid in responses_by_user else None)
+        if uid in responses_by_user:
+            breakdown = responses_by_user[uid].points_breakdown
+        else:
+            breakdown = user_breakdowns.get(uid)
         if lb_entry:
             lb_entry.points = pts
             lb_entry.points_breakdown = breakdown
