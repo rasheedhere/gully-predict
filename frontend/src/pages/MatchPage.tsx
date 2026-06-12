@@ -626,7 +626,7 @@ export default function MatchPage() {
     }
 
     // Check sixes/fours if they exist in questions and results
-    let otherInsights: string[] = [];
+    const otherInsights: string[] = [];
     questionsList.forEach((q: any) => {
       const text = q.question_text.toLowerCase();
       const actualVal = results[q.key];
