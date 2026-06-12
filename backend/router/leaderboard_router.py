@@ -20,8 +20,11 @@ def match_filter_clause():
     # Since they are not zero-padded (e.g. ipl-2026-7), we'll fetch matches first or use Python logic.
     pass
 
-async def get_valid_match_ids(db: AsyncSession):
-    res = await db.execute(select(Match.id))
+async def get_valid_match_ids(db: AsyncSession, tournament_id: str = None):
+    query = select(Match.id)
+    if tournament_id:
+        query = query.where(Match.tournament_id == tournament_id)
+    res = await db.execute(query)
     all_ids = res.scalars().all()
     return [mid for mid in all_ids if "-" in mid and mid.split("-")[-1].isdigit() and int(mid.split("-")[-1]) >= START_MATCH_NO]
 
@@ -35,9 +38,6 @@ async def fetch_leaderboard_data(db: AsyncSession, league_id: str):
     if cached:
         return cached
 
-    valid_match_ids = await get_valid_match_ids(db)
-
-
     # Determine if this is a global leaderboard request
     is_global = league_id.endswith("-global")
     tournament_id = league_id.replace("-global", "") if is_global else None
@@ -46,6 +46,8 @@ async def fetch_leaderboard_data(db: AsyncSession, league_id: str):
         # Fetch tournament_id from league if not global
         league_res = await db.execute(select(League.tournament_id).where(League.id == league_id))
         tournament_id = league_res.scalar_one_or_none()
+
+    valid_match_ids = await get_valid_match_ids(db, tournament_id)
 
     # Fetch master campaign's max_powerups as the default
     master_cam_res = await db.execute(
@@ -443,7 +445,7 @@ async def get_analysis_data(tournament_id: str = "ipl-2026", db: AsyncSession = 
     
     from backend.models import Match
     
-    valid_match_ids = await get_valid_match_ids(db)
+    valid_match_ids = await get_valid_match_ids(db, tournament_id)
     
     # 1. Weekly Performance
     weekly_res = await db.execute(
