@@ -62,8 +62,8 @@ export default function MatchCard({ id, team1, team2, venue, tossTime, status, h
            {/* Team 1 */}
            <div className="flex flex-col items-center gap-4 group-hover:scale-105 transition-transform duration-500">
               <div 
-                className="w-20 h-20 md:w-24 md:h-24 rounded-2xl flex items-center justify-center border-2 shadow-lg overflow-hidden p-2 bg-black/40"
-                style={{ borderColor: `${t1Color}40`, boxShadow: `0 0 20px ${t1Color}20`, backgroundColor: `${t1Color}10` }}
+                className="w-20 h-20 md:w-24 md:h-24 rounded-2xl flex items-center justify-center shadow-lg overflow-hidden p-2 bg-black/40"
+                style={{ boxShadow: `0 0 20px ${t1Color}20`, backgroundColor: `${t1Color}10` }}
               >
                 {t1Logo ? (
                   <img src={t1Logo} alt={team1} className="w-full h-full object-contain" />
@@ -83,8 +83,8 @@ export default function MatchCard({ id, team1, team2, venue, tossTime, status, h
            {/* Team 2 */}
            <div className="flex flex-col items-center gap-4 group-hover:scale-105 transition-transform duration-500">
               <div 
-                className="w-20 h-20 md:w-24 md:h-24 rounded-2xl flex items-center justify-center border-2 shadow-lg overflow-hidden p-2 bg-black/40"
-                style={{ borderColor: `${t2Color}40`, boxShadow: `0 0 20px ${t2Color}20`, backgroundColor: `${t2Color}10` }}
+                className="w-20 h-20 md:w-24 md:h-24 rounded-2xl flex items-center justify-center shadow-lg overflow-hidden p-2 bg-black/40"
+                style={{ boxShadow: `0 0 20px ${t2Color}20`, backgroundColor: `${t2Color}10` }}
               >
                 {t2Logo ? (
                   <img src={t2Logo} alt={team2} className="w-full h-full object-contain" />
