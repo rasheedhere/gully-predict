@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Users, ShieldCheck, Mail, Trash2, Cpu, Plus, Trophy, RefreshCw, Calendar, MapPin, Sword, Star, Pencil, X, List, ChevronLeft, Search, ChevronDown } from 'lucide-react';
+import { Users, ShieldCheck, Mail, Trash2, Cpu, Plus, Trophy, RefreshCw, Calendar, MapPin, Sword, Star, Pencil, X, List, ChevronLeft, Search, ChevronDown, Megaphone } from 'lucide-react';
 import { useAuthStore } from '../store/auth';
 import { Navigate, useSearchParams } from 'react-router-dom';
 import {
@@ -30,13 +30,14 @@ import { useCreateLeague, useLeagueDetails, useToggleLeagueAdmin, useKickMember 
 import { teamColors, getTeamColor, getTeamShortName } from '../utils/teamColors';
 import { getTeamLogo } from '../utils/teamLogos';
 import { useAdminCampaigns } from '../api/hooks/useCampaigns';
+import { useAdminAnnouncements, useCreateAnnouncement, useUpdateAnnouncement, useDeleteAnnouncement } from '../api/hooks/useAnnouncements';
 import toast from 'react-hot-toast';
 import { useUiStore } from '../store/ui';
 
 export default function Admin() {
   const { user } = useAuthStore();
   const [searchParams, setSearchParams] = useSearchParams();
-  const activeTab = searchParams.get('tab') as 'tournaments' | 'leagues' | 'users' | 'campaigns' | 'system' || (user?.is_admin ? 'tournaments' : 'leagues');
+  const activeTab = searchParams.get('tab') as 'tournaments' | 'leagues' | 'users' | 'campaigns' | 'system' | 'announcements' || (user?.is_admin ? 'tournaments' : 'leagues');
   const managingTournamentId = searchParams.get('tournamentId');
   const managingLeagueId = searchParams.get('leagueId');
 
@@ -49,6 +50,7 @@ export default function Admin() {
         leagues: 'LEAGUES',
         users: 'USERS',
         campaigns: 'CAMPAIGNS',
+        announcements: 'ANNOUNCEMENTS',
         system: 'SYSTEM',
       };
       setHeaderTitle(tabLabels[activeTab] || 'ADMIN CONSOLE');
@@ -115,6 +117,7 @@ export default function Admin() {
             { id: 'leagues', label: 'Leagues', icon: Trophy },
             ...(user?.is_admin ? [{ id: 'users', label: 'Users', icon: Users }] : []),
             { id: 'campaigns', label: 'Campaigns', icon: ShieldCheck },
+            ...(user?.is_admin ? [{ id: 'announcements', label: 'Announcements', icon: Megaphone }] : []),
             ...(user?.is_admin ? [{ id: 'system', label: 'System', icon: Cpu }] : []),
           ].map((tab) => (
             <button
@@ -145,6 +148,7 @@ export default function Admin() {
         )}
         {activeTab === 'users' && <UserManagement />}
         {activeTab === 'campaigns' && <CampaignManagement />}
+        {activeTab === 'announcements' && <AnnouncementManagement />}
         {activeTab === 'system' && <SystemManagement />}
       </main>
     </div>
@@ -2191,6 +2195,94 @@ function AdminModal({ isOpen, onClose, title, children }: { isOpen: boolean; onC
           {children}
         </div>
       </div>
+    </div>
+  );
+}
+
+function AnnouncementManagement() {
+  const { data: announcements, isLoading } = useAdminAnnouncements();
+  const createAnnouncement = useCreateAnnouncement();
+  const updateAnnouncement = useUpdateAnnouncement();
+  const deleteAnnouncement = useDeleteAnnouncement();
+
+  const [title, setTitle] = useState('');
+  const [content, setContent] = useState('');
+  const [actionLabel, setActionLabel] = useState('');
+  const [actionUrl, setActionUrl] = useState('');
+
+  const handleCreate = (e: React.FormEvent) => {
+    e.preventDefault();
+    createAnnouncement.mutate({
+      title,
+      content,
+      action_label: actionLabel || undefined,
+      action_url: actionUrl || undefined,
+      is_active: true
+    }, {
+      onSuccess: () => {
+        toast.success('Announcement created!');
+        setTitle('');
+        setContent('');
+        setActionLabel('');
+        setActionUrl('');
+      }
+    });
+  };
+
+  return (
+    <div className="max-w-4xl mx-auto space-y-8">
+      <section className="glass-panel p-6 border-t-2 border-ipl-gold rounded-3xl">
+        <div className="flex items-center gap-3 mb-6">
+          <Megaphone className="w-6 h-6 text-ipl-gold" />
+          <h2 className="text-xl font-display text-white italic uppercase tracking-tight">Create Announcement</h2>
+        </div>
+        <form onSubmit={handleCreate} className="space-y-4">
+          <div>
+            <label className="block text-[10px] font-display uppercase tracking-widest text-gray-500 mb-2">Title</label>
+            <input required type="text" value={title} onChange={(e) => setTitle(e.target.value)} className="w-full bg-black/40 border border-white/10 p-3 rounded-xl text-white font-display focus:border-ipl-gold outline-none" />
+          </div>
+          <div>
+            <label className="block text-[10px] font-display uppercase tracking-widest text-gray-500 mb-2">Content</label>
+            <textarea required value={content} onChange={(e) => setContent(e.target.value)} className="w-full bg-black/40 border border-white/10 p-3 rounded-xl text-white font-display focus:border-ipl-gold outline-none h-24" />
+          </div>
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-[10px] font-display uppercase tracking-widest text-gray-500 mb-2">Action Label (Optional)</label>
+              <input type="text" value={actionLabel} onChange={(e) => setActionLabel(e.target.value)} className="w-full bg-black/40 border border-white/10 p-3 rounded-xl text-white font-display focus:border-ipl-gold outline-none" placeholder="e.g. View Campaigns" />
+            </div>
+            <div>
+              <label className="block text-[10px] font-display uppercase tracking-widest text-gray-500 mb-2">Action URL (Optional)</label>
+              <input type="text" value={actionUrl} onChange={(e) => setActionUrl(e.target.value)} className="w-full bg-black/40 border border-white/10 p-3 rounded-xl text-white font-display focus:border-ipl-gold outline-none" placeholder="e.g. /campaigns" />
+            </div>
+          </div>
+          <button type="submit" disabled={createAnnouncement.isPending || !title || !content} className="w-full py-4 bg-ipl-gold text-ipl-navy font-display text-[10px] uppercase tracking-widest font-bold rounded-xl active:scale-[0.98]">
+            {createAnnouncement.isPending ? 'CREATING...' : 'PUBLISH ANNOUNCEMENT'}
+          </button>
+        </form>
+      </section>
+
+      <section className="glass-panel p-6 border-t-2 border-white/10 rounded-3xl">
+        <h2 className="text-xl font-display text-white italic uppercase tracking-tight mb-6">Manage Announcements</h2>
+        <div className="space-y-4">
+          {isLoading ? <div className="text-center py-4 text-[10px] text-gray-500 uppercase tracking-widest animate-pulse">Loading...</div> : announcements?.map(a => (
+            <div key={a.id} className={`p-4 rounded-xl border transition-all ${a.is_active ? 'bg-white/5 border-white/10' : 'bg-black/40 border-dashed border-white/5 opacity-60'}`}>
+              <div className="flex justify-between items-start mb-2">
+                <h3 className="text-lg font-display text-white font-bold">{a.title}</h3>
+                <div className="flex items-center gap-2">
+                  <button onClick={() => updateAnnouncement.mutate({ id: a.id, data: { is_active: !a.is_active } })} className={`px-2 py-1 text-[8px] uppercase tracking-widest font-bold rounded ${a.is_active ? 'bg-ipl-live/10 text-ipl-live' : 'bg-gray-500/20 text-gray-400'}`}>
+                    {a.is_active ? 'Active' : 'Inactive'}
+                  </button>
+                  <button onClick={() => deleteAnnouncement.mutate(a.id)} className="p-1 text-gray-500 hover:text-red-500 transition-colors">
+                    <Trash2 className="w-4 h-4" />
+                  </button>
+                </div>
+              </div>
+              <p className="text-xs text-gray-400 font-display mb-3 whitespace-pre-wrap">{a.content}</p>
+              {a.action_label && <div className="text-[10px] text-ipl-gold font-mono uppercase">Link: {a.action_label} ({a.action_url})</div>}
+            </div>
+          ))}
+        </div>
+      </section>
     </div>
   );
 }

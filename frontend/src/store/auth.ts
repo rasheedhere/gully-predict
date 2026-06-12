@@ -9,7 +9,10 @@ interface User {
   email: string;
   avatar: string;
   is_admin: boolean;
-  is_guest?: boolean;
+  is_guest: boolean;
+  is_dev: boolean;
+  telegram_username?: string;
+  last_read_announcements_at?: string;
   is_telegram_admin?: boolean;
   is_league_admin?: boolean;
 }

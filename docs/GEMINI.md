@@ -35,6 +35,7 @@ A private Gully Predict prediction platform for a group of friends. Users sign i
 - **Layout & Mobile-First**: `Layout.tsx` main wrapper uses `max-w-[1280px]`. We aggressively employ `env(safe-area-inset-*)` padding to avoid iOS notches and home indicators. Forms inside complex lists are wrapped in full-screen modal overlays (`AdminModal`) to preserve scroll context and improve mobile usability.
 - **Dynamic Rendering**: `renderPredictionCard` in `MatchPage.tsx` iterates over `pred.answers` keys — **never hardcode question IDs**.
 - **tossTime for Locking**: Frontend uses `match.tossTime` (ISO string returned by API) to compute the 30-min lock threshold.
+- **Global Announcements**: The landing page (`Hub.tsx`) acts as an Announcements inbox. Users must mark active global announcements as read before proceeding to the main app, utilizing the `User.last_read_announcements_at` timestamp.
 
 ---
 
@@ -247,6 +248,7 @@ Unlike match-specific campaigns, General campaigns are designed for tournament-w
 ## 📝 Current Implementation Status
 - **Platform Activity Feed**: Fully implemented with role-based visibility.
 - **Multi-League & Tournaments**: Migrated to support multiple tournaments, distinct base stats, and campaign-level powerup isolation.
+- **Global Announcements**: Centralized announcement feed for users upon login, blocking app access until updates are acknowledged, complete with admin management interface.
 - **Dynamic Frontend**: Prediction cards and match results are fully driven by backend JSON models, supporting arbitrary new campaign questions.
 - **Admin Tools & UX**: Bulk match import via CSV, dynamic campaign building, and AI-powered match result fetching. The Admin console features URL deep-linking and animated, mobile-optimized modal overlays for form handling.
 

@@ -28,7 +28,17 @@ load_dotenv()
 from backend.models import Base
 target_metadata = Base.metadata
 
-config.set_main_option("sqlalchemy.url", os.environ.get("DATABASE_URL"))
+url = os.environ.get("DATABASE_URL")
+if url and url.startswith("postgres://"):
+    url = url.replace("postgres://", "postgresql+asyncpg://", 1)
+elif url and url.startswith("postgresql://") and not url.startswith("postgresql+asyncpg://"):
+    url = url.replace("postgresql://", "postgresql+asyncpg://", 1)
+if url and "sslmode=" in url:
+    url = url.replace("sslmode=", "ssl=")
+import re
+if url and "channel_binding=" in url:
+    url = re.sub(r'(&|\?)channel_binding=[^&]*', '', url).rstrip('?&')
+config.set_main_option("sqlalchemy.url", url)
 
 # other values from the config, defined by the needs of env.py,
 # can be acquired:

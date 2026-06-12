@@ -234,6 +234,7 @@ async def verify_google_token(payload: VerifyTokenRequest, db: AsyncSession = De
             "is_guest": user.is_guest,
             "is_telegram_admin": user.is_telegram_admin,
             "is_league_admin": is_league_admin or user.is_admin,
+            "last_read_announcements_at": user.last_read_announcements_at.isoformat() if user.last_read_announcements_at else None,
         }
     }
 
@@ -309,6 +310,7 @@ async def dev_login(request: Request, role: str = "user", db: AsyncSession = Dep
             "is_guest": user.is_guest,
             "is_telegram_admin": user.is_telegram_admin,
             "is_league_admin": is_league_admin or user.is_admin,
+            "last_read_announcements_at": user.last_read_announcements_at.isoformat() if user.last_read_announcements_at else None,
         },
     }
 
@@ -330,7 +332,8 @@ async def get_me(user: User = Depends(get_current_user), db: AsyncSession = Depe
         "is_admin": user.is_admin,
         "is_guest": user.is_guest,
         "is_telegram_admin": user.is_telegram_admin,
-        "is_league_admin": is_league_admin or user.is_admin
+        "is_league_admin": is_league_admin or user.is_admin,
+        "last_read_announcements_at": user.last_read_announcements_at.isoformat() if user.last_read_announcements_at else None,
     }
 
 @router.put("/user/profile")

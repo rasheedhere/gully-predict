@@ -38,6 +38,7 @@ A sophisticated, private Gully Predict Cricket prediction platform for competiti
 - **Bulk Match Import**: Upload a CSV to import multiple matches at once. Format: `id,team1,team2,venue,start_time` (sequential IDs 1, 2, 3 are auto-formatted to `tournament-year-number`).
 - **Campaign Builder**: Create campaigns with drag-and-drop question ordering, alphabetical option sorting, and configurable selection caps.
 - **League Management**: Create leagues, assign admins, manage members, and generate join codes.
+- **Global Announcements**: Broadcast important updates (e.g., "New Campaign Added") directly to all users. Users see these announcements as a blocking screen upon login until they mark them as read. Supports optional call-to-action buttons.
 - **Manual Results Override**: Set correct answers per question and trigger scoring from the admin panel.
 
 ---
@@ -172,7 +173,7 @@ gully-predict/
 │   │   │   ├── Activity.tsx        # Global social activity feed logs
 │   │   │   ├── Analysis.tsx        # Advanced analytics and charts comparisons
 │   │   │   ├── AuthCallback.tsx    # Google OAuth callback redirection landing page
-│   │   │   ├── Hub.tsx             # Entry dashboard/control center portal
+│   │   │   ├── Hub.tsx             # Entry dashboard handling Global Announcements inbox
 │   │   │   ├── LeagueAdmin.tsx     # League-specific admin dashboard
 │   │   │   ├── LeagueDetails.tsx   # Private league stats, standings, and campaigns
 │   │   │   └── More.tsx            # Desktop/mobile navigation settings and options list
