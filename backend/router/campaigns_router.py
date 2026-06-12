@@ -780,8 +780,8 @@ async def get_all_community_predictions(
     if not campaign:
         raise HTTPException(status_code=404, detail="Campaign not found")
 
-    from datetime import datetime, timezone as _timezone.utc
-    now = datetime.now(_timezone.utc)
+    from datetime import datetime, UTC as _UTC
+    now = datetime.now(_UTC)
     is_closed = campaign.status == CampaignStatus.closed or (campaign.ends_at and now > campaign.ends_at)
     if not is_closed:
         raise HTTPException(status_code=403, detail="Predictions can only be viewed after the campaign is closed")
@@ -882,8 +882,8 @@ async def submit_response(
     if campaign.status != CampaignStatus.active:
         raise HTTPException(status_code=400, detail="Campaign is not accepting responses")
 
-    from datetime import datetime, timezone as _timezone.utc
-    now = datetime.now(_timezone.utc)
+    from datetime import datetime, UTC as _UTC
+    now = datetime.now(_UTC)
     if campaign.starts_at and now < campaign.starts_at:
         raise HTTPException(status_code=400, detail="Campaign has not started yet")
     if campaign.ends_at and now > campaign.ends_at:

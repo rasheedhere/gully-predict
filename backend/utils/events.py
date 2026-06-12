@@ -1,7 +1,7 @@
 from sqlalchemy.ext.asyncio import AsyncSession
 from backend.models import SystemEvent, SystemEventType
 from typing import Optional
-from datetime import datetime, timezone
+from datetime import datetime, UTC
 
 async def dispatch_event(
     db: AsyncSession,
@@ -26,7 +26,7 @@ async def dispatch_event(
         priority=priority,
         message=message,
         payload=payload or {},
-        timestamp=datetime.now(timezone.utc)
+        timestamp=datetime.now(UTC)
     )
     db.add(event)
     # We usually don't commit here, let the caller commit with their transaction

@@ -1,5 +1,5 @@
 import uuid
-from datetime import datetime, timezone
+from datetime import datetime, UTC
 from sqlalchemy.future import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from backend.models import Match, MatchStats
@@ -119,7 +119,7 @@ class MatchStatsAgent:
             existing_stats.players_to_watch = stats_data.get("players_to_watch")
             existing_stats.standings_team1 = stats_data.get("standings_team1")
             existing_stats.standings_team2 = stats_data.get("standings_team2")
-            existing_stats.last_updated = datetime.now(timezone.utc)
+            existing_stats.last_updated = datetime.now(UTC)
         else:
             new_stats = MatchStats(
                 id=str(uuid.uuid4()),
@@ -131,7 +131,7 @@ class MatchStatsAgent:
                 players_to_watch=stats_data.get("players_to_watch"),
                 standings_team1=stats_data.get("standings_team1"),
                 standings_team2=stats_data.get("standings_team2"),
-                last_updated=datetime.now(timezone.utc)
+                last_updated=datetime.now(UTC)
             )
             db.add(new_stats)
         

@@ -1,4 +1,4 @@
-from datetime import datetime, timezone
+from datetime import datetime, UTC
 import enum
 from sqlalchemy import String, Integer, DateTime, Boolean, JSON, ForeignKey, Enum as SAEnum, UniqueConstraint
 from sqlalchemy.orm import relationship, Mapped, mapped_column
@@ -33,7 +33,7 @@ class User(Base):
     is_telegram_admin: Mapped[bool] = mapped_column(Boolean, default=False)
     is_dev: Mapped[bool] = mapped_column(Boolean, server_default='false', default=False)
     telegram_username: Mapped[Optional[str]] = mapped_column(String, unique=True, index=True, nullable=True)
-    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(UTC))
 
     # League Relationships
     joined_leagues: Mapped[list["League"]] = relationship("League", secondary="league_user_mappings", back_populates="participants")
@@ -45,7 +45,7 @@ class AllowlistedEmail(Base):
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     email: Mapped[str] = mapped_column(String, unique=True, index=True)
     is_guest: Mapped[bool] = mapped_column(Boolean, server_default='false', default=False)
-    added_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
+    added_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(UTC))
 
 class UserDevice(Base):
     __tablename__ = "user_devices"
@@ -54,8 +54,8 @@ class UserDevice(Base):
     user_id: Mapped[str] = mapped_column(String, ForeignKey("users.id"), index=True)
     fcm_token: Mapped[str] = mapped_column(String, unique=True, index=True)
     device_type: Mapped[str] = mapped_column(String)  # "ios", "android", "web"
-    last_active: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
-    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
+    last_active: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(UTC))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(UTC))
 
     user: Mapped["User"] = relationship("User", backref="devices")
 
@@ -69,7 +69,7 @@ class Tournament(Base):
     ends_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
     # Direct FK to the master campaign for this tournament (avoids querying campaigns table)
     master_campaign_id: Mapped[Optional[str]] = mapped_column(String, ForeignKey("campaigns.id"), nullable=True)
-    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(UTC))
 
     leagues: Mapped[list["League"]] = relationship("League", back_populates="tournament")
     matches: Mapped[list["Match"]] = relationship("Match", back_populates="tournament")
@@ -153,8 +153,8 @@ class Campaign(Base):
     tournament_id: Mapped[Optional[str]] = mapped_column(String, ForeignKey("tournaments.id"), nullable=True)
     league_id: Mapped[Optional[str]] = mapped_column(String, ForeignKey("leagues.id"), nullable=True)
     parent_campaign_id: Mapped[Optional[str]] = mapped_column(String, ForeignKey("campaigns.id"), nullable=True)
-    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
-    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(UTC))
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(UTC), onupdate=lambda: datetime.now(UTC))
 
     questions: Mapped[list["CampaignQuestion"]] = relationship(
         "CampaignQuestion", back_populates="campaign",
@@ -208,8 +208,8 @@ class CampaignResponse(Base):
     total_points: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
     points_breakdown: Mapped[Optional[dict]] = mapped_column(JSON, nullable=True)
 
-    submitted_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
-    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
+    submitted_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(UTC))
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(UTC), onupdate=lambda: datetime.now(UTC))
 
     campaign: Mapped["Campaign"] = relationship("Campaign", back_populates="responses")
 
@@ -225,7 +225,7 @@ class LeagueUserMapping(Base):
     __tablename__ = "league_user_mappings"
     league_id: Mapped[str] = mapped_column(String, ForeignKey("leagues.id"), primary_key=True)
     user_id: Mapped[str] = mapped_column(String, ForeignKey("users.id"), primary_key=True)
-    joined_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
+    joined_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(UTC))
 
 class LeagueCampaignMapping(Base):
     __tablename__ = "league_campaign_mappings"
@@ -247,7 +247,7 @@ class League(Base):
     is_global: Mapped[bool] = mapped_column(Boolean, default=False)
     settings: Mapped[Optional[dict]] = mapped_column(JSON, nullable=True)
     created_by: Mapped[str] = mapped_column(String, ForeignKey("users.id"))
-    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(UTC))
 
     tournament: Mapped["Tournament"] = relationship("Tournament", back_populates="leagues")
     participants: Mapped[list["User"]] = relationship("User", secondary="league_user_mappings", back_populates="joined_leagues")
@@ -266,7 +266,7 @@ class CampaignMatchResult(Base):
     match_id: Mapped[str] = mapped_column(String, ForeignKey("matches.id"))
     # {question_id: correct_answer_value}
     correct_answers: Mapped[dict] = mapped_column(JSON)
-    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(UTC), onupdate=lambda: datetime.now(UTC))
 
     match: Mapped["Match"] = relationship("Match", back_populates="results")
     campaign: Mapped["Campaign"] = relationship("Campaign")
@@ -279,7 +279,7 @@ class CampaignResult(Base):
     campaign_id: Mapped[str] = mapped_column(String, ForeignKey("campaigns.id"), primary_key=True)
     # {question_id: correct_answer_value}
     correct_answers: Mapped[dict] = mapped_column(JSON, default=dict)
-    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(UTC), onupdate=lambda: datetime.now(UTC))
 
     campaign: Mapped["Campaign"] = relationship("Campaign")
 
@@ -297,7 +297,7 @@ class TournamentMatchAnswer(Base):
     match_id: Mapped[str] = mapped_column(String, ForeignKey("matches.id"), primary_key=True)
     # {question_key: correct_answer_value}  e.g. {"match_winner": "MI", "pp_team1": 47}
     correct_answers: Mapped[dict] = mapped_column(JSON, default=dict)
-    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(UTC), onupdate=lambda: datetime.now(UTC))
 
 class LeaderboardEntry(Base):
     """Per-(user, match, league) fact table for point history and progression charts."""
@@ -314,7 +314,7 @@ class LeaderboardEntry(Base):
     league_id: Mapped[Optional[str]] = mapped_column(String, ForeignKey("leagues.id"), nullable=True, index=True)
     points: Mapped[int] = mapped_column(Integer)
     points_breakdown: Mapped[Optional[dict]] = mapped_column(JSON, nullable=True)
-    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(UTC))
 
 class LeaderboardCache(Base):
     """Pre-aggregated total points per (user, tournament, league) for fast leaderboard queries."""
@@ -328,7 +328,7 @@ class LeaderboardCache(Base):
     tournament_id: Mapped[Optional[str]] = mapped_column(String, ForeignKey("tournaments.id"), nullable=True)
     league_id: Mapped[Optional[str]] = mapped_column(String, ForeignKey("leagues.id"), nullable=True)
     total_points: Mapped[int] = mapped_column(Integer, default=0)
-    last_updated: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
+    last_updated: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(UTC), onupdate=lambda: datetime.now(UTC))
 
 
 class MatchStats(Base):
@@ -337,7 +337,7 @@ class MatchStats(Base):
 
     match_id: Mapped[str] = mapped_column(String, ForeignKey("matches.id"), primary_key=True)
     stats_json: Mapped[Optional[dict]] = mapped_column(JSON, nullable=True)
-    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(UTC), onupdate=lambda: datetime.now(UTC))
 
 # ── Foundational Upgrades ──────────────────────────────────────────────────
 
@@ -357,7 +357,7 @@ class TournamentUserMapping(Base):
         "priority_alerts": True
     })
     
-    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(UTC))
 
 class SystemEventType(str, enum.Enum):
     login = "login"
@@ -384,5 +384,5 @@ class SystemEvent(Base):
     
     message: Mapped[Optional[str]] = mapped_column(String, nullable=True)
     payload: Mapped[dict] = mapped_column(JSON, default=dict)
-    timestamp: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
+    timestamp: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(UTC))
 
