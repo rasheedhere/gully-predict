@@ -18,10 +18,10 @@ export default function Hub() {
         navigate('/matchcenter', { replace: true });
         return;
       }
-      
+
       const latestAnnouncementTime = new Date(activeAnnouncements[0].created_at).getTime();
       const userLastReadTime = user?.last_read_announcements_at ? new Date(user.last_read_announcements_at).getTime() : 0;
-      
+
       if (latestAnnouncementTime <= userLastReadTime) {
         navigate('/matchcenter', { replace: true });
       } else {
@@ -97,8 +97,8 @@ export default function Hub() {
         ))}
       </div>
 
-      <div className="fixed bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-black via-black/80 to-transparent z-50">
-        <div className="max-w-2xl mx-auto pb-[env(safe-area-inset-bottom)]">
+      <div className="fixed max-md:bottom-[calc(3.5rem+env(safe-area-inset-bottom))] md:bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-black via-black/80 to-transparent z-40 pointer-events-none">
+        <div className="max-w-2xl mx-auto md:pb-[env(safe-area-inset-bottom)] pointer-events-auto">
           <button
             onClick={handleContinue}
             disabled={isMarkingRead}
