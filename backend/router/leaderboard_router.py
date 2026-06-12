@@ -437,8 +437,8 @@ async def get_analysis_data(tournament_id: str = "ipl-2026", db: AsyncSession = 
     if cached: 
         return cached
 
-    from datetime import UTC, datetime, timedelta
-    now = datetime.now(UTC)
+    from datetime import timezone, datetime, timedelta
+    now = datetime.now(timezone.utc)
     last_week = now - timedelta(days=7)
     
     from backend.models import Match

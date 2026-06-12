@@ -4,7 +4,7 @@ from sqlalchemy.future import select
 from sqlalchemy.orm import selectinload
 from sqlalchemy import or_
 from typing import List, Optional, Any
-from datetime import datetime, timedelta, UTC
+from datetime import datetime, timedelta, timezone.utc
 import csv
 from io import StringIO
 
@@ -91,8 +91,8 @@ async def bulk_import_matches(
             # Try the IST format commonly used in manual sheets: 22-Mar-26 07:30 PM
             try:
                 dt_ist = datetime.strptime(start_time_raw, "%d-%b-%y %I:%M %p")
-                # Convert IST to UTC (subtract 5.5 hours)
-                start_time = (dt_ist - timedelta(hours=5, minutes=30)).replace(tzinfo=UTC)
+                # Convert IST to timezone.utc (subtract 5.5 hours)
+                start_time = (dt_ist - timedelta(hours=5, minutes=30)).replace(tzinfo=timezone.utc)
             except ValueError:
                 raise HTTPException(
                     status_code=400, 

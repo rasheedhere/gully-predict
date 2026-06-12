@@ -1,6 +1,6 @@
 import uuid
 import random
-from datetime import datetime, UTC, timedelta
+from datetime import datetime, timezone, timedelta
 from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel
 from typing import List, Dict, Optional, Any
@@ -58,15 +58,15 @@ def _replace_placeholders(text: str, match: Match) -> str:
 def _is_locked(match: Match) -> bool:
     start_time = match.start_time
     if start_time.tzinfo is None:
-        start_time = start_time.replace(tzinfo=UTC)
-    return datetime.now(UTC) >= (start_time - timedelta(minutes=30))
+        start_time = start_time.replace(tzinfo=timezone.utc)
+    return datetime.now(timezone.utc) >= (start_time - timedelta(minutes=30))
 
 
 # ── List Matches ──────────────────────────────────────────────────────────────
 
 @router.get("")
 async def list_matches(tournament_id: Optional[str] = None, db: AsyncSession = Depends(get_db)):
-    now = datetime.now(UTC)
+    now = datetime.now(timezone.utc)
     today_start = now.replace(hour=0, minute=0, second=0, microsecond=0)
     past_cutoff = today_start - timedelta(days=2)
     future_cutoff = today_start + timedelta(days=3)

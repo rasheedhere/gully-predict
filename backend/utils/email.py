@@ -29,7 +29,7 @@ async def send_prediction_confirmation(user_email, user_name, match_title, team1
             <p style="margin: 10px 0;"><strong>Using Power up:</strong> {predictions_dict.get('use_powerup', 'No') == 'Yes' and '⚡ 2X POWERUP' or 'No'}</p>
         </div>
 
-        <p style="font-size: 12px; color: #64748b;">Submitted at: {datetime.now().strftime('%Y-%m-%d %H:%M:%S UTC')}</p>
+        <p style="font-size: 12px; color: #64748b;">Submitted at: {datetime.now().strftime('%Y-%m-%d %H:%M:%S timezone.utc')}</p>
         <hr style="border: 0; border-top: 1px solid #1B2132; margin-top: 32px;" />
         <p style="font-size: 10px; color: #475569;">Good luck! May your strategy prevail.</p>
     </div>

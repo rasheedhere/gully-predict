@@ -255,9 +255,9 @@ async def calculate_match_scores(match_id: str, db: AsyncSession):
         if not response:
             # No prediction — apply penalty (AI exempt before match 25)
             # Do NOT penalize if the user joined after the match started
-            from datetime import UTC
-            u_created = user.created_at if user.created_at.tzinfo else user.created_at.replace(tzinfo=UTC)
-            m_start = match.start_time if match.start_time.tzinfo else match.start_time.replace(tzinfo=UTC)
+            from datetime import timezone
+            u_created = user.created_at if user.created_at.tzinfo else user.created_at.replace(tzinfo=timezone.utc)
+            m_start = match.start_time if match.start_time.tzinfo else match.start_time.replace(tzinfo=timezone.utc)
             if u_created > m_start:
                 current_penalty = 0
             else:

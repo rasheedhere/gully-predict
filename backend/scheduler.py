@@ -5,7 +5,7 @@ APScheduler background jobs.
 """
 import uuid
 import random
-from datetime import datetime, UTC, timedelta
+from datetime import datetime, timezone, timedelta
 
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from sqlalchemy import select, or_
@@ -271,8 +271,8 @@ async def generate_ai_prediction(db, match: Match, ai_user: User):
 
 
 async def auto_predict_daily_job():
-    """Daily cron job — runs at 00:00 UTC. Generates AI predictions for upcoming 24h matches."""
-    print(f"[{datetime.now(UTC)}] Running auto_predict_daily_job...")
+    """Daily cron job — runs at 00:00 timezone.utc. Generates AI predictions for upcoming 24h matches."""
+    print(f"[{datetime.now(timezone.utc)}] Running auto_predict_daily_job...")
     async with async_session() as db:
         async with db.begin():
             ai_users_res = await db.execute(select(User).where(User.is_ai == True))
@@ -282,7 +282,7 @@ async def auto_predict_daily_job():
                 print("No AI users found. Skipping.")
                 return
 
-            now = datetime.now(UTC)
+            now = datetime.now(timezone.utc)
             future = now + timedelta(days=2)
 
             matches_res = await db.execute(
@@ -306,7 +306,7 @@ async def auto_predict_daily_job():
 
 
 def start_scheduler():
-    scheduler.add_job(auto_predict_daily_job, trigger='cron', hour=0, minute=0, timezone='UTC')
+    scheduler.add_job(auto_predict_daily_job, trigger='cron', hour=0, minute=0, timezone='timezone.utc')
     scheduler.start()
 
 
