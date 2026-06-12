@@ -44,7 +44,15 @@ export default function Hub() {
 
   const handleAction = (url: string) => {
     markRead(undefined, {
-      onSuccess: () => navigate(url)
+      onSuccess: () => {
+        if (url.startsWith('http://') || url.startsWith('https://')) {
+          window.location.href = url;
+        } else if (url === '/') {
+          navigate('/matchcenter');
+        } else {
+          navigate(url);
+        }
+      }
     });
   };
 
