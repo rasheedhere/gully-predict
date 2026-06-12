@@ -18,8 +18,8 @@ interface MatchCardProps {
 
 export default function MatchCard({ id, team1, team2, venue, tossTime, status, has_predicted, tournament }: MatchCardProps) {
   const { user } = useAuthStore();
-  const t1Color = getTeamColor(team1);
-  const t2Color = getTeamColor(team2);
+  const t1Color = getTeamColor(team1, team2);
+  const t2Color = getTeamColor(team2, team1);
   const t1Logo = getTeamLogo(team1);
   const t2Logo = getTeamLogo(team2);
   const t1Short = getTeamShortName(team1);

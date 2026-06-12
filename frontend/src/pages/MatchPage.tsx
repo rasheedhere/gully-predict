@@ -165,8 +165,8 @@ export default function MatchPage() {
                 <div
                   className={`team-select-button min-h-[44px] flex items-center justify-center p-4 border-2 text-center font-display transition-all rounded-[18px] active:scale-[0.97] duration-150 ${isMatchWinner ? 'text-lg md:text-xl' : 'text-xs md:text-sm'}`}
                   style={{
-                    '--team-color': getTeamColor(opt),
-                    '--team-text-color': getContrastColor(getTeamColor(opt)),
+                    '--team-color': getTeamColor(opt, opt === match?.team1 ? match?.team2 : match?.team1),
+                    '--team-text-color': getContrastColor(getTeamColor(opt, opt === match?.team1 ? match?.team2 : match?.team1)),
                     borderColor: error ? 'rgba(239, 68, 68, 0.4)' : 'rgba(255, 255, 255, 0.1)',
                     color: error ? 'rgba(239, 68, 68, 0.5)' : 'rgba(156, 163, 175, 1)'
                   } as any}
@@ -461,7 +461,7 @@ export default function MatchPage() {
 
   const getCellColorByQuestion = (val: any, qText: string) => {
     const valStr = String(val);
-    const colorVal = getAccessibleTeamTextColor(valStr);
+    const colorVal = getAccessibleTeamTextColor(valStr, valStr === match?.team1 ? match?.team2 : match?.team1);
     if (colorVal && colorVal !== '#ffffff') {
       return { color: colorVal, fontWeight: 'black' as const };
     }
@@ -470,7 +470,7 @@ export default function MatchPage() {
     const qWords = qText.split(/\s+/);
     for (const word of qWords) {
       const cleanWord = word.replace(/[^a-zA-Z]/g, '');
-      const colorQ = getAccessibleTeamTextColor(cleanWord);
+      const colorQ = getAccessibleTeamTextColor(cleanWord, cleanWord === match?.team1 ? match?.team2 : match?.team1);
       if (colorQ && colorQ !== '#ffffff') {
         return { color: colorQ, fontWeight: 'bold' as const };
       }
@@ -482,7 +482,7 @@ export default function MatchPage() {
     const words = text.split(/\s+/);
     for (const word of words) {
       const cleanWord = word.replace(/[^a-zA-Z]/g, '');
-      const color = getAccessibleTeamTextColor(cleanWord);
+      const color = getAccessibleTeamTextColor(cleanWord, cleanWord === match?.team1 ? match?.team2 : match?.team1);
       if (color && color !== '#ffffff') {
         return { color };
       }
@@ -679,7 +679,7 @@ export default function MatchPage() {
           <div className="flex flex-col items-center gap-3 flex-1 min-w-0">
             <div
               className="w-20 h-20 md:w-32 md:h-32 rounded-2xl md:rounded-3xl flex items-center justify-center border-2 shadow-2xl overflow-hidden p-2 md:p-3 bg-black/40 relative group shrink-0"
-              style={{ borderColor: `${getTeamColor(match.team1)}50`, boxShadow: `0 0 40px ${getTeamColor(match.team1)}20` }}
+              style={{ borderColor: `${getTeamColor(match.team1, match.team2)}50`, boxShadow: `0 0 40px ${getTeamColor(match.team1, match.team2)}20` }}
             >
               <div className="absolute inset-0 bg-gradient-to-br from-white/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
               {getTeamLogo(match.team1) ? (
@@ -688,7 +688,7 @@ export default function MatchPage() {
                 <span className="text-2xl md:text-3xl font-display text-white">{getTeamShortName(match.team1)}</span>
               )}
             </div>
-            <span className="text-lg md:text-2xl lg:text-3xl font-display font-bold leading-tight text-center break-words w-full" style={{ color: getTeamColor(match.team1) }}>
+            <span className="text-lg md:text-2xl lg:text-3xl font-display font-bold leading-tight text-center break-words w-full" style={{ color: getTeamColor(match.team1, match.team2) }}>
               <span className="md:hidden">{getTeamShortName(match.team1)}</span>
               <span className="hidden md:inline">{match.team1}</span>
             </span>
@@ -702,7 +702,7 @@ export default function MatchPage() {
           <div className="flex flex-col items-center gap-3 flex-1 min-w-0">
             <div
               className="w-20 h-20 md:w-32 md:h-32 rounded-2xl md:rounded-3xl flex items-center justify-center border-2 shadow-2xl overflow-hidden p-2 md:p-3 bg-black/40 relative group shrink-0"
-              style={{ borderColor: `${getTeamColor(match.team2)}50`, boxShadow: `0 0 40px ${getTeamColor(match.team2)}20` }}
+              style={{ borderColor: `${getTeamColor(match.team2, match.team1)}50`, boxShadow: `0 0 40px ${getTeamColor(match.team2, match.team1)}20` }}
             >
               <div className="absolute inset-0 bg-gradient-to-br from-white/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
               {getTeamLogo(match.team2) ? (
@@ -711,7 +711,7 @@ export default function MatchPage() {
                 <span className="text-2xl md:text-3xl font-display text-white">{getTeamShortName(match.team2)}</span>
               )}
             </div>
-            <span className="text-lg md:text-2xl lg:text-3xl font-display font-bold leading-tight text-center break-words w-full" style={{ color: getTeamColor(match.team2) }}>
+            <span className="text-lg md:text-2xl lg:text-3xl font-display font-bold leading-tight text-center break-words w-full" style={{ color: getTeamColor(match.team2, match.team1) }}>
               <span className="md:hidden">{getTeamShortName(match.team2)}</span>
               <span className="hidden md:inline">{match.team2}</span>
             </span>
@@ -730,12 +730,12 @@ export default function MatchPage() {
         <div className="hidden items-center justify-center gap-3 w-full px-2 mt-1">
           {/* Team 1 Logo & Shortname */}
           <div className="flex items-center gap-2 flex-1 justify-end min-w-0">
-            <span className="text-base font-display font-bold truncate" style={{ color: getTeamColor(match.team1) }}>
+            <span className="text-base font-display font-bold truncate" style={{ color: getTeamColor(match.team1, match.team2) }}>
               {getTeamShortName(match.team1)}
             </span>
             <div
               className="w-10 h-10 rounded-xl flex items-center justify-center border bg-black/40 p-1 shrink-0"
-              style={{ borderColor: `${getTeamColor(match.team1)}40`, boxShadow: `0 0 15px ${getTeamColor(match.team1)}15` }}
+              style={{ borderColor: `${getTeamColor(match.team1, match.team2)}40`, boxShadow: `0 0 15px ${getTeamColor(match.team1, match.team2)}15` }}
             >
               {getTeamLogo(match.team1) ? (
                 <img src={getTeamLogo(match.team1)!} alt={match.team1} className="w-full h-full object-contain" />
@@ -752,7 +752,7 @@ export default function MatchPage() {
           <div className="flex items-center gap-2 flex-1 justify-start min-w-0">
             <div
               className="w-10 h-10 rounded-xl flex items-center justify-center border bg-black/40 p-1 shrink-0"
-              style={{ borderColor: `${getTeamColor(match.team2)}40`, boxShadow: `0 0 15px ${getTeamColor(match.team2)}15` }}
+              style={{ borderColor: `${getTeamColor(match.team2, match.team1)}40`, boxShadow: `0 0 15px ${getTeamColor(match.team2, match.team1)}15` }}
             >
               {getTeamLogo(match.team2) ? (
                 <img src={getTeamLogo(match.team2)!} alt={match.team2} className="w-full h-full object-contain" />
@@ -760,7 +760,7 @@ export default function MatchPage() {
                 <span className="text-xs font-display text-white">{getTeamShortName(match.team2)}</span>
               )}
             </div>
-            <span className="text-base font-display font-bold truncate" style={{ color: getTeamColor(match.team2) }}>
+            <span className="text-base font-display font-bold truncate" style={{ color: getTeamColor(match.team2, match.team1) }}>
               {getTeamShortName(match.team2)}
             </span>
           </div>
@@ -798,8 +798,8 @@ export default function MatchPage() {
             <div
               className="bg-white/5 p-3 md:p-6 border relative overflow-hidden group transition-all col-span-2 md:col-span-1 rounded-2xl"
               style={{
-                borderColor: match?.results?.[winnerQId] ? `${getTeamColor(match.results[winnerQId])}40` : 'rgba(255,255,255,0.1)',
-                boxShadow: match?.results?.[winnerQId] ? `0 0 20px ${getTeamColor(match.results[winnerQId])}15` : 'none'
+                borderColor: match?.results?.[winnerQId] ? `${getTeamColor(match.results[winnerQId], match.results[winnerQId] === match.team1 ? match.team2 : match.team1)}40` : 'rgba(255,255,255,0.1)',
+                boxShadow: match?.results?.[winnerQId] ? `0 0 20px ${getTeamColor(match.results[winnerQId], match.results[winnerQId] === match.team1 ? match.team2 : match.team1)}15` : 'none'
               }}
             >
               <div className="absolute -right-4 -bottom-4 opacity-5 group-hover:opacity-10 transition-opacity">
@@ -811,8 +811,8 @@ export default function MatchPage() {
                   <img src={getTeamLogo(match.results[winnerQId])!} alt="" className="w-8 h-8 md:w-10 md:h-10 object-contain" />
                 )}
                 <span style={{
-                  color: match?.results?.[winnerQId] ? getTeamColor(match.results[winnerQId]) : 'white',
-                  textShadow: match?.results?.[winnerQId] ? `0 0 20px ${getTeamColor(match.results[winnerQId])}60` : 'none'
+                  color: match?.results?.[winnerQId] ? getTeamColor(match.results[winnerQId], match.results[winnerQId] === match.team1 ? match.team2 : match.team1) : 'white',
+                  textShadow: match?.results?.[winnerQId] ? `0 0 20px ${getTeamColor(match.results[winnerQId], match.results[winnerQId] === match.team1 ? match.team2 : match.team1)}60` : 'none'
                 }}>
                   {match?.results?.[winnerQId] || 'TBD'}
                 </span>
@@ -824,7 +824,7 @@ export default function MatchPage() {
               const label = q ? getShortQuestionText(q.question_text) : 'Result';
 
               const val = match.results[k];
-              const teamColorVal = getAccessibleTeamTextColor(val);
+              const teamColorVal = getAccessibleTeamTextColor(val, val === match?.team1 ? match?.team2 : match?.team1);
               const isTeamMatch = teamColorVal !== '#ffffff';
               const valStyle = isTeamMatch ? { color: teamColorVal } : { color: 'white' };
               const displayVal = getTeamShortName(val);
@@ -1042,14 +1042,14 @@ export default function MatchPage() {
                     <div
                       className="flex-1 flex items-center justify-between px-2 py-1 md:px-6 md:py-3.5 rounded-md md:rounded-xl transition-all duration-300"
                       style={{
-                        backgroundColor: `${getTeamColor(match.team1)}15`,
-                        border: `1px solid ${getTeamColor(match.team1)}40`
+                        backgroundColor: `${getTeamColor(match.team1, match.team2)}15`,
+                        border: `1px solid ${getTeamColor(match.team1, match.team2)}40`
                       }}
                     >
-                      <span className="text-[8px] md:text-xs font-display font-bold uppercase tracking-wider" style={{ color: getTeamColor(match.team1) }}>
+                      <span className="text-[8px] md:text-xs font-display font-bold uppercase tracking-wider" style={{ color: getTeamColor(match.team1, match.team2) }}>
                         {getTeamShortName(match.team1)} PREDICTORS
                       </span>
-                      <span className="text-xs md:text-xl font-display font-black" style={{ color: getTeamColor(match.team1) }}>
+                      <span className="text-xs md:text-xl font-display font-black" style={{ color: getTeamColor(match.team1, match.team2) }}>
                         {t1Predictors}
                       </span>
                     </div>
@@ -1071,14 +1071,14 @@ export default function MatchPage() {
                     <div
                       className="flex-1 flex items-center justify-between px-2 py-1 md:px-6 md:py-3.5 rounded-md md:rounded-xl transition-all duration-300"
                       style={{
-                        backgroundColor: `${getTeamColor(match.team2)}15`,
-                        border: `1px solid ${getTeamColor(match.team2)}40`
+                        backgroundColor: `${getTeamColor(match.team2, match.team1)}15`,
+                        border: `1px solid ${getTeamColor(match.team2, match.team1)}40`
                       }}
                     >
-                      <span className="text-[8px] md:text-xs font-display font-bold uppercase tracking-wider" style={{ color: getTeamColor(match.team2) }}>
+                      <span className="text-[8px] md:text-xs font-display font-bold uppercase tracking-wider" style={{ color: getTeamColor(match.team2, match.team1) }}>
                         {getTeamShortName(match.team2)} PREDICTORS
                       </span>
-                      <span className="text-xs md:text-xl font-display font-black" style={{ color: getTeamColor(match.team2) }}>
+                      <span className="text-xs md:text-xl font-display font-black" style={{ color: getTeamColor(match.team2, match.team1) }}>
                         {isLocked ? t2Predictors : '?'}
                       </span>
                     </div>
@@ -1196,7 +1196,7 @@ export default function MatchPage() {
                                       <div className="flex items-center gap-1.5 md:gap-2.5 min-w-0 justify-center md:justify-start w-full md:w-auto">
                                         <div className="relative shrink-0">
                                           {(() => {
-                                            const borderTeamColor = winnerAns !== '🔒' ? getAccessibleTeamTextColor(winnerAns) : (isMyRow ? '#F4C430' : 'rgba(255,255,255,0.1)');
+                                            const borderTeamColor = winnerAns !== '🔒' ? getAccessibleTeamTextColor(winnerAns, winnerAns === match?.team1 ? match?.team2 : match?.team1) : (isMyRow ? '#F4C430' : 'rgba(255,255,255,0.1)');
                                             return (
                                               <img
                                                 src={pred.user.avatar_url || `https://ui-avatars.com/api/?name=${pred.user.name}&background=0B0E1A&color=F4C430`}
@@ -1263,8 +1263,8 @@ export default function MatchPage() {
                                           <span
                                             className="hidden md:inline-block px-1.5 py-0.5 rounded text-[7px] md:text-[8px] font-black uppercase tracking-wider border border-white/10 select-none leading-none shadow-[0_1px_3px_rgba(0,0,0,0.3)]"
                                             style={{
-                                              backgroundColor: getTeamColor(winnerAns),
-                                              color: getContrastColor(getTeamColor(winnerAns))
+                                              backgroundColor: getTeamColor(winnerAns, winnerAns === match?.team1 ? match?.team2 : match?.team1),
+                                              color: getContrastColor(getTeamColor(winnerAns, winnerAns === match?.team1 ? match?.team2 : match?.team1))
                                             }}
                                           >
                                             {teamWinnerShort}
