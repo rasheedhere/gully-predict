@@ -34,32 +34,49 @@ export default function MatchCenter() {
   const { data: matches, isLoading, error } = useMatches(); // Fetch ALL matches
   const { data: predictionStatus } = useMyPredictionStatus();
 
+  const [activeFilter, setActiveFilter] = useState<string>('all');
+
   // Scroll index tracking for iOS-style pagination indicators
   const [activeTodayIdx, setActiveTodayIdx] = useState(0);
 
   if (isLoading) return <div className="text-white text-center font-display tracking-widest animate-pulse mt-20">LOADING ARENA...</div>;
   if (error) return <div className="text-ipl-live text-center font-display tracking-widest mt-20">FAILED TO LOAD MATCHES</div>;
 
-  const todayMatches = matches?.filter(m => {
+  // Calculate tournament filters
+  const filterCounts: Record<string, { name: string, count: number }> = {};
+  matches?.forEach(m => {
+    if (m.tournament) {
+      if (!filterCounts[m.tournament.id]) {
+        filterCounts[m.tournament.id] = { name: m.tournament.name, count: 0 };
+      }
+      filterCounts[m.tournament.id].count++;
+    }
+  });
+
+  const filteredMatches = activeFilter === 'all'
+    ? matches || []
+    : matches?.filter(m => m.tournament?.id === activeFilter) || [];
+
+  const todayMatches = filteredMatches.filter(m => {
     const d = new Date(m.tossTime);
     const now = new Date();
     return d.toDateString() === now.toDateString();
-  }) || [];
+  });
 
-  const futureMatches = matches?.filter(m => {
+  const futureMatches = filteredMatches.filter(m => {
     const d = new Date(m.tossTime);
     const now = new Date();
     return d.toDateString() !== now.toDateString() && d > now;
-  }) || [];
+  });
 
-  const pastMatches = matches?.filter(m => {
+  const pastMatches = filteredMatches.filter(m => {
     const d = new Date(m.tossTime);
     const now = new Date();
     const twoDaysAgo = new Date();
     twoDaysAgo.setDate(now.getDate() - 2);
     twoDaysAgo.setHours(0, 0, 0, 0);
     return d < now && d.toDateString() !== now.toDateString() && d >= twoDaysAgo;
-  }) || [];
+  });
 
   const handleTodayScroll = (e: React.UIEvent<HTMLDivElement>) => {
     const container = e.currentTarget;
@@ -81,6 +98,34 @@ export default function MatchCenter() {
         </h1>
       </header>
 
+      {/* Filters */}
+      <div className="flex overflow-x-auto gap-3 pb-2 scrollbar-hide snap-x">
+        <button
+          onClick={() => setActiveFilter('all')}
+          className={`shrink-0 snap-start px-4 py-2 rounded-full font-display uppercase tracking-widest text-xs transition-colors duration-200 border ${
+            activeFilter === 'all'
+              ? 'bg-ipl-gold text-black font-extrabold border-ipl-gold shadow-[0_0_10px_rgba(244,196,48,0.2)]'
+              : 'bg-white/5 text-gray-400 font-semibold border-white/10 hover:bg-white/10 hover:text-white'
+          }`}
+        >
+          Matches ({matches?.length || 0})
+        </button>
+
+        {Object.entries(filterCounts).map(([id, info]) => (
+          <button
+            key={id}
+            onClick={() => setActiveFilter(id)}
+            className={`shrink-0 snap-start px-4 py-2 rounded-full font-display uppercase tracking-widest text-xs transition-colors duration-200 border ${
+              activeFilter === id
+                ? 'bg-ipl-gold text-black font-extrabold border-ipl-gold shadow-[0_0_10px_rgba(244,196,48,0.2)]'
+                : 'bg-white/5 text-gray-400 font-semibold border-white/10 hover:bg-white/10 hover:text-white'
+            }`}
+          >
+            {info.name} ({info.count})
+          </button>
+        ))}
+      </div>
+
       {user?.is_guest && (
         <div className="glass-panel border-l-4 border-l-ipl-gold p-5 bg-ipl-gold/5 flex items-start gap-4 animate-in fade-in slide-in-from-left-4 duration-700 rounded-2xl">
           <div className="p-2 bg-ipl-gold/10 rounded-lg shrink-0">
@@ -97,11 +142,16 @@ export default function MatchCenter() {
 
       {/* Today's Matches / Match Day */}
       <section className="space-y-4">
-        <div className="flex items-center gap-3">
-          <h2 className="text-xl font-display text-white tracking-wider uppercase font-extrabold">Match Day</h2>
-          <div className="flex items-center gap-1 px-2.5 py-0.5 rounded-full border border-[#E84040]/30 bg-[#E84040]/10 text-[#E84040] text-[10px] font-display uppercase tracking-widest font-extrabold">
-            <span className="w-1.5 h-1.5 rounded-full bg-[#E84040] animate-pulse" />
-            Live
+        <div className="flex items-center gap-3 flex-wrap">
+          <div className="flex items-center gap-3">
+            <h2 className="text-xl font-display text-white tracking-wider uppercase font-extrabold">Match Day</h2>
+            <div className="flex items-center gap-1 px-2.5 py-0.5 rounded-full border border-[#E84040]/30 bg-[#E84040]/10 text-[#E84040] text-[10px] font-display uppercase tracking-widest font-extrabold">
+              <span className="w-1.5 h-1.5 rounded-full bg-[#E84040] animate-pulse" />
+              Live
+            </div>
+          </div>
+          <div className="text-xs font-display text-gray-400 tracking-widest uppercase bg-white/5 px-3 py-1 rounded-full border border-white/10 ml-auto md:ml-0">
+            {new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric', year: 'numeric' })}
           </div>
         </div>
 

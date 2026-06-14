@@ -2071,7 +2071,7 @@ function LeagueUserManager({ leagueId, onBack }: { leagueId: string, onBack: () 
   );
 }
 
-function TournamentMatchGrading({ tournamentId, matchId, onClose }: { tournamentId: string, matchId: string, onClose: () => void }) {
+export function TournamentMatchGrading({ tournamentId, matchId, onClose }: { tournamentId: string, matchId: string, onClose: () => void }) {
   const { data: matches } = useMatches(tournamentId);
   const currentMatch = matches?.find(m => m.id === matchId);
 
@@ -2180,7 +2180,7 @@ function TournamentMatchGrading({ tournamentId, matchId, onClose }: { tournament
   );
 }
 
-function AdminModal({ isOpen, onClose, title, children }: { isOpen: boolean; onClose: () => void; title: React.ReactNode; children: React.ReactNode }) {
+export function AdminModal({ isOpen, onClose, title, children }: { isOpen: boolean; onClose: () => void; title: React.ReactNode; children: React.ReactNode }) {
   if (!isOpen) return null;
   return (
     <div className="fixed inset-0 z-[100] flex items-end md:items-center justify-center p-0 md:p-4 select-none md:select-text">

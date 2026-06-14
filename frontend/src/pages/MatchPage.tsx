@@ -11,6 +11,7 @@ import { getTeamColor, getTeamShortName, getAccessibleTeamTextColor } from '../u
 import { getUserDisplayName } from '../utils/userUtils';
 import { getTeamLogo } from '../utils/teamLogos';
 import { useUiStore } from '../store/ui';
+import { AdminModal, TournamentMatchGrading } from './Admin';
 
 export default function MatchPage() {
   const { id } = useParams();
@@ -21,6 +22,7 @@ export default function MatchPage() {
   const [hasAutoPredicted, setHasAutoPredicted] = useState(false);
   const [showAutoPredictConfirm, setShowAutoPredictConfirm] = useState(false);
   const [selectedBreakdown, setSelectedBreakdown] = useState<{ predictorName: string; points: number; rules: any[]; powerupUsed?: boolean } | null>(null);
+  const [isGradingModalOpen, setIsGradingModalOpen] = useState(false);
   const { register, handleSubmit, reset, setValue, formState: { errors } } = useForm();
 
   const { data, isLoading, error } = useMatch(id || '');
@@ -663,8 +665,18 @@ export default function MatchPage() {
       {/* Desktop Match Card Header */}
       <div className="hidden md:block text-center relative overflow-hidden md:glass-panel md:p-8 md:border-b-[4px] md:border-ipl-gold">
         <div className="flex justify-between items-center w-full mb-4 md:mb-0 relative md:absolute md:top-4 md:left-0 md:w-full md:px-4 z-10 px-1">
-          <div className="rounded-full border border-white/10 bg-white/5 backdrop-blur-md text-gray-300 font-display text-[9px] md:text-[10px] tracking-widest px-3 md:px-4 py-1.5 uppercase shadow-lg">
-            Powerups: <span className="text-white font-bold">{powerupsLeft}/{totalPowerups}</span>
+          <div className="flex items-center gap-2">
+            <div className="rounded-full border border-white/10 bg-white/5 backdrop-blur-md text-gray-300 font-display text-[9px] md:text-[10px] tracking-widest px-3 md:px-4 py-1.5 uppercase shadow-lg">
+              Powerups: <span className="text-white font-bold">{powerupsLeft}/{totalPowerups}</span>
+            </div>
+            {currentUser?.is_admin && (
+              <button
+                onClick={() => setIsGradingModalOpen(true)}
+                className="rounded-full border border-ipl-gold/30 bg-ipl-gold/10 hover:bg-ipl-gold hover:text-black transition-colors backdrop-blur-md text-ipl-gold font-display text-[9px] md:text-[10px] tracking-widest px-3 md:px-4 py-1.5 uppercase shadow-lg"
+              >
+                Grade Match
+              </button>
+            )}
           </div>
           <div className={`rounded-full border backdrop-blur-md font-display text-[9px] md:text-[10px] tracking-widest px-3 md:px-4 py-1.5 font-bold uppercase shadow-lg transition-all ${isLocked
             ? 'bg-ipl-live/10 border-ipl-live/30 text-ipl-live shadow-[0_0_15px_rgba(232,64,64,0.15)]'
@@ -783,6 +795,14 @@ export default function MatchPage() {
             {isLocked ? 'CLOSED' : 'OPEN'}
           </span>
         </div>
+        {currentUser?.is_admin && (
+          <button
+            onClick={() => setIsGradingModalOpen(true)}
+            className="mt-2 rounded-full border border-ipl-gold/30 bg-ipl-gold/10 hover:bg-ipl-gold hover:text-black transition-colors text-ipl-gold font-display text-[8px] tracking-[0.2em] px-3 py-1 uppercase shadow-lg"
+          >
+            Grade Match
+          </button>
+        )}
       </div>
 
       {match.status === 'completed' && (
@@ -1526,6 +1546,19 @@ export default function MatchPage() {
         </div>
       )}
 
+      <AdminModal
+        isOpen={isGradingModalOpen}
+        onClose={() => setIsGradingModalOpen(false)}
+        title={null}
+      >
+        {isGradingModalOpen && match && (
+          <TournamentMatchGrading
+            tournamentId={match.tournament?.id || ''}
+            matchId={match.id}
+            onClose={() => setIsGradingModalOpen(false)}
+          />
+        )}
+      </AdminModal>
     </div>
   );
 }
