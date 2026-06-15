@@ -2126,7 +2126,7 @@ function AnnouncementManagement() {
     setContent(a.content);
     setActionLabel(a.action_label || '');
     setActionUrl(a.action_url || '');
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    document.querySelector('main')?.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   return (
