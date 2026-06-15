@@ -11,6 +11,8 @@ import { getTeamColor, getTeamShortName, getAccessibleTeamTextColor } from '../u
 import { getUserDisplayName } from '../utils/userUtils';
 import { getTeamLogo } from '../utils/teamLogos';
 import { useUiStore } from '../store/ui';
+import { AdminModal } from '../components/Admin/AdminModal';
+import { TournamentMatchGrading } from '../components/Admin/TournamentMatchGrading';
 
 export default function MatchPage() {
   const { id } = useParams();
@@ -21,6 +23,7 @@ export default function MatchPage() {
   const [hasAutoPredicted, setHasAutoPredicted] = useState(false);
   const [showAutoPredictConfirm, setShowAutoPredictConfirm] = useState(false);
   const [selectedBreakdown, setSelectedBreakdown] = useState<{ predictorName: string; points: number; rules: any[]; powerupUsed?: boolean } | null>(null);
+  const [showGradingModal, setShowGradingModal] = useState(false);
   const { register, handleSubmit, reset, setValue, formState: { errors } } = useForm();
 
   const { data, isLoading, error } = useMatch(id || '');
@@ -672,9 +675,19 @@ export default function MatchPage() {
             {isLocked ? 'Predictions Closed' : 'Predictions Open'}
           </div>
         </div>
-        <p className="text-gray-400 mt-2 md:mt-6 font-display uppercase tracking-[0.3em] font-bold text-xs md:text-sm ring-offset-2">
-          Match {matchNumber}
-        </p>
+        <div className="flex flex-col items-center gap-2">
+          <p className="text-gray-400 mt-2 md:mt-6 font-display uppercase tracking-[0.3em] font-bold text-xs md:text-sm ring-offset-2">
+            Match {matchNumber}
+          </p>
+          {currentUser?.is_admin && match?.tournament_id && (
+            <button
+              onClick={() => setShowGradingModal(true)}
+              className="mt-2 md:mt-4 px-4 py-1.5 bg-ipl-gold/20 text-ipl-gold border border-ipl-gold/40 rounded-full font-display text-[10px] uppercase tracking-widest hover:bg-ipl-gold hover:text-black transition-all"
+            >
+              Grade Match
+            </button>
+          )}
+        </div>
         <div className="flex items-start justify-center gap-4 md:gap-16 mt-6 md:mt-8">
           <div className="flex flex-col items-center gap-3 flex-1 min-w-0">
             <div
@@ -1437,6 +1450,21 @@ export default function MatchPage() {
             </div>
           </div>
         </div>
+      )}
+
+      {/* Admin Grading Modal */}
+      {showGradingModal && match?.tournament_id && (
+        <AdminModal
+          isOpen={showGradingModal}
+          onClose={() => setShowGradingModal(false)}
+          title={null}
+        >
+          <TournamentMatchGrading
+            tournamentId={match.tournament_id}
+            matchId={match.id}
+            onClose={() => setShowGradingModal(false)}
+          />
+        </AdminModal>
       )}
 
       {/* Points Breakdown Bottom Overlay */}
