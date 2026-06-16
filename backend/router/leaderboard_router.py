@@ -444,9 +444,17 @@ async def get_analysis_data(tournament_id: str = "ipl-2026", db: AsyncSession = 
     if cached: 
         return cached
 
-    from backend.models import Tournament
+    from backend.models import Tournament, Campaign
     tournament = await db.get(Tournament, tournament_id)
     sport = tournament.sport.lower() if (tournament and tournament.sport) else "cricket"
+
+    master_cam_res = await db.execute(
+        select(Campaign.max_powerups).where(
+            Campaign.tournament_id == tournament_id,
+            Campaign.is_master == True
+        ).limit(1)
+    )
+    default_max_powerups = master_cam_res.scalar_one_or_none() or 10
 
     from datetime import datetime, timezone, timedelta
     now = datetime.now(timezone.utc)
@@ -473,7 +481,7 @@ async def get_analysis_data(tournament_id: str = "ipl-2026", db: AsyncSession = 
         .where(Match.id.in_(valid_match_ids))
         .where(User.is_guest == False, User.is_dev == False)
         .where(LeaderboardEntry.league_id.is_(None))
-        .group_by(User.id)
+        .group_by(User.id, User.name, User.alias, User.use_alias, User.avatar_url)
         .order_by(func.sum(LeaderboardEntry.points).desc())
     )
     
@@ -506,7 +514,7 @@ async def get_analysis_data(tournament_id: str = "ipl-2026", db: AsyncSession = 
         .where(Match.start_time >= today_start)
         .where(User.is_guest == False, User.is_dev == False)
         .where(LeaderboardEntry.league_id.is_(None))
-        .group_by(User.id, User.name, User.avatar_url)
+        .group_by(User.id, User.name, User.alias, User.use_alias, User.avatar_url)
         .order_by(func.sum(LeaderboardEntry.points).desc())
     )
     
