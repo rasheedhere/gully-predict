@@ -198,7 +198,11 @@ export default function MatchCenter() {
                         </span>
                       </div>
                       <div className="flex items-center gap-1.5">
-                        {hasPredicted ? (
+                        {match.status === 'completed' ? (
+                          <span className="text-[9px] font-display uppercase tracking-widest px-2.5 py-0.5 rounded-full border border-green-500/30 bg-green-500/5 text-green-500 font-bold">
+                            CONCLUDED
+                          </span>
+                        ) : hasPredicted ? (
                           <span className="text-[9px] font-display uppercase tracking-widest px-2.5 py-0.5 rounded-full border border-ipl-gold/30 bg-ipl-gold/5 text-ipl-gold font-bold">
                             PREDICTED
                           </span>
