@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Users, ShieldCheck, Mail, Trash2, Cpu, Plus, Trophy, RefreshCw, Calendar, MapPin, Sword, Star, Pencil, X, List, ChevronLeft, Search, ChevronDown, Megaphone } from 'lucide-react';
+import { Users, ShieldCheck, Mail, Trash2, Cpu, Plus, Trophy, RefreshCw, Calendar, MapPin, Sword, Star, Pencil, X, List, ChevronLeft, Search, ChevronDown, Megaphone, ListOrdered } from 'lucide-react';
 import { useAuthStore } from '../store/auth';
 import { Navigate, useSearchParams } from 'react-router-dom';
 import {
@@ -22,7 +22,9 @@ import {
   useDeleteTournamentQuestion,
   useTournamentMatchAnswers,
   useUpdateTournamentMatchAnswers,
-  useUpdateTournamentStatus
+  useUpdateTournamentStatus,
+  useTournamentRankings,
+  useUploadTournamentRankings
 } from '../api/hooks/useAdmin';
 import { getUserDisplayName } from '../utils/userUtils';
 import { useMatches } from '../api/hooks/useMatches';
@@ -785,6 +787,8 @@ function TournamentRegistry({ onManageMatches }: { onManageMatches: (id: string)
   const [newName, setNewName] = useState('');
   const [startsAt, setStartsAt] = useState('');
   const [endsAt, setEndsAt] = useState('');
+  const [sport, setSport] = useState('cricket');
+  const [gender, setGender] = useState('mens');
 
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -794,13 +798,17 @@ function TournamentRegistry({ onManageMatches }: { onManageMatches: (id: string)
         id: newId,
         name: newName,
         starts_at: startsAt || undefined,
-        ends_at: endsAt || undefined
+        ends_at: endsAt || undefined,
+        sport,
+        gender
       });
       toast.success('Tournament registered successfully!');
       setNewId('');
       setNewName('');
       setStartsAt('');
       setEndsAt('');
+      setSport('cricket');
+      setGender('mens');
       refetch();
     } catch (err: any) {
       toast.error(err.response?.data?.detail || 'Registration failed');
@@ -837,6 +845,30 @@ function TournamentRegistry({ onManageMatches }: { onManageMatches: (id: string)
               className="w-full bg-black/40 border-2 border-white/10 p-3.5 rounded-2xl text-white font-display text-sm focus:border-ipl-gold focus:outline-none transition-all"
               placeholder="e.g. IPL Season 2027"
             />
+          </div>
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-[10px] font-display uppercase tracking-widest text-gray-500 mb-2">Sport</label>
+              <select
+                value={sport}
+                onChange={(e) => setSport(e.target.value)}
+                className="w-full bg-black/40 border-2 border-white/10 p-3.5 rounded-2xl text-white font-display text-sm focus:border-ipl-gold focus:outline-none transition-all"
+              >
+                <option value="cricket" className="bg-ipl-navy">Cricket</option>
+                <option value="football" className="bg-ipl-navy">Football</option>
+              </select>
+            </div>
+            <div>
+              <label className="block text-[10px] font-display uppercase tracking-widest text-gray-500 mb-2">Gender Category</label>
+              <select
+                value={gender}
+                onChange={(e) => setGender(e.target.value)}
+                className="w-full bg-black/40 border-2 border-white/10 p-3.5 rounded-2xl text-white font-display text-sm focus:border-ipl-gold focus:outline-none transition-all"
+              >
+                <option value="mens" className="bg-ipl-navy">Men's</option>
+                <option value="womens" className="bg-ipl-navy">Women's</option>
+              </select>
+            </div>
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div>
@@ -895,7 +927,12 @@ function TournamentRegistry({ onManageMatches }: { onManageMatches: (id: string)
                   <td className="p-4">
                     <div className="flex flex-col">
                       <span className="text-sm text-white group-hover:text-ipl-gold transition-colors">{t.name}</span>
-                      <span className="text-[9px] text-gray-600 font-mono italic uppercase tracking-tighter">{t.id}</span>
+                      <div className="flex items-center gap-2 mt-1">
+                        <span className="text-[9px] text-gray-600 font-mono italic uppercase tracking-tighter">{t.id}</span>
+                        <span className="px-1.5 py-0.5 bg-white/5 border border-white/10 text-gray-400 rounded-md text-[8px] uppercase tracking-widest font-mono">
+                          {t.sport} • {t.gender}
+                        </span>
+                      </div>
                     </div>
                   </td>
                   <td className="p-4">
@@ -939,7 +976,12 @@ function TournamentRegistry({ onManageMatches }: { onManageMatches: (id: string)
               <div className="flex justify-between items-start">
                 <div className="flex flex-col">
                   <span className="text-base text-white font-bold font-display">{t.name}</span>
-                  <span className="text-[9px] text-gray-500 font-mono tracking-widest uppercase">{t.id}</span>
+                  <div className="flex items-center gap-2 mt-1">
+                    <span className="text-[9px] text-gray-500 font-mono tracking-widest uppercase">{t.id}</span>
+                    <span className="px-1.5 py-0.5 bg-white/5 border border-white/10 text-gray-400 rounded-md text-[8px] uppercase tracking-widest font-mono">
+                      {t.sport} • {t.gender}
+                    </span>
+                  </div>
                 </div>
                 <select
                   value={t.status}
@@ -986,7 +1028,7 @@ function TournamentMatchManager({ tournamentId, onBack }: { tournamentId: string
   }, [tournamentId, setHeaderTitle]);
 
   const [searchParams, setSearchParams] = useSearchParams();
-  const activeSubTab = searchParams.get('subtab') as 'schedule' | 'bank' | 'grading' || 'schedule';
+  const activeSubTab = searchParams.get('subtab') as 'schedule' | 'bank' | 'grading' | 'rankings' || 'schedule';
 
   const setActiveSubTab = (subtab: string) => {
     setSearchParams(prev => {
@@ -1110,6 +1152,7 @@ function TournamentMatchManager({ tournamentId, onBack }: { tournamentId: string
           { id: 'schedule', label: 'Match Schedule', icon: Calendar },
           { id: 'bank', label: 'Question Bank', icon: ShieldCheck },
           { id: 'grading', label: 'Grading', icon: Star },
+          { id: 'rankings', label: 'Team Rankings', icon: ListOrdered },
         ].map((tab) => (
           <button
             key={tab.id}
@@ -1557,6 +1600,12 @@ function TournamentMatchManager({ tournamentId, onBack }: { tournamentId: string
           >
             {gradingMatchId && <TournamentMatchGrading tournamentId={tournamentId} matchId={gradingMatchId} onClose={() => setGradingMatchId(null)} />}
           </AdminModal>
+        </div>
+      )}
+
+      {activeSubTab === 'rankings' && (
+        <div key="rankings" className="w-full animate-in fade-in slide-in-from-bottom-2 duration-300">
+          <TournamentRankingsManager tournamentId={tournamentId} />
         </div>
       )}
     </div>
@@ -2324,3 +2373,168 @@ function AnnouncementManagement() {
     </div>
   );
 }
+
+function TournamentRankingsManager({ tournamentId }: { tournamentId: string }) {
+  const { data: rankings, isLoading, refetch } = useTournamentRankings(tournamentId);
+  const uploadRankings = useUploadTournamentRankings();
+  const [file, setFile] = useState<File | null>(null);
+
+  const handleUpload = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!file) return;
+
+    uploadRankings.mutate(
+      { tournamentId, file },
+      {
+        onSuccess: (data) => {
+          toast.success(data.message || 'Rankings uploaded successfully!');
+          setFile(null);
+          refetch();
+        },
+        onError: (err: any) => {
+          toast.error(err.response?.data?.detail || 'Upload failed');
+        }
+      }
+    );
+  };
+
+  const handleDownloadSample = () => {
+    const csvContent = "data:text/csv;charset=utf-8," + "team_name,rank,rating\nArgentina,1,1858.0\nFrance,2,1840.0\nBelgium,3,1795.0\nBrazil,4,1791.0";
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement("a");
+    link.setAttribute("href", encodedUri);
+    link.setAttribute("download", "sample_rankings.csv");
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center justify-between mb-8 border-b border-white/10 pb-4">
+        <h3 className="text-xl font-display text-white italic uppercase flex items-center gap-3">
+          <ListOrdered className="w-6 h-6 text-ipl-gold" />
+          Team Rankings
+        </h3>
+        <span className="text-[10px] bg-white/5 border border-white/10 px-3 py-1 rounded-full text-gray-500 font-display uppercase tracking-[0.2em]">{rankings?.length || 0} Teams</span>
+      </div>
+
+      <div className="grid lg:grid-cols-3 gap-8">
+        {/* Upload Interface */}
+        <div className="lg:col-span-1 space-y-6">
+          <section className="glass-panel p-6 border-t-2 border-white/10 rounded-3xl space-y-6">
+            <div>
+              <h4 className="text-sm font-display text-white italic uppercase tracking-wider mb-2">Upload Rankings</h4>
+              <p className="text-xs text-gray-400 font-display uppercase tracking-widest leading-relaxed">
+                Upload a CSV file containing team rankings for this tournament. Rankings are used by the AI Auto Predict system to calculate odds.
+              </p>
+            </div>
+
+            <div className="bg-black/40 border border-white/10 p-4 rounded-2xl flex items-center justify-between">
+              <span className="text-[10px] font-mono text-gray-300">sample_rankings.csv</span>
+              <button
+                onClick={handleDownloadSample}
+                className="text-[9px] font-display uppercase tracking-widest text-ipl-gold hover:text-white transition-all active:scale-95 border border-ipl-gold/20 px-3 py-1.5 rounded-lg bg-ipl-gold/10 font-bold"
+              >
+                Download Sample
+              </button>
+            </div>
+
+            <form onSubmit={handleUpload} className="space-y-4">
+              <div className="border-2 border-dashed border-white/20 rounded-2xl p-8 text-center hover:bg-white/5 hover:border-ipl-gold/50 transition-all group relative cursor-pointer">
+                <input
+                  type="file"
+                  accept=".csv"
+                  onChange={(e) => {
+                    const selectedFile = e.target.files?.[0];
+                    if (selectedFile) {
+                      setFile(selectedFile);
+                    }
+                  }}
+                  className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                />
+                <div className="space-y-2 pointer-events-none">
+                  <RefreshCw className="w-8 h-8 text-ipl-gold mx-auto group-hover:rotate-180 transition-transform duration-500" />
+                  <p className="text-[10px] font-display uppercase tracking-widest text-gray-400">
+                    {file ? file.name : "Select CSV file"}
+                  </p>
+                </div>
+              </div>
+
+              <button
+                type="submit"
+                disabled={uploadRankings.isPending || !file}
+                className="w-full py-3 bg-ipl-gold text-ipl-navy font-display text-[10px] uppercase tracking-[0.3em] font-bold rounded-2xl hover:scale-[1.02] active:scale-[0.98] transition-all disabled:opacity-30"
+              >
+                {uploadRankings.isPending ? 'UPLOADING...' : 'UPLOAD RANKINGS'}
+              </button>
+            </form>
+          </section>
+        </div>
+
+        {/* Current Rankings Table */}
+        <div className="lg:col-span-2">
+          {isLoading ? (
+            <div className="text-center py-20 text-[10px] uppercase tracking-[0.3em] text-gray-600 animate-pulse bg-white/5 border border-dashed border-white/10 rounded-2xl">Loading team rankings...</div>
+          ) : !rankings || rankings.length === 0 ? (
+            <div className="text-center py-20 bg-white/5 border border-dashed border-white/10 rounded-2xl text-[10px] uppercase tracking-[0.3em] text-gray-600">No rankings loaded yet. Please upload a CSV.</div>
+          ) : (
+            <div className="glass-panel border-t-2 border-white/10 rounded-3xl overflow-hidden">
+              <div className="overflow-x-auto">
+                <table className="w-full border-collapse text-left">
+                  <thead>
+                    <tr className="border-b border-white/10 bg-white/5 text-[9px] font-display uppercase tracking-[0.2em] text-gray-500">
+                      <th className="py-4 px-6 text-center w-20">Rank</th>
+                      <th className="py-4 px-6">Team</th>
+                      <th className="py-4 px-6 text-right">Rating</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-white/5">
+                    {rankings.map((r, idx) => {
+                      const teamColor = getTeamColor(r.team_name, "");
+                      const teamLogo = getTeamLogo(r.team_name);
+                      
+                      return (
+                        <tr key={r.id || idx} className="hover:bg-white/5 transition-colors group">
+                          <td className="py-4 px-6 text-center">
+                            <span className={`inline-flex items-center justify-center w-7 h-7 rounded-lg text-xs font-mono font-bold ${
+                              r.rank === 1 ? 'bg-ipl-gold/20 text-ipl-gold border border-ipl-gold/40' :
+                              r.rank === 2 ? 'bg-gray-400/20 text-gray-300 border border-gray-400/40' :
+                              r.rank === 3 ? 'bg-amber-600/20 text-amber-500 border border-amber-600/40' :
+                              'bg-white/5 text-gray-400 border border-white/10'
+                            }`}>
+                              {r.rank}
+                            </span>
+                          </td>
+                          <td className="py-4 px-6">
+                            <div className="flex items-center gap-3">
+                              <div
+                                className="w-8 h-8 rounded-lg flex items-center justify-center border p-1 bg-black/40 shrink-0"
+                                style={{ borderColor: teamColor ? `${teamColor}40` : 'rgba(255,255,255,0.1)' }}
+                              >
+                                {teamLogo ? (
+                                  <img src={teamLogo} alt={r.team_name} className="w-full h-full object-contain" />
+                                ) : (
+                                  <span className="text-[10px] font-bold text-white">{getTeamShortName(r.team_name)}</span>
+                                )}
+                              </div>
+                              <span className="text-sm font-display font-bold text-white group-hover:text-ipl-gold transition-colors">{r.team_name}</span>
+                            </div>
+                          </td>
+                          <td className="py-4 px-6 text-right font-mono text-sm text-gray-400">
+                            {r.rating.toFixed(1)}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+

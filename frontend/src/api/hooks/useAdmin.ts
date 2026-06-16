@@ -130,7 +130,7 @@ export function useTournamentLeagues(tournamentId: string) {
 export function useCreateTournament() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async (payload: { id: string; name: string; starts_at?: string; ends_at?: string }) => {
+    mutationFn: async (payload: { id: string; name: string; starts_at?: string; ends_at?: string; sport?: string; gender?: string }) => {
       const response = await apiClient.post('/tournaments', payload);
       return response.data;
     },
@@ -291,3 +291,43 @@ export function useUpdateTournamentMatchAnswers() {
     },
   });
 }
+
+export interface TournamentRanking {
+  id: number;
+  tournament_id: string;
+  team_name: string;
+  rank: number;
+  rating: number;
+}
+
+export function useTournamentRankings(tournamentId: string | null) {
+  return useQuery({
+    queryKey: ['tournaments', tournamentId, 'rankings'],
+    queryFn: async () => {
+      const response = await apiClient.get<TournamentRanking[]>(`/tournaments/${tournamentId}/rankings`);
+      return response.data;
+    },
+    enabled: !!tournamentId,
+  });
+}
+
+export function useUploadTournamentRankings() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ tournamentId, file }: { tournamentId: string; file: File }) => {
+      const formData = new FormData();
+      formData.append('file', file);
+      const response = await apiClient.post(`/tournaments/${tournamentId}/rankings/upload`, formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      });
+      return response.data;
+    },
+    onSuccess: (_, { tournamentId }) => {
+      queryClient.invalidateQueries({ queryKey: ['tournaments', tournamentId, 'rankings'] });
+      queryClient.invalidateQueries({ queryKey: ['matches'] });
+    },
+  });
+}
+

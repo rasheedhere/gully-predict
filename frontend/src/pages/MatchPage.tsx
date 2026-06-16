@@ -3,8 +3,9 @@ import { useParams } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { useQueryClient } from '@tanstack/react-query';
 import { useMatch, useSubmitPrediction, useMyPredictions, useAllMatchPredictions } from '../api/hooks/useMatches';
-import { Trophy, Target, CheckCircle2, Edit2, Check, X, Sparkles, MapPin, ChevronDown, Lock, User } from 'lucide-react';
+import { Trophy, Target, CheckCircle2, Edit2, Check, X, Sparkles, MapPin, ChevronDown, Lock, User, Star } from 'lucide-react';
 import { useAuthStore } from '../store/auth';
+import { useTournamentQuestionBank, useTournamentMatchAnswers, useUpdateTournamentMatchAnswers } from '../api/hooks/useAdmin';
 import { apiClient } from '../api/client';
 import toast from 'react-hot-toast';
 import { getTeamColor, getTeamShortName, getAccessibleTeamTextColor } from '../utils/teamColors';
@@ -21,6 +22,7 @@ export default function MatchPage() {
   const [hasAutoPredicted, setHasAutoPredicted] = useState(false);
   const [showAutoPredictConfirm, setShowAutoPredictConfirm] = useState(false);
   const [selectedBreakdown, setSelectedBreakdown] = useState<{ predictorName: string; points: number; rules: any[]; powerupUsed?: boolean } | null>(null);
+  const [isAdminGradingOpen, setIsAdminGradingOpen] = useState(false);
   const { register, handleSubmit, reset, setValue, formState: { errors } } = useForm();
 
   const { data, isLoading, error } = useMatch(id || '');
@@ -490,12 +492,13 @@ export default function MatchPage() {
     return { color: '#a0aec0' };
   };
 
-  const generateCommunityInsight = (predictions: any[], questionsList: any[], team1: string, team2: string) => {
+  const generateCommunityInsight = (predictions: any[], questionsList: any[], team1: string, team2: string, sport: string = 'cricket') => {
     if (!predictions || predictions.length === 0) return '';
 
     const total = predictions.length;
     const t1Short = getTeamShortName(team1);
     const t2Short = getTeamShortName(team2);
+    const isFootball = sport.toLowerCase() === 'football' || sport.toLowerCase() === 'soccer';
 
     // Find winner question majority
     const winnerQ = questionsList.find((q: any) => {
@@ -511,95 +514,186 @@ export default function MatchPage() {
       winnerCount = maj.count;
     }
 
-    // Now look for other questions
-    let sixesWinner = '';
-    let sixesCount = 0;
-    let foursWinner = '';
-    let foursCount = 0;
-
-    questionsList.forEach((q: any) => {
-      const text = q.question_text.toLowerCase();
-      const maj = getMajorityGuess(predictions, q.key);
-
-      if (text.includes('sixes')) {
-        sixesWinner = maj.guess;
-        sixesCount = maj.count;
-      } else if (text.includes('fours')) {
-        foursWinner = maj.guess;
-        foursCount = maj.count;
-      }
-    });
-
-    // Calculate average PP predictions
-    let t1PPSum = 0;
-    let t1PPCount = 0;
-    let t2PPSum = 0;
-    let t2PPCount = 0;
-
-    questionsList.forEach((q: any) => {
-      const text = q.question_text.toLowerCase();
-      if (text.includes('powerplay') || text.includes('power play') || text.includes('pp')) {
-        predictions.forEach(p => {
-          const ans = parseFloat(p.answers?.[q.key]);
-          if (!isNaN(ans)) {
-            if (text.includes(team1.toLowerCase()) || text.includes(t1Short.toLowerCase())) {
-              t1PPSum += ans;
-              t1PPCount++;
-            } else if (text.includes(team2.toLowerCase()) || text.includes(t2Short.toLowerCase())) {
-              t2PPSum += ans;
-              t2PPCount++;
-            }
-          }
-        });
-      }
-    });
-
-    const t1PPAvg = t1PPCount > 0 ? t1PPSum / t1PPCount : 0;
-    const t2PPAvg = t2PPCount > 0 ? t2PPSum / t2PPCount : 0;
-
     let part1 = '';
     if (winnerWinner === t1Short) {
       part1 = `${t1Short} FANS ARE CONFIDENT! ${winnerCount} OUT OF ${total} PREDICT A ${t1Short} WIN`;
     } else if (winnerWinner === t2Short) {
       part1 = `${t2Short} FANS ARE CONFIDENT! ${winnerCount} OUT OF ${total} PREDICT A ${t2Short} WIN`;
+    } else if (winnerWinner && (winnerWinner.toLowerCase() === 'draw' || winnerWinner.toLowerCase().includes('draw'))) {
+      part1 = `THE COMMUNITY IS LEANING TOWARDS A DRAW! ${winnerCount} OUT OF ${total} EXPECT A STALEMATE`;
     } else {
       part1 = `OPINIONS ARE SPLIT ON THE MATCH OUTCOME`;
     }
 
-    const supportsT1: string[] = [];
-    const supportsT2: string[] = [];
+    if (isFootball) {
+      let t1GoalsSum = 0;
+      let t1GoalsCount = 0;
+      let t2GoalsSum = 0;
+      let t2GoalsCount = 0;
+      let penaltyCount = 0;
+      let penaltyTotalQ = 0;
+      let btsCount = 0;
+      let btsTotalQ = 0;
 
-    if (sixesWinner === t1Short && sixesCount > total / 2) supportsT1.push('sixes');
-    if (sixesWinner === t2Short && sixesCount > total / 2) supportsT2.push('sixes');
-    if (foursWinner === t1Short && foursCount > total / 2) supportsT1.push('fours');
-    if (foursWinner === t2Short && foursCount > total / 2) supportsT2.push('fours');
-    if (t1PPAvg > t2PPAvg + 2) supportsT1.push('power play expectations');
-    if (t2PPAvg > t1PPAvg + 2) supportsT2.push('power play expectations');
+      questionsList.forEach((q: any) => {
+        const text = q.question_text?.toLowerCase() || '';
+        const key = q.key || '';
 
-    let part2 = '';
-    if (winnerWinner === t1Short) {
-      if (supportsT2.length > 0) {
-        part2 = `, BUT ${t2Short} FANS LEAD IN ${supportsT2.join(' & ')}!`;
+        if (key.includes('goals_team1') || (text.includes('goals') && (text.includes(team1.toLowerCase()) || text.includes(t1Short.toLowerCase())))) {
+          predictions.forEach(p => {
+            const ans = parseFloat(p.answers?.[q.key]);
+            if (!isNaN(ans)) {
+              t1GoalsSum += ans;
+              t1GoalsCount++;
+            }
+          });
+        } else if (key.includes('goals_team2') || (text.includes('goals') && (text.includes(team2.toLowerCase()) || text.includes(t2Short.toLowerCase())))) {
+          predictions.forEach(p => {
+            const ans = parseFloat(p.answers?.[q.key]);
+            if (!isNaN(ans)) {
+              t2GoalsSum += ans;
+              t2GoalsCount++;
+            }
+          });
+        } else if (key.includes('penalty') || text.includes('penalty')) {
+          predictions.forEach(p => {
+            const ans = p.answers?.[q.key];
+            if (ans && ans.toLowerCase() === 'yes') {
+              penaltyCount++;
+            }
+            penaltyTotalQ++;
+          });
+        } else if (key.includes('both_teams_to_score') || key.includes('both_teams_score') || text.includes('both teams') || text.includes('bts')) {
+          predictions.forEach(p => {
+            const ans = p.answers?.[q.key];
+            if (ans && ans.toLowerCase() === 'yes') {
+              btsCount++;
+            }
+            btsTotalQ++;
+          });
+        }
+      });
+
+      const t1GoalsAvg = t1GoalsCount > 0 ? t1GoalsSum / t1GoalsCount : 0;
+      const t2GoalsAvg = t2GoalsCount > 0 ? t2GoalsSum / t2GoalsCount : 0;
+      const penaltyPct = penaltyTotalQ > 0 ? Math.round((penaltyCount / penaltyTotalQ) * 100) : 0;
+      const btsPct = btsTotalQ > 0 ? Math.round((btsCount / btsTotalQ) * 100) : 0;
+
+      const supportsT1: string[] = [];
+      const supportsT2: string[] = [];
+      if (t1GoalsAvg > t2GoalsAvg + 0.2) supportsT1.push('higher goal scoring');
+      if (t2GoalsAvg > t1GoalsAvg + 0.2) supportsT2.push('higher goal scoring');
+
+      let part2 = '';
+      if (winnerWinner === t1Short) {
+        if (supportsT2.length > 0) {
+          part2 = `, BUT EXPECTATIONS FOR ${t2Short} LEAD IN ${supportsT2.join(' & ')}!`;
+        } else {
+          part2 = `, WITH WIDE SUPPORT FOR ${t1Short} ACROSS OTHER CATEGORIES TOO!`;
+        }
+      } else if (winnerWinner === t2Short) {
+        if (supportsT1.length > 0) {
+          part2 = `, BUT EXPECTATIONS FOR ${t1Short} LEAD IN ${supportsT1.join(' & ')}!`;
+        } else {
+          part2 = `, WITH WIDE SUPPORT FOR ${t2Short} ACROSS OTHER CATEGORIES TOO!`;
+        }
       } else {
-        part2 = `, WITH WIDE SUPPORT FOR ${t1Short} ACROSS OTHER CATEGORIES TOO!`;
+        const extra: string[] = [];
+        if (btsPct > 60) extra.push('BOTH TEAMS TO SCORE IS WIDELY EXPECTED');
+        if (penaltyPct > 40) extra.push('A PENALTY IS ANTICIPATED BY MANY');
+        if (t1GoalsAvg > 1.2 || t2GoalsAvg > 1.2) {
+          extra.push('GOAL EXPECTATIONS ARE HIGH');
+        }
+        
+        if (extra.length > 0) {
+          part2 = `! ${extra.join(' AND ')}`;
+        } else {
+          part2 = `! GOALS AND PENALTY PREDICTIONS ARE HIGHLY COMPETITIVE.`;
+        }
       }
-    } else if (winnerWinner === t2Short) {
-      if (supportsT1.length > 0) {
-        part2 = `, BUT ${t1Short} FANS LEAD IN ${supportsT1.join(' & ')}!`;
-      } else {
-        part2 = `, WITH WIDE SUPPORT FOR ${t2Short} ACROSS OTHER CATEGORIES TOO!`;
-      }
+      return `${part1}${part2}`.toUpperCase();
     } else {
-      part2 = `! SIXES, FOURS AND POWER PLAY PREDICTIONS ARE HIGHLY COMPETITIVE.`;
-    }
+      // Cricket logic
+      let sixesWinner = '';
+      let sixesCount = 0;
+      let foursWinner = '';
+      let foursCount = 0;
 
-    return `${part1}${part2}`.toUpperCase();
+      questionsList.forEach((q: any) => {
+        const text = q.question_text?.toLowerCase() || '';
+        const maj = getMajorityGuess(predictions, q.key);
+
+        if (text.includes('sixes')) {
+          sixesWinner = maj.guess;
+          sixesCount = maj.count;
+        } else if (text.includes('fours')) {
+          foursWinner = maj.guess;
+          foursCount = maj.count;
+        }
+      });
+
+      let t1PPSum = 0;
+      let t1PPCount = 0;
+      let t2PPSum = 0;
+      let t2PPCount = 0;
+
+      questionsList.forEach((q: any) => {
+        const text = q.question_text?.toLowerCase() || '';
+        if (text.includes('powerplay') || text.includes('power play') || text.includes('pp')) {
+          predictions.forEach(p => {
+            const ans = parseFloat(p.answers?.[q.key]);
+            if (!isNaN(ans)) {
+              if (text.includes(team1.toLowerCase()) || text.includes(t1Short.toLowerCase())) {
+                t1PPSum += ans;
+                t1PPCount++;
+              } else if (text.includes(team2.toLowerCase()) || text.includes(t2Short.toLowerCase())) {
+                t2PPSum += ans;
+                t2PPCount++;
+              }
+            }
+          });
+        }
+      });
+
+      const t1PPAvg = t1PPCount > 0 ? t1PPSum / t1PPCount : 0;
+      const t2PPAvg = t2PPCount > 0 ? t2PPSum / t2PPCount : 0;
+
+      const supportsT1: string[] = [];
+      const supportsT2: string[] = [];
+
+      if (sixesWinner === t1Short && sixesCount > total / 2) supportsT1.push('sixes');
+      if (sixesWinner === t2Short && sixesCount > total / 2) supportsT2.push('sixes');
+      if (foursWinner === t1Short && foursCount > total / 2) supportsT1.push('fours');
+      if (foursWinner === t2Short && foursCount > total / 2) supportsT2.push('fours');
+      if (t1PPAvg > t2PPAvg + 2) supportsT1.push('power play expectations');
+      if (t2PPAvg > t1PPAvg + 2) supportsT2.push('power play expectations');
+
+      let part2 = '';
+      if (winnerWinner === t1Short) {
+        if (supportsT2.length > 0) {
+          part2 = `, BUT ${t2Short} FANS LEAD IN ${supportsT2.join(' & ')}!`;
+        } else {
+          part2 = `, WITH WIDE SUPPORT FOR ${t1Short} ACROSS OTHER CATEGORIES TOO!`;
+        }
+      } else if (winnerWinner === t2Short) {
+        if (supportsT1.length > 0) {
+          part2 = `, BUT ${t1Short} FANS LEAD IN ${supportsT1.join(' & ')}!`;
+        } else {
+          part2 = `, WITH WIDE SUPPORT FOR ${t2Short} ACROSS OTHER CATEGORIES TOO!`;
+        }
+      } else {
+        part2 = `! SIXES, FOURS AND POWER PLAY PREDICTIONS ARE HIGHLY COMPETITIVE.`;
+      }
+
+      return `${part1}${part2}`.toUpperCase();
+    }
   };
 
-  const generatePostMatchInsight = (predictions: any[], questionsList: any[], results: any, winnerQId: string | null) => {
+  const generatePostMatchInsight = (predictions: any[], questionsList: any[], results: any, winnerQId: string | null, sport: string = 'cricket') => {
     if (!predictions || predictions.length === 0 || !results) return '';
 
     const total = predictions.length;
+    const isFootball = sport.toLowerCase() === 'football' || sport.toLowerCase() === 'soccer';
 
     let winnerWinner = '';
     let winnerCount = 0;
@@ -625,10 +719,11 @@ export default function MatchPage() {
       winnerInsight = `${getTeamShortName(actualWinner)} CLINCHED THE VICTORY IN THIS MATCH.`;
     }
 
-    // Check sixes/fours if they exist in questions and results
+    // Check sixes/fours/goals if they exist in questions and results
     const otherInsights: string[] = [];
     questionsList.forEach((q: any) => {
-      const text = q.question_text.toLowerCase();
+      const text = q.question_text?.toLowerCase() || '';
+      const key = q.key || '';
       const actualVal = results[q.key];
       if (!actualVal) return;
 
@@ -636,17 +731,45 @@ export default function MatchPage() {
       const predictedVal = maj.guess;
       const percent = Math.round((maj.count / total) * 100);
 
-      if (text.includes('sixes')) {
-        if (getTeamShortName(actualVal) === predictedVal) { // predictedVal is already short
-          otherInsights.push(`THE COMMUNITY ACCURATELY NAILED THE SIXES WINNER WITH ${percent}% PREDICTING ${getTeamShortName(actualVal)}`);
-        } else {
-          otherInsights.push(`${getTeamShortName(actualVal)} SURPRISED THE ${percent}% WHO EXPECTED ${predictedVal} TO DOMINATE THE SIXES`);
+      if (isFootball) {
+        if (key.includes('clean_sheet') || text.includes('clean sheet')) {
+          if (actualVal.toLowerCase() === predictedVal.toLowerCase()) {
+            otherInsights.push(`THE COMMUNITY ACCURATELY PREDICTED THE CLEAN SHEET OUTCOME (${actualVal.toUpperCase()}) WITH ${percent}% OF THE VOTE`);
+          } else {
+            otherInsights.push(`THE CLEAN SHEET OUTCOME OF ${actualVal.toUpperCase()} SURPRISED THE ${percent}% WHO PREDICTED ${predictedVal.toUpperCase()}`);
+          }
+        } else if (key.includes('penalty') || text.includes('penalty')) {
+          if (actualVal.toLowerCase() === predictedVal.toLowerCase()) {
+            otherInsights.push(`THE COMMUNITY NAILED THE PENALTY PREDICTION (${actualVal.toUpperCase()}) WITH ${percent}% ACCURACY`);
+          } else {
+            otherInsights.push(`THE PENALTY DECISION (${actualVal.toUpperCase()}) DEFIED THE ${percent}% OF PREDICTORS EXPECTING ${predictedVal.toUpperCase()}`);
+          }
+        } else if (key.includes('both_teams_to_score') || key.includes('both_teams_score') || text.includes('both teams') || text.includes('bts')) {
+          if (actualVal.toLowerCase() === predictedVal.toLowerCase()) {
+            otherInsights.push(`THE COMMUNITY CORRECTLY GUESSED ${actualVal.toUpperCase()} ON BOTH TEAMS TO SCORE (${percent}%)`);
+          } else {
+            otherInsights.push(`BOTH TEAMS TO SCORE RESULTED IN ${actualVal.toUpperCase()}, SURPRISING THE ${percent}% WHO PREDICTED ${predictedVal.toUpperCase()}`);
+          }
+        } else if (key.includes('goals_team1') || key.includes('goals_team2')) {
+          if (actualVal.toLowerCase() === predictedVal.toLowerCase()) {
+            otherInsights.push(`THE COMMUNITY WAS SPOT ON WITH ${actualVal} GOALS PREDICTED BY ${percent}%`);
+          } else {
+            otherInsights.push(`GOALS OUTCOME OF ${actualVal} DEFIED THE ${percent}% WHO PREDICTED ${predictedVal}`);
+          }
         }
-      } else if (text.includes('fours')) {
-        if (getTeamShortName(actualVal) === predictedVal) {
-          otherInsights.push(`THE COMMUNITY WAS CORRECT ON THE FOURS WINNER WITH ${percent}% PREDICTING ${getTeamShortName(actualVal)}`);
-        } else {
-          otherInsights.push(`${getTeamShortName(actualVal)} COUNTERED THE ${percent}% OF FOURS PREDICTIONS FOR ${predictedVal}`);
+      } else {
+        if (text.includes('sixes')) {
+          if (getTeamShortName(actualVal) === predictedVal) { // predictedVal is already short
+            otherInsights.push(`THE COMMUNITY ACCURATELY NAILED THE SIXES WINNER WITH ${percent}% PREDICTING ${getTeamShortName(actualVal)}`);
+          } else {
+            otherInsights.push(`${getTeamShortName(actualVal)} SURPRISED THE ${percent}% WHO EXPECTED ${predictedVal} TO DOMINATE THE SIXES`);
+          }
+        } else if (text.includes('fours')) {
+          if (getTeamShortName(actualVal) === predictedVal) {
+            otherInsights.push(`THE COMMUNITY WAS CORRECT ON THE FOURS WINNER WITH ${percent}% PREDICTING ${getTeamShortName(actualVal)}`);
+          } else {
+            otherInsights.push(`${getTeamShortName(actualVal)} COUNTERED THE ${percent}% OF FOURS PREDICTIONS FOR ${predictedVal}`);
+          }
         }
       }
     });
@@ -659,7 +782,30 @@ export default function MatchPage() {
   };
 
   return (
-    <div className="w-full max-w-full px-2 md:px-6 pb-20 space-y-0 md:space-y-8 max-md:glass-panel max-md:p-2 max-md:border-b-[4px] max-md:border-ipl-gold max-md:rounded-2xl">
+    <div className="w-full max-w-full px-2 md:px-6 pb-20 space-y-4 md:space-y-8 max-md:glass-panel max-md:p-2 max-md:border-b-[4px] max-md:border-ipl-gold max-md:rounded-2xl">
+      {currentUser?.is_admin && match && (
+        <div className="w-full bg-gradient-to-r from-ipl-gold/10 via-white/5 to-transparent border border-ipl-gold/20 rounded-2xl p-4 flex flex-col md:flex-row items-center justify-between gap-4 shadow-lg animate-in fade-in duration-300">
+          <div className="flex items-center gap-3">
+            <div className="p-2.5 bg-ipl-gold/10 rounded-xl border border-ipl-gold/20 shrink-0">
+              <Star className="w-5 h-5 text-ipl-gold animate-pulse" />
+            </div>
+            <div>
+              <h4 className="text-xs font-display font-black text-ipl-gold uppercase tracking-wider">
+                Admin Control Room
+              </h4>
+              <p className="text-[10px] text-gray-400 font-display uppercase tracking-wider mt-0.5">
+                Grade predictions and release official scores for this match
+              </p>
+            </div>
+          </div>
+          <button
+            onClick={() => setIsAdminGradingOpen(true)}
+            className="w-full md:w-auto px-6 py-2.5 bg-ipl-gold text-black font-display text-xs font-bold uppercase tracking-widest rounded-xl hover:bg-white active:scale-95 transition-all shadow-[0_0_20px_rgba(244,196,48,0.2)] min-h-[44px] flex items-center justify-center font-black"
+          >
+            Grade Match
+          </button>
+        </div>
+      )}
       {/* Desktop Match Card Header */}
       <div className="hidden md:block text-center relative overflow-hidden md:glass-panel md:p-8 md:border-b-[4px] md:border-ipl-gold">
         <div className="flex justify-between items-center w-full mb-4 md:mb-0 relative md:absolute md:top-4 md:left-0 md:w-full md:px-4 z-10 px-1">
@@ -1347,7 +1493,7 @@ export default function MatchPage() {
 
                     {/* Community or Post-Match Insight */}
                     {match.status === 'completed' ? (
-                      generatePostMatchInsight(allPredictions, questions, match.results, winnerQId) && (
+                      generatePostMatchInsight(allPredictions, questions, match.results, winnerQId, match.sport || 'cricket') && (
                         <div className="glass-panel p-4 bg-gradient-to-r from-ipl-live/5 via-white/5 to-transparent border border-ipl-live/20 rounded-2xl flex items-start gap-4">
                           <div className="p-2.5 bg-ipl-live/10 rounded-xl border border-ipl-live/20 shrink-0">
                             <Trophy className="w-5 h-5 text-ipl-live animate-pulse" />
@@ -1357,13 +1503,13 @@ export default function MatchPage() {
                               Post-Match Insight
                             </h4>
                             <p className="text-[11px] md:text-xs font-display text-gray-300 font-bold uppercase tracking-wide leading-relaxed">
-                              {generatePostMatchInsight(allPredictions, questions, match.results, winnerQId)}
+                              {generatePostMatchInsight(allPredictions, questions, match.results, winnerQId, match.sport || 'cricket')}
                             </p>
                           </div>
                         </div>
                       )
                     ) : (
-                      generateCommunityInsight(allPredictions, questions, match.team1, match.team2) && (
+                      generateCommunityInsight(allPredictions, questions, match.team1, match.team2, match.sport || 'cricket') && (
                         <div className="glass-panel p-4 bg-gradient-to-r from-ipl-gold/5 via-white/5 to-transparent border border-ipl-gold/10 rounded-2xl flex items-start gap-4">
                           <div className="p-2.5 bg-ipl-gold/10 rounded-xl border border-ipl-gold/20 shrink-0">
                             <Trophy className="w-5 h-5 text-ipl-gold animate-pulse" />
@@ -1373,7 +1519,7 @@ export default function MatchPage() {
                               Community Insight
                             </h4>
                             <p className="text-[11px] md:text-xs font-display text-gray-300 font-bold uppercase tracking-wide leading-relaxed">
-                              {generateCommunityInsight(allPredictions, questions, match.team1, match.team2)}
+                              {generateCommunityInsight(allPredictions, questions, match.team1, match.team2, match.sport || 'cricket')}
                             </p>
                           </div>
                         </div>
@@ -1526,6 +1672,189 @@ export default function MatchPage() {
         </div>
       )}
 
+      {isAdminGradingOpen && match && (
+        <MatchGradingModal
+          tournamentId={match.tournament_id || match.tournament?.id || ''}
+          matchId={match.id}
+          isOpen={isAdminGradingOpen}
+          onClose={() => {
+            setIsAdminGradingOpen(false);
+            queryClient.invalidateQueries({ queryKey: ['matches', id || match.id] });
+          }}
+          team1={match.team1}
+          team2={match.team2}
+        />
+      )}
+
+    </div>
+  );
+}
+
+function MatchGradingModal({
+  tournamentId,
+  matchId,
+  isOpen,
+  onClose,
+  team1,
+  team2,
+}: {
+  tournamentId: string;
+  matchId: string;
+  isOpen: boolean;
+  onClose: () => void;
+  team1: string;
+  team2: string;
+}) {
+  const { data: questionBank } = useTournamentQuestionBank(tournamentId);
+  const { data: answers, isLoading } = useTournamentMatchAnswers(tournamentId, matchId);
+  const { mutate: updateAnswers, isPending } = useUpdateTournamentMatchAnswers();
+  const [correctAnswers, setCorrectAnswers] = useState<Record<string, any>>({});
+
+  useEffect(() => {
+    if (answers?.correct_answers) {
+      setCorrectAnswers(answers.correct_answers);
+    } else {
+      setCorrectAnswers({});
+    }
+  }, [answers]);
+
+  const handleSave = () => {
+    updateAnswers(
+      {
+        tournamentId,
+        matchId,
+        correct_answers: correctAnswers,
+      },
+      {
+        onSuccess: () => {
+          toast.success('Grading complete. Scores triggered globally and per league!');
+          onClose();
+        },
+        onError: () => toast.error('Failed to save results'),
+      }
+    );
+  };
+
+  if (!isOpen) return null;
+
+  return (
+    <div className="fixed inset-0 z-[100] flex items-end md:items-center justify-center p-0 md:p-4 select-none md:select-text">
+      {/* Backdrop */}
+      <div
+        className="absolute inset-0 bg-black/80 backdrop-blur-sm animate-in fade-in duration-300"
+        onClick={onClose}
+      />
+
+      {/* Content Container */}
+      <div className="relative w-full md:max-w-2xl bg-ipl-surface border-t border-white/10 rounded-t-[28px] md:rounded-3xl shadow-2xl z-10 flex flex-col pb-[calc(4.5rem+env(safe-area-inset-bottom))] md:pb-8 p-6 md:p-8 md:border-t-4 md:border-ipl-gold animate-in slide-in-from-bottom md:zoom-in-95 duration-300 max-h-[90vh]">
+        {/* Mobile Pull Bar */}
+        <div className="w-12 h-1 bg-white/20 rounded-full mx-auto mb-5 shrink-0 md:hidden" />
+
+        {/* Close Button */}
+        <button
+          onClick={onClose}
+          className="absolute top-4 right-4 text-gray-500 hover:text-white transition-colors p-1 active:scale-90 z-20 min-w-[44px] min-h-[44px] flex items-center justify-center"
+        >
+          <X className="w-6 h-6" />
+        </button>
+
+        {/* Header */}
+        <div className="mb-6 pr-8">
+          <span className="text-[10px] font-display uppercase tracking-widest text-ipl-gold font-bold">
+            Admin Panel
+          </span>
+          <h3 className="text-xl font-display text-white italic uppercase tracking-tight mt-1">
+            Grade Match: {getTeamShortName(team1)} vs {getTeamShortName(team2)}
+          </h3>
+          <p className="text-[10px] text-gray-400 uppercase font-display tracking-widest mt-1">
+            Set correct answers for the entire tournament for this match
+          </p>
+        </div>
+
+        {/* Body (Questions List) */}
+        <div className="overflow-y-auto scrollbar-hide flex-1 max-md:-mx-2 max-md:px-2 pb-6 space-y-4">
+          {isLoading ? (
+            <div className="text-center py-10 animate-pulse font-display text-gray-500 text-xs">
+              LOADING MATCH ANSWERS...
+            </div>
+          ) : !questionBank?.questions || questionBank.questions.length === 0 ? (
+            <div className="text-center py-10 text-gray-500 font-display text-[10px] uppercase tracking-widest">
+              No questions in the tournament bank.
+            </div>
+          ) : (
+            questionBank.questions.map((q: any) => {
+              const replacedText = q.question_text
+                .replace(/\{\{Team1\}\}/gi, team1 || 'Team 1')
+                .replace(/\{\{Team2\}\}/gi, team2 || 'Team 2');
+
+              const choiceTypes = ['toggle', 'multiple_choice', 'dropdown'];
+              const isChoice = choiceTypes.includes(q.question_type);
+
+              const replacedOptions = q.options?.map((opt: string) =>
+                opt.replace(/\{\{Team1\}\}/gi, team1 || 'Team 1')
+                  .replace(/\{\{Team2\}\}/gi, team2 || 'Team 2')
+              );
+
+              return (
+                <div
+                  key={q.id}
+                  className="p-5 border-l-4 border-white/10 hover:border-ipl-gold transition-all bg-white/5 rounded-r-2xl rounded-l-md"
+                >
+                  <h4 className="text-xs font-display text-white tracking-widest uppercase mb-4 leading-relaxed">
+                    {replacedText}
+                  </h4>
+                  {isChoice && replacedOptions ? (
+                    <div className="flex flex-wrap gap-2.5">
+                      {replacedOptions.map((opt: string) => (
+                        <button
+                          key={opt}
+                          onClick={() =>
+                            setCorrectAnswers((prev) => ({ ...prev, [q.key]: opt }))
+                          }
+                          className={`px-4 py-2.5 font-display text-xs uppercase tracking-widest rounded-xl transition-all active:scale-95 min-h-[44px] ${
+                            correctAnswers[q.key] === opt
+                              ? 'bg-ipl-gold text-ipl-navy font-bold'
+                              : 'bg-white/5 text-gray-400 active:bg-white/10'
+                          }`}
+                        >
+                          {opt}
+                        </button>
+                      ))}
+                    </div>
+                  ) : (
+                    <input
+                      type={q.question_type === 'free_number' ? 'number' : 'text'}
+                      value={correctAnswers[q.key] || ''}
+                      onChange={(e) =>
+                        setCorrectAnswers((prev) => ({ ...prev, [q.key]: e.target.value }))
+                      }
+                      className="w-full bg-black/40 border border-white/10 p-3.5 rounded-2xl text-white font-display text-[17px] md:text-xs focus:border-ipl-gold focus:outline-none transition-all h-11"
+                      placeholder={`Enter correct ${q.question_type.replace('free_', '')}...`}
+                    />
+                  )}
+                </div>
+              );
+            })
+          )}
+        </div>
+
+        {/* Footer Actions */}
+        <div className="flex gap-3 w-full border-t border-white/10 pt-4 shrink-0 font-display">
+          <button
+            onClick={onClose}
+            className="flex-1 py-3 border border-white/10 text-gray-400 active:text-white font-display text-xs uppercase tracking-[0.2em] rounded-xl active:bg-white/5 transition-all active:scale-95 text-center min-h-[44px]"
+          >
+            Cancel
+          </button>
+          <button
+            onClick={handleSave}
+            disabled={isPending}
+            className="flex-1 flex items-center justify-center gap-2 py-3 bg-ipl-gold text-black font-display text-xs uppercase tracking-[0.2em] font-bold rounded-xl hover:bg-white transition-all disabled:opacity-30 active:scale-95 shadow-[0_0_20px_rgba(244,196,48,0.2)] min-h-[44px]"
+          >
+            {isPending ? 'Propagating...' : 'Release Scores'}
+          </button>
+        </div>
+      </div>
     </div>
   );
 }

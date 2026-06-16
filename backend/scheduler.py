@@ -5,7 +5,7 @@ APScheduler background jobs.
 """
 import uuid
 import random
-from datetime import datetime, UTC, timedelta
+from datetime import datetime, timezone, timedelta
 
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from sqlalchemy import select, or_
@@ -16,72 +16,65 @@ from .models import Match, MatchStatus, User, Campaign, CampaignResponse, Campai
 
 scheduler = AsyncIOScheduler()
 
-# Heuristic team strength ratings. Higher = more likely to win.
-TEAM_STRENGTHS = {
-    "Chennai Super Kings": 5,
-    "Mumbai Indians": 7,
-    "Gujarat Titans": 8,
-    "Rajasthan Royals": 9,
-    "Royal Challengers Bengaluru": 10,
-    "Lucknow Super Giants": 7,
-    "Kolkata Knight Riders": 5,
-    "Punjab Kings": 10,
-    "Delhi Capitals": 7,
-    "Sunrisers Hyderabad": 8,
-}
-DEFAULT_STRENGTH = 5
-
-
-async def _get_team_stats(db, team_name: str) -> dict:
-    """Returns avg powerplay score and recent POTM players for a team from CampaignMatchResult data."""
-    # Pull recent completed match results from raw_result_json
-    res = await db.execute(
-        select(Match.raw_result_json, Match.team1, Match.team2).where(
-            or_(Match.team1 == team_name, Match.team2 == team_name),
-            Match.status == MatchStatus.completed,
-            Match.raw_result_json != None,
-        )
-    )
-    rows = res.all()
-
-    scores = []
-    potm_players = []
-
-    for raw_json, t1, t2 in rows:
-        if not raw_json:
-            continue
-        if t1 == team_name:
-            pp = raw_json.get("team1_powerplay_score")
-        else:
-            pp = raw_json.get("team2_powerplay_score")
-        if pp is not None:
-            scores.append(int(pp))
-
-        winner = raw_json.get("winner")
-        potm = raw_json.get("player_of_the_match")
-        if winner == team_name and potm:
-            potm_players.append(potm)
-
-    avg_pp = int(sum(scores) / len(scores)) if scores else random.randint(50, 70)
-    return {"avg_pp": avg_pp, "potm": potm_players}
-
-
 async def generate_ai_prediction(db, match: Match, ai_user: User):
     """
     Generates a heuristic AI prediction for a match and saves it as a CampaignResponse.
     All answers are stored in CampaignResponse.answers as a flat JSON dict.
     """
-    def _replace_placeholders(text: str, match: Match) -> str:
-        if not text:
-            return text
-        return (text
-                .replace("{{Team1}}", match.team1).replace("{{team1}}", match.team1).replace("{{TEAM1}}", match.team1)
-                .replace("{{Team2}}", match.team2).replace("{{team2}}", match.team2).replace("{{TEAM2}}", match.team2))
-        
-    t1_strength = TEAM_STRENGTHS.get(match.team1, DEFAULT_STRENGTH)
-    t2_strength = TEAM_STRENGTHS.get(match.team2, DEFAULT_STRENGTH)
-    t1_prob = t1_strength / (t1_strength + t2_strength)
-    match_winner = match.team1 if random.random() < t1_prob else match.team2
+    # Fetch rankings
+    from backend.models import TournamentTeamRanking
+    rankings_res = await db.execute(
+        select(TournamentTeamRanking).where(
+            TournamentTeamRanking.tournament_id == match.tournament_id,
+            TournamentTeamRanking.team_name.in_([match.team1, match.team2])
+        )
+    )
+    rankings = {r.team_name: r.rank for r in rankings_res.scalars().all()}
+    
+    r1 = rankings.get(match.team1, 100)
+    r2 = rankings.get(match.team2, 100)
+    
+    # Calculate win probability for team1
+    if r1 == r2:
+        p_team1_wins = 0.5
+    else:
+        # e.g. rank 1 vs rank 10 -> diff 9. Base 0.5 + diff * 0.03
+        p_team1_wins = 0.5 + (r2 - r1) * 0.03
+        p_team1_wins = max(0.1, min(0.9, p_team1_wins))
+
+    winner = match.team1 if random.random() < p_team1_wins else match.team2
+    
+    # Fetch tournament directly
+    from backend.models import Tournament
+    tournament_res = await db.execute(
+        select(Tournament).where(Tournament.id == match.tournament_id)
+    )
+    tournament = tournament_res.scalars().first()
+
+    # Delegate to sport prediction strategy engine
+    from backend.utils.prediction_engine import prediction_engine_registry
+    sport = tournament.sport if (tournament and tournament.sport) else "cricket"
+    engine = prediction_engine_registry.get_engine(sport)
+
+    # Draw check for football (e.g. 22% chance of draw if ranks are close)
+    if sport.lower() in ("football", "soccer") and abs(r1 - r2) <= 15 and random.random() < 0.22:
+        actual_winner_or_draw = "Draw"
+    else:
+        actual_winner_or_draw = winner
+
+    base_winner = match.team1 if r1 <= r2 else match.team2  # default higher ranked
+    favored_team = base_winner if actual_winner_or_draw == "Draw" else actual_winner_or_draw
+    loser = match.team2 if favored_team == match.team1 else match.team1
+
+    prediction_context = engine.simulate_match_context(
+        match=match,
+        r1=r1,
+        r2=r2,
+        winner=winner,
+        actual_winner_or_draw=actual_winner_or_draw,
+        favored_team=favored_team,
+        loser=loser
+    )
 
     # Find the master campaign for this tournament (handles multiple targeted campaigns)
     cam_res = await db.execute(
@@ -123,7 +116,7 @@ async def generate_ai_prediction(db, match: Match, ai_user: User):
         )
         db.add(mapping)
 
-    is_heavy_favorite = abs(t1_strength - t2_strength) >= 3
+    is_heavy_favorite = abs(r1 - r2) >= 15
     use_powerup = False
     if is_heavy_favorite and random.random() < 0.3:
         if master_cam.max_powerups is not None:
@@ -155,58 +148,23 @@ async def generate_ai_prediction(db, match: Match, ai_user: User):
             if used < mapping.base_powerups:
                 use_powerup = True
 
-    # Team stats for powerplay/POTM predictions
-    team1_stats = await _get_team_stats(db, match.team1)
-    team2_stats = await _get_team_stats(db, match.team2)
-    team1_pp = team1_stats["avg_pp"] + random.randint(-5, 5)
-    team2_pp = team2_stats["avg_pp"] + random.randint(-5, 5)
-    winner_stats = team1_stats if match_winner == match.team1 else team2_stats
-    players = winner_stats["potm"]
-    potm = random.choice(players) if players else f"Star Player ({match_winner})"
-
-    # Sixes/Fours predictions (from match 39+)
-    match_number = 0
-    try:
-        match_number = int(match.id.split("-")[-1])
-    except (ValueError, IndexError):
-        pass
-    more_sixes_team = (match.team1 if random.random() > 0.5 else match.team2) if match_number >= 39 else None
-    more_fours_team = (match.team1 if random.random() > 0.5 else match.team2) if match_number >= 39 else None
-
-
+    BIAS_MAP = {
+        "match_winner": 1.0,
+        "most_sixes": 0.70,
+        "highest_powerplay": 0.60,
+        "highest_score": 0.80,
+        "first_goal_scorer": 0.80,
+        "first_team_to_score": 0.80,
+        "clean_sheet": 0.60,
+        "potm": 1.0,
+        "toss_winner": 0.50
+    }
 
     def generate_answers(campaign: Campaign) -> dict:
         ans = {}
-        t1, t2 = match.team1, match.team2
         for q in campaign.questions:
-            opts = [_replace_placeholders(o, match) for o in q.options] if q.options else []
-            qtype = q.question_type
-            text = _replace_placeholders(q.question_text, match).lower()
-            val = None
-
-            if set(opts) == {t1, t2}:
-                if qtype == "toggle" and "dot ball" in text:
-                    val = random.choice([t1, t2]) 
-                elif qtype == "dropdown":
-                    if "six" in text:
-                        val = more_sixes_team or random.choice([t1, t2])
-                    elif "four" in text:
-                        val = more_fours_team or random.choice([t1, t2])
-                    else:
-                        val = random.choice([t1, t2])
-                else:
-                    if "win" in text:
-                        val = match_winner  
-                    else:
-                        val = random.choice([t1, t2])
-            elif qtype == "free_number" and ("powerplay" in text or "power play" in text):
-                if t1.lower() in text or "team1" in text:
-                    val = str(team1_pp)
-                elif t2.lower() in text or "team2" in text:
-                    val = str(team2_pp)
-            elif qtype == "free_text" and ("player" in text or "potm" in text or "man of" in text):
-                val = potm
-
+            bias_prob = BIAS_MAP.get(q.key or "", 0.5)
+            val = engine.predict_question(q, prediction_context, bias_prob)
             if val is not None:
                 ans[q.id] = val
         return ans
@@ -272,7 +230,7 @@ async def generate_ai_prediction(db, match: Match, ai_user: User):
 
 async def auto_predict_daily_job():
     """Daily cron job — runs at 00:00 UTC. Generates AI predictions for upcoming 24h matches."""
-    print(f"[{datetime.now(UTC)}] Running auto_predict_daily_job...")
+    print(f"[{datetime.now(timezone.utc)}] Running auto_predict_daily_job...")
     async with async_session() as db:
         async with db.begin():
             ai_users_res = await db.execute(select(User).where(User.is_ai == True))
@@ -282,7 +240,7 @@ async def auto_predict_daily_job():
                 print("No AI users found. Skipping.")
                 return
 
-            now = datetime.now(UTC)
+            now = datetime.now(timezone.utc)
             future = now + timedelta(days=2)
 
             matches_res = await db.execute(

@@ -4,7 +4,7 @@ from sqlalchemy.future import select
 from sqlalchemy.orm import selectinload
 from sqlalchemy import or_
 from typing import List, Optional, Any
-from datetime import datetime, timedelta, UTC
+from datetime import datetime, timedelta, timezone
 import csv
 from io import StringIO
 
@@ -12,7 +12,7 @@ from backend.database import get_db
 from backend.models import (
     User, Tournament, TournamentStatus, League, Match, MatchStatus,
     Campaign, CampaignStatus, TournamentMatchAnswer, TournamentQuestion,
-    QuestionType
+    QuestionType, TournamentTeamRanking
 )
 from backend.dependencies import get_current_user
 from backend.router.leaderboard_router import fetch_leaderboard_data
@@ -25,6 +25,8 @@ class TournamentCreate(BaseModel):
     name: str
     starts_at: Optional[datetime] = None
     ends_at: Optional[datetime] = None
+    sport: Optional[str] = "cricket"
+    gender: Optional[str] = "mens"
 
 @router.post("", status_code=status.HTTP_201_CREATED)
 async def create_tournament(
@@ -40,6 +42,8 @@ async def create_tournament(
         name=req.name,
         starts_at=req.starts_at,
         ends_at=req.ends_at,
+        sport=req.sport or "cricket",
+        gender=req.gender or "mens",
         status=TournamentStatus.upcoming
     )
     db.add(new_tournament)
@@ -91,8 +95,7 @@ async def bulk_import_matches(
             # Try the IST format commonly used in manual sheets: 22-Mar-26 07:30 PM
             try:
                 dt_ist = datetime.strptime(start_time_raw, "%d-%b-%y %I:%M %p")
-                # Convert IST to UTC (subtract 5.5 hours)
-                start_time = (dt_ist - timedelta(hours=5, minutes=30)).replace(tzinfo=UTC)
+                start_time = (dt_ist - timedelta(hours=5, minutes=30)).replace(tzinfo=timezone.utc)
             except ValueError:
                 raise HTTPException(
                     status_code=400, 
@@ -456,4 +459,94 @@ async def set_tournament_match_answers(
         "message": f"Answers saved. Scored {len(campaigns)} campaign(s).",
         "campaigns_scored": [c.id for c in campaigns],
     }
+
+# ── Manual Team Rankings Upload ──────────────────────────────────────────
+
+@router.post("/{tournament_id}/rankings/upload")
+async def upload_rankings(
+    tournament_id: str,
+    file: UploadFile = File(...),
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """
+    Admin uploads a CSV to populate or overwrite team rankings for this tournament.
+    CSV format: team_name, rank, rating
+    """
+    if not current_user.is_admin:
+        raise HTTPException(status_code=403, detail="Not authorized")
+
+    if not file.filename.endswith(".csv"):
+        raise HTTPException(status_code=400, detail="File must be a CSV")
+
+    # Verify tournament exists
+    tournament = await db.get(Tournament, tournament_id)
+    if not tournament:
+        raise HTTPException(status_code=404, detail="Tournament not found")
+
+    contents = await file.read()
+    decoded = contents.decode("utf-8")
+    reader = csv.DictReader(StringIO(decoded))
+
+    required_fields = ["team_name", "rank", "rating"]
+    if not reader.fieldnames or not all(field in reader.fieldnames for field in required_fields):
+        raise HTTPException(status_code=400, detail=f"CSV must contain headers: {', '.join(required_fields)}")
+
+    imported_count = 0
+    for row in reader:
+        team_name = row["team_name"].strip()
+        try:
+            rank = int(row["rank"].strip())
+            rating = float(row["rating"].strip() or 0.0)
+        except ValueError:
+            continue
+
+        # Check if ranking exists for this team in this tournament
+        existing_res = await db.execute(
+            select(TournamentTeamRanking).where(
+                TournamentTeamRanking.tournament_id == tournament_id,
+                TournamentTeamRanking.team_name == team_name
+            )
+        )
+        existing = existing_res.scalars().first()
+
+        if existing:
+            existing.rank = rank
+            existing.rating = rating
+        else:
+            new_ranking = TournamentTeamRanking(
+                tournament_id=tournament_id,
+                team_name=team_name,
+                rank=rank,
+                rating=rating
+            )
+            db.add(new_ranking)
+        imported_count += 1
+
+    await db.commit()
+    return {"message": f"Successfully imported/updated {imported_count} team rankings"}
+
+
+@router.get("/{tournament_id}/rankings")
+async def get_rankings(
+    tournament_id: str,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """
+    Get the list of team rankings for a tournament, sorted by rank.
+    """
+    # Verify tournament exists
+    tournament = await db.get(Tournament, tournament_id)
+    if not tournament:
+        raise HTTPException(status_code=404, detail="Tournament not found")
+
+    result = await db.execute(
+        select(TournamentTeamRanking)
+        .where(TournamentTeamRanking.tournament_id == tournament_id)
+        .order_by(TournamentTeamRanking.rank.asc())
+    )
+    rankings = result.scalars().all()
+    return rankings
+
 

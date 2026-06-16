@@ -1,6 +1,6 @@
 import uuid
 import random
-from datetime import datetime, UTC, timedelta
+from datetime import datetime, timezone, timedelta
 from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel
 from typing import List, Dict, Optional, Any
@@ -58,15 +58,15 @@ def _replace_placeholders(text: str, match: Match) -> str:
 def _is_locked(match: Match) -> bool:
     start_time = match.start_time
     if start_time.tzinfo is None:
-        start_time = start_time.replace(tzinfo=UTC)
-    return datetime.now(UTC) >= (start_time - timedelta(minutes=30))
+        start_time = start_time.replace(tzinfo=timezone.utc)
+    return datetime.now(timezone.utc) >= (start_time - timedelta(minutes=30))
 
 
 # ── List Matches ──────────────────────────────────────────────────────────────
 
 @router.get("")
 async def list_matches(tournament_id: Optional[str] = None, db: AsyncSession = Depends(get_db)):
-    now = datetime.now(UTC)
+    now = datetime.now(timezone.utc)
     today_start = now.replace(hour=0, minute=0, second=0, microsecond=0)
     past_cutoff = today_start - timedelta(days=2)
     future_cutoff = today_start + timedelta(days=3)
@@ -94,6 +94,8 @@ async def list_matches(tournament_id: Optional[str] = None, db: AsyncSession = D
             "tossTime": m.start_time.isoformat() if m.start_time else None,
             "start_time": m.start_time,
             "status": m.status,
+            "sport": m.tournament.sport if m.tournament else "cricket",
+            "gender": m.tournament.gender if m.tournament else "mens",
             "report_method": m.report_method,
             "reported_by_name": m.reporter.name if m.reporter else None,
             "reported_by_email": m.reporter.email if m.reporter else None,
@@ -101,7 +103,9 @@ async def list_matches(tournament_id: Optional[str] = None, db: AsyncSession = D
             "raw_result_json": m.raw_result_json,
             "tournament": {
                 "id": m.tournament.id,
-                "name": m.tournament.name
+                "name": m.tournament.name,
+                "sport": m.tournament.sport if m.tournament else "cricket",
+                "gender": m.tournament.gender if m.tournament else "mens",
             } if m.tournament else None
         })
     return matches
@@ -146,7 +150,7 @@ async def get_match(
     current_user: User = Depends(get_current_user),
 ):
     result = await db.execute(
-        select(Match).options(selectinload(Match.reporter)).where(Match.id == match_id)
+        select(Match).options(selectinload(Match.reporter), selectinload(Match.tournament)).where(Match.id == match_id)
     )
     m = result.scalars().first()
     if not m:
@@ -243,6 +247,15 @@ async def get_match(
         "start_time": m.start_time,
         "status": m.status,
         "results": results_map,
+        "sport": m.tournament.sport if m.tournament else "cricket",
+        "gender": m.tournament.gender if m.tournament else "mens",
+        "tournament_id": m.tournament_id,
+        "tournament": {
+            "id": m.tournament.id,
+            "name": m.tournament.name,
+            "sport": m.tournament.sport if m.tournament else "cricket",
+            "gender": m.tournament.gender if m.tournament else "mens",
+        } if m.tournament else None,
         "report_method": m.report_method,
         "reported_by_name": m.reporter.name if m.reporter else None,
         "reported_by_email": m.reporter.email if m.reporter else None,
@@ -339,7 +352,9 @@ async def post_autopredict(
     if current_user.is_guest:
         raise HTTPException(status_code=403, detail="Guests cannot submit predictions")
 
-    result = await db.execute(select(Match).where(Match.id == match_id))
+    result = await db.execute(
+        select(Match).options(selectinload(Match.tournament)).where(Match.id == match_id)
+    )
     match = result.scalars().first()
     if not match:
         raise HTTPException(status_code=404, detail="Match not found")
@@ -357,48 +372,53 @@ async def post_autopredict(
     if existing.scalars().first():
         raise HTTPException(status_code=400, detail="Prediction already exists for this match")
 
-    # Determine winner via random weighted on simple team strength
-    winner = match.team1 if random.random() > 0.5 else match.team2
-
-    # Get stats from past raw_result_json on completed matches
-    async def get_team_stats(team_name: str) -> dict:
-        res = await db.execute(
-            select(Match.raw_result_json, Match.team1, Match.team2).where(
-                or_(Match.team1 == team_name, Match.team2 == team_name),
-                Match.status == MatchStatus.completed,
-                Match.raw_result_json != None,
-            )
+    # Fetch rankings
+    from backend.models import TournamentTeamRanking
+    rankings_res = await db.execute(
+        select(TournamentTeamRanking).where(
+            TournamentTeamRanking.tournament_id == match.tournament_id,
+            TournamentTeamRanking.team_name.in_([match.team1, match.team2])
         )
-        scores, potm_players = [], []
-        for raw_json, t1, t2 in res.all():
-            if not raw_json:
-                continue
-            pp = raw_json.get("team1_powerplay_score") if t1 == team_name else raw_json.get("team2_powerplay_score")
-            if pp is not None:
-                try:
-                    scores.append(int(pp))
-                except (ValueError, TypeError):
-                    pass
-            if raw_json.get("winner") == team_name and raw_json.get("player_of_the_match"):
-                potm_players.append(raw_json["player_of_the_match"])
+    )
+    rankings = {r.team_name: r.rank for r in rankings_res.scalars().all()}
+    
+    r1 = rankings.get(match.team1, 100)
+    r2 = rankings.get(match.team2, 100)
+    
+    # Calculate win probability for team1
+    if r1 == r2:
+        p_team1_wins = 0.5
+    else:
+        # e.g. rank 1 vs rank 10 -> diff 9. Base 0.5 + diff * 0.03
+        p_team1_wins = 0.5 + (r2 - r1) * 0.03
+        p_team1_wins = max(0.1, min(0.9, p_team1_wins))
 
-        avg_pp = int(sum(scores) / len(scores)) if scores else random.randint(50, 70)
-        return {"avg_pp": avg_pp, "potm": potm_players}
+    winner = match.team1 if random.random() < p_team1_wins else match.team2
+    
+    # Delegate to sport prediction strategy engine
+    from backend.utils.prediction_engine import prediction_engine_registry
+    sport = match.tournament.sport if (match.tournament and match.tournament.sport) else "cricket"
+    engine = prediction_engine_registry.get_engine(sport)
 
-    t1_stats = await get_team_stats(match.team1)
-    t2_stats = await get_team_stats(match.team2)
-    team1_pp = t1_stats["avg_pp"] + random.randint(-5, 5)
-    team2_pp = t2_stats["avg_pp"] + random.randint(-5, 5)
-    winner_players = (t1_stats if winner == match.team1 else t2_stats)["potm"]
-    potm = random.choice(winner_players) if winner_players else f"Star Player ({winner})"
+    # Draw check for football (e.g. 22% chance of draw if ranks are close)
+    if sport.lower() in ("football", "soccer") and abs(r1 - r2) <= 15 and random.random() < 0.22:
+        actual_winner_or_draw = "Draw"
+    else:
+        actual_winner_or_draw = winner
 
-    match_number = 0
-    try:
-        match_number = int(match_id.split("-")[-1])
-    except (ValueError, IndexError):
-        pass
-    more_sixes = (match.team1 if random.random() > 0.5 else match.team2) if match_number >= 39 else None
-    more_fours = (match.team1 if random.random() > 0.5 else match.team2) if match_number >= 39 else None
+    base_winner = match.team1 if r1 <= r2 else match.team2  # default higher ranked
+    favored_team = base_winner if actual_winner_or_draw == "Draw" else actual_winner_or_draw
+    loser = match.team2 if favored_team == match.team1 else match.team1
+
+    prediction_context = engine.simulate_match_context(
+        match=match,
+        r1=r1,
+        r2=r2,
+        winner=winner,
+        actual_winner_or_draw=actual_winner_or_draw,
+        favored_team=favored_team,
+        loser=loser
+    )
 
     # Fetch master campaign questions
     from backend.models import CampaignTargetMatch
@@ -423,38 +443,23 @@ async def post_autopredict(
     if not master_campaign:
         raise HTTPException(status_code=404, detail="Master campaign not found for this tournament")
 
+    BIAS_MAP = {
+        "match_winner": 1.0,
+        "most_sixes": 0.70,
+        "highest_powerplay": 0.60,
+        "highest_score": 0.80,
+        "first_goal_scorer": 0.80,
+        "first_team_to_score": 0.80,
+        "clean_sheet": 0.60,
+        "potm": 1.0,
+        "toss_winner": 0.50
+    }
+
     def generate_answers(campaign: Campaign) -> dict:
         ans = {}
-        t1, t2 = match.team1, match.team2
         for q in campaign.questions:
-            opts = [_replace_placeholders(o, match) for o in q.options] if q.options else []
-            qtype = q.question_type
-            text = _replace_placeholders(q.question_text, match).lower()
-            val = None
-
-            if set(opts) == {t1, t2}:
-                if qtype == "toggle" and "dot ball" in text:
-                    val = random.choice([t1, t2])
-                elif qtype == "dropdown":
-                    if "six" in text:
-                        val = random.choice([t1, t2])
-                    elif "four" in text:
-                        val = random.choice([t1, t2])
-                    else:
-                        val = random.choice([t1, t2])
-                else:
-                    if "win" in text:
-                        val = winner
-                    else:
-                        val = random.choice([t1, t2])
-            elif qtype == "free_number" and ("powerplay" in text or "power play" in text):
-                if t1.lower() in text or "team1" in text:
-                    val = str(team1_pp)
-                elif t2.lower() in text or "team2" in text:
-                    val = str(team2_pp)
-            elif qtype == "free_text" and ("player" in text or "potm" in text or "man of" in text):
-                val = potm
-
+            bias_prob = BIAS_MAP.get(q.key or "", 0.5)
+            val = engine.predict_question(q, prediction_context, bias_prob)
             if val is not None:
                 ans[q.id] = val
         return ans

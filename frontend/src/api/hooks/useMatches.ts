@@ -16,9 +16,14 @@ export interface Match {
   reported_by_name?: string;
   reported_by_email?: string;
   report_method?: string;
+  sport?: string;
+  gender?: string;
+  tournament_id?: string;
   tournament?: {
     id: string;
     name: string;
+    sport?: string;
+    gender?: string;
   };
 }
 

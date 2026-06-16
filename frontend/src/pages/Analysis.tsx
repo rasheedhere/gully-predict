@@ -34,6 +34,335 @@ export default function Analysis() {
   }
 
   const hof = data?.hall_of_fame || {};
+  const sport = data?.sport || 'cricket';
+
+  const hofAwards = sport === 'football' || sport === 'soccer' ? [
+    {
+      key: 'universe_boss',
+      label: 'Golden Boot',
+      icon: <Zap className="w-4 h-4" />,
+      color: 'text-yellow-400',
+      desc: 'Highest Single Match Score',
+      info: 'Clinical finish. Awarded to the player with the highest points scored in a single football match this season.',
+      winner: hof.universe_boss
+    },
+    {
+      key: 'heath_streak',
+      label: 'Invincibles',
+      icon: <TrendingUp className="w-4 h-4" />,
+      color: 'text-ipl-gold',
+      desc: 'Longest Unbeaten Run',
+      info: "Inspired by Arsenal's 2003-04 run. Awarded for the longest continuous streak of matches without negative points.",
+      winner: hof.heath_streak
+    },
+    {
+      key: 'yorker_king',
+      label: 'Clean Sheet King',
+      icon: <Target className="w-4 h-4" />,
+      color: 'text-red-400',
+      desc: 'Most Clean Sheet Hits',
+      info: 'Solid defense. Awarded for correctly predicting clean sheets or exact goal scores.',
+      winner: hof.yorker_king
+    },
+    {
+      key: 'dwayne_bravo',
+      label: 'Gung-Ho Striker',
+      icon: <ShieldAlert className="w-4 h-4" />,
+      color: 'text-orange-400',
+      desc: 'Boldest Predictor',
+      info: 'High risk, high reward. Awarded for making bold prediction calls (predicting 4+ goals in a match).',
+      winner: hof.dwayne_bravo
+    },
+    {
+      key: 'the_wall',
+      label: 'The Wall',
+      icon: <ShieldCheck className="w-4 h-4" />,
+      color: 'text-blue-400',
+      desc: 'Unmatched Consistency',
+      info: 'Solid as a rock. Awarded for stable high-performance (20+ pts) in 7 of the last 10 matches.',
+      winner: hof.the_wall
+    },
+    {
+      key: 'hat_trick',
+      label: 'Hat-Trick',
+      icon: <Medal className="w-4 h-4" />,
+      color: 'text-green-400',
+      desc: 'Triple Threat',
+      info: 'Three in a row. Awarded for scoring 30+ points in 3 consecutive matches.',
+      winner: hof.hat_trick
+    },
+    {
+      key: 'the_big_show',
+      label: 'Super Sub',
+      icon: <Star className="w-4 h-4" />,
+      color: 'text-purple-400',
+      desc: 'Max Powerup Yield',
+      info: 'Dynamic impact. Awarded for earning the highest points from a single Powerup usage.',
+      winner: hof.the_big_show
+    },
+    {
+      key: 'captain_cool',
+      label: 'Clutch Finisher',
+      icon: <Calendar className="w-4 h-4" />,
+      color: 'text-emerald-400',
+      desc: 'Clutch Performer',
+      info: 'MSD-level or Fergie-time finish. Awarded for the highest average points in the most recent 5 matches.',
+      winner: hof.captain_cool
+    },
+    {
+      key: 'chase_master',
+      label: 'Comeback King',
+      icon: <BarChart3 className="w-4 h-4" />,
+      color: 'text-rose-400',
+      desc: 'Biggest Rank Jump',
+      info: 'Climbing the table. Awarded for climbing the most positions on the leaderboard in a single week.',
+      winner: hof.chase_master
+    },
+    {
+      key: 'impact_player',
+      label: 'Midfield Maestro',
+      icon: <Zap className="w-4 h-4" />,
+      color: 'text-indigo-400',
+      desc: 'Goals Predictor',
+      info: 'Midfield control. Awarded for the highest total points earned from goal-related predictions.',
+      winner: hof.impact_player
+    },
+    {
+      key: 'switch_hit',
+      label: 'Double Trouble',
+      icon: <Medal className="w-4 h-4" />,
+      color: 'text-fuchsia-400',
+      desc: 'Double Bullseye',
+      info: 'Perfect symmetry. Awarded for correctly predicting both exact goal tallies in a single match.',
+      winner: hof.switch_hit
+    },
+    {
+      key: 'caught_bowled',
+      label: 'Perfect Match',
+      icon: <Star className="w-4 h-4" />,
+      color: 'text-cyan-400',
+      desc: 'The Perfect Match',
+      info: 'Complete dominance. Awarded for correctly predicting Match Winner, first team to score, and clean sheet in the same match.',
+      winner: hof.caught_bowled
+    },
+    {
+      key: 'hit_wicket',
+      label: 'Own Goal',
+      icon: <ShieldAlert className="w-4 h-4" />,
+      color: 'text-slate-400',
+      desc: 'Powerup Fail',
+      info: 'An unfortunate blunder. Awarded to players who used a Powerup but ended up with a penalty score.',
+      winner: hof.hit_wicket
+    },
+    {
+      key: 'direct_hit',
+      label: 'Near Miss',
+      icon: <Target className="w-4 h-4" />,
+      color: 'text-red-500',
+      desc: 'Heartbreak Miss',
+      info: 'Off the post. Awarded for goal predictions that were off by exactly 1 goal from a perfect hit.',
+      winner: hof.direct_hit
+    },
+    {
+      key: 'doosra_spinner',
+      label: 'False Nine',
+      icon: <RotateCcw className="w-4 h-4" />,
+      color: 'text-pink-400',
+      desc: 'Wrong Way',
+      info: 'Misdirection specialist. Awarded to the expert with the most incorrect Match Winner predictions.',
+      winner: hof.doosra_spinner
+    },
+    {
+      key: 'sixster',
+      label: 'Goal Machine',
+      icon: <Zap className="w-4 h-4" />,
+      color: 'text-yellow-500',
+      desc: 'Maximum Goals',
+      info: 'Awarded for correctly predicting the team that scores the most goals in a match.',
+      winner: hof.sixster
+    },
+    {
+      key: 'fourster',
+      label: 'Playmaker',
+      icon: <Star className="w-4 h-4" />,
+      color: 'text-blue-500',
+      desc: 'Goal Fest Analyst',
+      info: 'Awarded for correctly predicting high-yielding matches or penalty events.',
+      winner: hof.fourster
+    },
+    {
+      key: 'one_man_army',
+      label: 'One Man Army',
+      icon: <UserPlus className="w-4 h-4" />,
+      color: 'text-purple-400',
+      desc: 'Lone Wolf',
+      info: 'Standing alone. Awarded to the expert who is the ONLY person to predict a specific team to win in a match.',
+      winner: hof.one_man_army
+    }
+  ] : [
+    {
+      key: 'universe_boss',
+      label: 'Universe Boss',
+      icon: <Zap className="w-4 h-4" />,
+      color: 'text-yellow-400',
+      desc: 'Highest Single Score',
+      info: 'The Chris Gayle approach. Awarded to the player with the highest points scored in a single match this season.',
+      winner: hof.universe_boss
+    },
+    {
+      key: 'heath_streak',
+      label: 'Heath Streak',
+      icon: <TrendingUp className="w-4 h-4" />,
+      color: 'text-ipl-gold',
+      desc: 'Longest Winning Run',
+      info: 'A tribute to the legend. Awarded for the longest continuous streak of matches without negative points.',
+      winner: hof.heath_streak
+    },
+    {
+      key: 'yorker_king',
+      label: 'Yorker King',
+      icon: <Target className="w-4 h-4" />,
+      color: 'text-red-400',
+      desc: 'Most Bullseyes',
+      info: 'Bumrah-level precision. Awarded for predicting the exact powerplay score of either team.',
+      winner: hof.yorker_king
+    },
+    {
+      key: 'dwayne_bravo',
+      label: 'Bravo Award',
+      icon: <ShieldAlert className="w-4 h-4" />,
+      color: 'text-orange-400',
+      desc: 'Boldest Predictor',
+      info: 'Dwayne Bravo style. Awarded for making extreme predictions (scores < 35 or > 100).',
+      winner: hof.dwayne_bravo
+    },
+    {
+      key: 'the_wall',
+      label: 'The Wall',
+      icon: <ShieldCheck className="w-4 h-4" />,
+      color: 'text-blue-400',
+      desc: 'Unmatched Consistency',
+      info: 'Channeling Rahul Dravid. Awarded for stable high-performance (20+ pts) in 7 of the last 10 matches.',
+      winner: hof.the_wall
+    },
+    {
+      key: 'hat_trick',
+      label: 'Hat-Trick',
+      icon: <Medal className="w-4 h-4" />,
+      color: 'text-green-400',
+      desc: 'Triple Threat',
+      info: 'Malinga Magic. Awarded for scoring 30+ points in 3 consecutive matches.',
+      winner: hof.hat_trick
+    },
+    {
+      key: 'the_big_show',
+      label: 'The Big Show',
+      icon: <Star className="w-4 h-4" />,
+      color: 'text-purple-400',
+      desc: 'Max Powerup Yield',
+      info: 'Glenn Maxwell vibes. Awarded for earning the highest points from a single Powerup usage.',
+      winner: hof.the_big_show
+    },
+    {
+      key: 'captain_cool',
+      label: 'Captain Cool',
+      icon: <Calendar className="w-4 h-4" />,
+      color: 'text-emerald-400',
+      desc: 'Clutch Performer',
+      info: 'The MSD Finish. Awarded for the highest average points in the most recent 5 matches.',
+      winner: hof.captain_cool
+    },
+    {
+      key: 'chase_master',
+      label: 'Chase Master',
+      icon: <BarChart3 className="w-4 h-4" />,
+      color: 'text-rose-400',
+      desc: 'Biggest Rank Jump',
+      info: 'Virat Kohli spirit. Awarded for climbing the most positions on the leaderboard in a single week.',
+      winner: hof.chase_master
+    },
+    {
+      key: 'impact_player',
+      label: 'Impact Player',
+      icon: <Zap className="w-4 h-4" />,
+      color: 'text-indigo-400',
+      desc: 'Powerplay King',
+      info: 'Andre Russell energy. Awarded for the highest total points earned from Powerplay predictions.',
+      winner: hof.impact_player
+    },
+    {
+      key: 'switch_hit',
+      label: 'Switch Hit',
+      icon: <Medal className="w-4 h-4" />,
+      color: 'text-fuchsia-400',
+      desc: 'Double Bullseye',
+      info: 'Kevin Pietersen style. Awarded for correctly predicting the exact powerplay scores of BOTH teams in a single match.',
+      winner: hof.switch_hit
+    },
+    {
+      key: 'caught_bowled',
+      label: 'Caught & Bowled',
+      icon: <Star className="w-4 h-4" />,
+      color: 'text-cyan-400',
+      desc: 'The Perfect Match',
+      info: 'Pollard-level dominance. Awarded for correctly predicting Match Winner, Player of the Match, and a Bullseye in the same match.',
+      winner: hof.caught_bowled
+    },
+    {
+      key: 'hit_wicket',
+      label: 'Hit Wicket',
+      icon: <ShieldAlert className="w-4 h-4" />,
+      color: 'text-slate-400',
+      desc: 'Powerup Fail',
+      info: 'An unfortunate slip. Awarded to players who used a Powerup but ended up with a penalty score.',
+      winner: hof.hit_wicket
+    },
+    {
+      key: 'direct_hit',
+      label: 'Direct hit but just miss',
+      icon: <Target className="w-4 h-4" />,
+      color: 'text-red-500',
+      desc: 'Heartbreak Miss',
+      info: 'Sir Jadeja precision. Awarded for predictions that were off by exactly 1 run from a Bullseye.',
+      winner: hof.direct_hit
+    },
+    {
+      key: 'doosra_spinner',
+      label: 'Doosra Spinner',
+      icon: <RotateCcw className="w-4 h-4" />,
+      color: 'text-pink-400',
+      desc: 'Wrong Way',
+      info: 'The master of misdirection. Awarded to the expert with the most incorrect Match Winner predictions.',
+      winner: hof.doosra_spinner
+    },
+    {
+      key: 'sixster',
+      label: 'Sixster',
+      icon: <Zap className="w-4 h-4" />,
+      color: 'text-yellow-500',
+      desc: 'Maximum Maximums',
+      info: 'Awarded for correctly predicting the team that hits the most sixes in a match.',
+      winner: hof.sixster
+    },
+    {
+      key: 'fourster',
+      label: 'Fourster',
+      icon: <Star className="w-4 h-4" />,
+      color: 'text-blue-500',
+      desc: 'Boundary Baron',
+      info: 'Awarded for correctly predicting the team that hits the most fours in a match.',
+      winner: hof.fourster
+    },
+    {
+      key: 'one_man_army',
+      label: 'One Man Army',
+      icon: <UserPlus className="w-4 h-4" />,
+      color: 'text-purple-400',
+      desc: 'Lone Wolf',
+      info: 'Standing alone. Awarded to the expert who is the ONLY person to predict a specific team to win in a match.',
+      winner: hof.one_man_army
+    }
+  ];
 
   return (
     <div className="space-y-12 pb-12">
@@ -51,170 +380,7 @@ export default function Analysis() {
         </div>
 
         <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-          {[
-            {
-              key: 'universe_boss',
-              label: 'Universe Boss',
-              icon: <Zap className="w-4 h-4" />,
-              color: 'text-yellow-400',
-              desc: 'Highest Single Score',
-              info: 'The Chris Gayle approach. Awarded to the player with the highest points scored in a single match this season.',
-              winner: hof.universe_boss
-            },
-            {
-              key: 'heath_streak',
-              label: 'Heath Streak',
-              icon: <TrendingUp className="w-4 h-4" />,
-              color: 'text-ipl-gold',
-              desc: 'Longest Winning Run',
-              info: 'A tribute to the legend. Awarded for the longest continuous streak of matches without negative points.',
-              winner: hof.heath_streak
-            },
-            {
-              key: 'yorker_king',
-              label: 'Yorker King',
-              icon: <Target className="w-4 h-4" />,
-              color: 'text-red-400',
-              desc: 'Most Bullseyes',
-              info: 'Bumrah-level precision. Awarded for predicting the exact powerplay score of either team.',
-              winner: hof.yorker_king
-            },
-            {
-              key: 'dwayne_bravo',
-              label: 'Bravo Award',
-              icon: <ShieldAlert className="w-4 h-4" />,
-              color: 'text-orange-400',
-              desc: 'Boldest Predictor',
-              info: 'Dwayne Bravo style. Awarded for making extreme predictions (scores < 35 or > 100).',
-              winner: hof.dwayne_bravo
-            },
-            {
-              key: 'the_wall',
-              label: 'The Wall',
-              icon: <ShieldCheck className="w-4 h-4" />,
-              color: 'text-blue-400',
-              desc: 'Unmatched Consistency',
-              info: 'Channeling Rahul Dravid. Awarded for stable high-performance (20+ pts) in 7 of the last 10 matches.',
-              winner: hof.the_wall
-            },
-            {
-              key: 'hat_trick',
-              label: 'Hat-Trick',
-              icon: <Medal className="w-4 h-4" />,
-              color: 'text-green-400',
-              desc: 'Triple Threat',
-              info: 'Malinga Magic. Awarded for scoring 30+ points in 3 consecutive matches.',
-              winner: hof.hat_trick
-            },
-            {
-              key: 'the_big_show',
-              label: 'The Big Show',
-              icon: <Star className="w-4 h-4" />,
-              color: 'text-purple-400',
-              desc: 'Max Powerup Yield',
-              info: 'Glenn Maxwell vibes. Awarded for earning the highest points from a single Powerup usage.',
-              winner: hof.the_big_show
-            },
-            {
-              key: 'captain_cool',
-              label: 'Captain Cool',
-              icon: <Calendar className="w-4 h-4" />,
-              color: 'text-emerald-400',
-              desc: 'Clutch Performer',
-              info: 'The MSD Finish. Awarded for the highest average points in the most recent 5 matches.',
-              winner: hof.captain_cool
-            },
-            {
-              key: 'chase_master',
-              label: 'Chase Master',
-              icon: <BarChart3 className="w-4 h-4" />,
-              color: 'text-rose-400',
-              desc: 'Biggest Rank Jump',
-              info: 'Virat Kohli spirit. Awarded for climbing the most positions on the leaderboard in a single week.',
-              winner: hof.chase_master
-            },
-            {
-              key: 'impact_player',
-              label: 'Impact Player',
-              icon: <Zap className="w-4 h-4" />,
-              color: 'text-indigo-400',
-              desc: 'Powerplay King',
-              info: 'Andre Russell energy. Awarded for the highest total points earned from Powerplay predictions.',
-              winner: hof.impact_player
-            },
-            {
-              key: 'switch_hit',
-              label: 'Switch Hit',
-              icon: <Medal className="w-4 h-4" />,
-              color: 'text-fuchsia-400',
-              desc: 'Double Bullseye',
-              info: 'Kevin Pietersen style. Awarded for correctly predicting the exact powerplay scores of BOTH teams in a single match.',
-              winner: hof.switch_hit
-            },
-            {
-              key: 'caught_bowled',
-              label: 'Caught & Bowled',
-              icon: <Star className="w-4 h-4" />,
-              color: 'text-cyan-400',
-              desc: 'The Perfect Match',
-              info: 'Pollard-level dominance. Awarded for correctly predicting Match Winner, Player of the Match, and a Bullseye in the same match.',
-              winner: hof.caught_bowled
-            },
-            {
-              key: 'hit_wicket',
-              label: 'Hit Wicket',
-              icon: <ShieldAlert className="w-4 h-4" />,
-              color: 'text-slate-400',
-              desc: 'Powerup Fail',
-              info: 'An unfortunate slip. Awarded to players who used a Powerup but ended up with a penalty score.',
-              winner: hof.hit_wicket
-            },
-            {
-              key: 'direct_hit',
-              label: 'Direct hit but just miss',
-              icon: <Target className="w-4 h-4" />,
-              color: 'text-red-500',
-              desc: 'Heartbreak Miss',
-              info: 'Sir Jadeja precision. Awarded for predictions that were off by exactly 1 run from a Bullseye.',
-              winner: hof.direct_hit
-            },
-            {
-              key: 'doosra_spinner',
-              label: 'Doosra Spinner',
-              icon: <RotateCcw className="w-4 h-4" />,
-              color: 'text-pink-400',
-              desc: 'Wrong Way',
-              info: 'The master of misdirection. Awarded to the expert with the most incorrect Match Winner predictions.',
-              winner: hof.doosra_spinner
-            },
-            {
-              key: 'sixster',
-              label: 'Sixster',
-              icon: <Zap className="w-4 h-4" />,
-              color: 'text-yellow-500',
-              desc: 'Maximum Maximums',
-              info: 'Awarded for correctly predicting the team that hits the most sixes in a match.',
-              winner: hof.sixster
-            },
-            {
-              key: 'fourster',
-              label: 'Fourster',
-              icon: <Star className="w-4 h-4" />,
-              color: 'text-blue-500',
-              desc: 'Boundary Baron',
-              info: 'Awarded for correctly predicting the team that hits the most fours in a match.',
-              winner: hof.fourster
-            },
-            {
-              key: 'one_man_army',
-              label: 'One Man Army',
-              icon: <UserPlus className="w-4 h-4" />,
-              color: 'text-purple-400',
-              desc: 'Lone Wolf',
-              info: 'Standing alone. Awarded to the expert who is the ONLY person to predict a specific team to win in a match.',
-              winner: hof.one_man_army
-            }
-          ].map((award) => (
+          {hofAwards.map((award) => (
             <div key={award.key} className="group relative bg-white/5 border border-white/10 rounded-2xl p-4 hover:border-ipl-gold/30 transition-all duration-500">
               {/* Background Glow (Clipped separately to avoid cutting off tooltips) */}
               <div className="absolute inset-0 rounded-2xl overflow-hidden pointer-events-none">
@@ -264,20 +430,20 @@ export default function Analysis() {
                               {award.key === 'universe_boss' ? `${w.value} Pts` :
                                 award.key === 'heath_streak' ? `${w.value} Matches` :
                                   award.key === 'the_wall' ? 'Consistent' :
-                                    award.key === 'dwayne_bravo' ? `${w.value} Bold Calls` :
+                                    award.key === 'dwayne_bravo' ? (sport === 'football' ? `${w.value} Bold Striking` : `${w.value} Bold Calls`) :
                                       award.key === 'hat_trick' ? `${w.value} Matches` :
                                         award.key === 'the_big_show' ? `${w.value} Pts` :
                                           award.key === 'captain_cool' ? `${Math.round(w.value)} Avg` :
                                             award.key === 'chase_master' ? `+${w.value}` :
                                               award.key === 'impact_player' ? `${w.value} Pts` :
-                                                award.key === 'switch_hit' ? `${w.value} Doubles` :
-                                                  award.key === 'caught_bowled' ? `${w.value} Perfects` :
+                                                award.key === 'switch_hit' ? (sport === 'football' ? `${w.value} Exacts` : `${w.value} Doubles`) :
+                                                  award.key === 'caught_bowled' ? (sport === 'football' ? `${w.value} Perfects` : `${w.value} Perfects`) :
                                                     award.key === 'hit_wicket' ? `${w.value} Fails` :
-                                                      award.key === 'direct_hit' ? `${w.value} Misses` :
-                                                        award.key === 'doosra_spinner' ? `${w.value} Wrongs` :
+                                                      award.key === 'direct_hit' ? (sport === 'football' ? `${w.value} Off-by-1s` : `${w.value} Misses`) :
+                                                        award.key === 'doosra_spinner' ? (sport === 'football' ? `${w.value} Wrongs` : `${w.value} Wrongs`) :
                                                           award.key === 'one_man_army' ? `${w.value} Solos` :
-                                                            award.key === 'sixster' ? `${w.value} Sixes` :
-                                                              award.key === 'fourster' ? `${w.value} Fours` :
+                                                            award.key === 'sixster' ? (sport === 'football' ? `${w.value} Goals` : `${w.value} Sixes`) :
+                                                              award.key === 'fourster' ? (sport === 'football' ? `${w.value} Points` : `${w.value} Fours`) :
                                                                 `${w.value} Bullseyes`}
                             </span>
                           </div>

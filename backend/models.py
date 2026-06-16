@@ -1,6 +1,6 @@
 from datetime import datetime, timezone
 import enum
-from sqlalchemy import String, Integer, DateTime, Boolean, JSON, ForeignKey, Enum as SAEnum, UniqueConstraint
+from sqlalchemy import String, Integer, Float, DateTime, Boolean, JSON, ForeignKey, Enum as SAEnum, UniqueConstraint
 from sqlalchemy.orm import relationship, Mapped, mapped_column
 from typing import Any, Optional, List
 from .database import Base
@@ -65,6 +65,8 @@ class Tournament(Base):
 
     id: Mapped[str] = mapped_column(String, primary_key=True)
     name: Mapped[str] = mapped_column(String)
+    sport: Mapped[str] = mapped_column(String, default="cricket", server_default="cricket")
+    gender: Mapped[str] = mapped_column(String, default="mens", server_default="mens")
     status: Mapped[TournamentStatus] = mapped_column(SAEnum(TournamentStatus), default=TournamentStatus.upcoming)
     starts_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
     ends_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
@@ -403,5 +405,16 @@ class SystemEvent(Base):
     
     message: Mapped[Optional[str]] = mapped_column(String, nullable=True)
     payload: Mapped[dict] = mapped_column(JSON, default=dict)
-    timestamp: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(UTC))
+    timestamp: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
+
+
+class TournamentTeamRanking(Base):
+    __tablename__ = "tournament_team_rankings"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    tournament_id: Mapped[str] = mapped_column(String, ForeignKey("tournaments.id"), index=True)
+    team_name: Mapped[str] = mapped_column(String, index=True)
+    rank: Mapped[int] = mapped_column(Integer)
+    rating: Mapped[float] = mapped_column(Float, default=0.0)
+    metadata_json: Mapped[Optional[dict]] = mapped_column(JSON, nullable=True)
 

@@ -444,8 +444,12 @@ async def get_analysis_data(tournament_id: str = "ipl-2026", db: AsyncSession = 
     if cached: 
         return cached
 
-    from datetime import UTC, datetime, timedelta
-    now = datetime.now(UTC)
+    from backend.models import Tournament
+    tournament = await db.get(Tournament, tournament_id)
+    sport = tournament.sport.lower() if (tournament and tournament.sport) else "cricket"
+
+    from datetime import datetime, timezone, timedelta
+    now = datetime.now(timezone.utc)
     last_week = now - timedelta(days=7)
     
     from backend.models import Match
@@ -757,6 +761,7 @@ async def get_analysis_data(tournament_id: str = "ipl-2026", db: AsyncSession = 
         # Analyze breakdown
         match_impact = 0
         bingo_pp_count = 0
+        bingo_goals_count = 0
         
         # Check powerup usage directly in the breakdown dictionary
         used_powerup = breakdown.get("powerup", {}).get("used", False)
@@ -768,43 +773,95 @@ async def get_analysis_data(tournament_id: str = "ipl-2026", db: AsyncSession = 
         
         for rule in breakdown["rules"]:
             cat = str(rule.get("category", "")).lower()
+            key = str(rule.get("key", "")).lower()
             r_pts = rule.get("points", 0)
             r_status = str(rule.get("status", "")).lower()
+            pred_val = rule.get("predicted")
             
-            if "powerplay" in cat:
-                if r_pts == 15 or r_pts == 30: # 15 base or 30 with powerup
+            # Sport-specific logic
+            if sport in ("football", "soccer"):
+                # Yorker King equivalent: clean sheet or exact goal count
+                if key == "clean_sheet" and r_pts > 0:
                     bumrah_map[uid] = bumrah_map.get(uid, 0) + 1
-                if r_pts == 5 or r_pts == 10:
-                    direct_map[uid] = direct_map.get(uid, 0) + 1
-                if r_pts >= 10:
+                elif key.startswith("how_many_goals") and r_status in ("bingo", "exact"):
+                    bumrah_map[uid] = bumrah_map.get(uid, 0) + 1
+
+                # Yorker King close/miss: off by 1 goal
+                if key.startswith("how_many_goals") and r_status == "wrong" and pred_val is not None and rule.get("actual") is not None:
+                    try:
+                        p_val = int(float(pred_val))
+                        a_val = int(float(rule.get("actual")))
+                        if abs(p_val - a_val) == 1:
+                            direct_map[uid] = direct_map.get(uid, 0) + 1
+                    except (ValueError, TypeError):
+                        pass
+
+                # Goals impact
+                if key.startswith("how_many_goals") and r_pts >= 5:
                     match_impact += r_pts
                 
-                # Switch Hit (exact match on powerplay)
-                if r_status == "bingo":
-                    bingo_pp_count += 1
+                # Switch Hit equivalent: both exact goals
+                if key.startswith("how_many_goals") and r_status in ("bingo", "exact"):
+                    bingo_goals_count += 1
                 
-                # Dwayne Bravo logic (extreme prediction: score < 35 or > 100)
-                pred_val = rule.get("predicted")
-                if pred_val is not None:
+                # Dwayne Bravo logic: bold striker (predicting 4+ goals)
+                if key.startswith("how_many_goals") and pred_val is not None:
                     try:
-                        pred_num = int(float(pred_val))
-                        if pred_num < 35 or pred_num > 100:
+                        pred_goals = int(float(pred_val))
+                        if pred_goals >= 4:
                             bravo_map[uid] = bravo_map.get(uid, 0) + 1
                     except (ValueError, TypeError):
                         pass
+                
+                # Sixster equivalent: goal machine (correct goal counts)
+                if key.startswith("how_many_goals") and r_pts >= 5:
+                    sixster_map[uid] = sixster_map.get(uid, 0) + 1
+
+                # Fourster equivalent: playmaker (correct both teams to score / penalties / etc)
+                if (key == "both_teams_to_score" or key == "will_a_penalty_be_awarded") and r_pts >= 5:
+                    fourster_map[uid] = fourster_map.get(uid, 0) + 1
+
+            else:
+                # Cricket logic
+                if "powerplay" in cat:
+                    if r_pts == 15 or r_pts == 30: # 15 base or 30 with powerup
+                        bumrah_map[uid] = bumrah_map.get(uid, 0) + 1
+                    if r_pts == 5 or r_pts == 10:
+                        direct_map[uid] = direct_map.get(uid, 0) + 1
+                    if r_pts >= 10:
+                        match_impact += r_pts
+                    
+                    # Switch Hit (exact match on powerplay)
+                    if r_status == "bingo":
+                        bingo_pp_count += 1
+                    
+                    # Dwayne Bravo logic (extreme prediction: score < 35 or > 100)
+                    if pred_val is not None:
+                        try:
+                            pred_num = int(float(pred_val))
+                            if pred_num < 35 or pred_num > 100:
+                                bravo_map[uid] = bravo_map.get(uid, 0) + 1
+                        except (ValueError, TypeError):
+                            pass
+                
+                if "sixes" in cat and r_pts >= 5:
+                    sixster_map[uid] = sixster_map.get(uid, 0) + 1
+                
+                if "fours" in cat and r_pts >= 5:
+                    fourster_map[uid] = fourster_map.get(uid, 0) + 1
             
-            if "sixes" in cat and r_pts >= 5:
-                sixster_map[uid] = sixster_map.get(uid, 0) + 1
-            
-            if "fours" in cat and r_pts >= 5:
-                fourster_map[uid] = fourster_map.get(uid, 0) + 1
-            
-            if "winner" in cat:
+            # Winner check is the same for both sports
+            if "winner" in cat or key == "match_winner":
                 if r_pts < 0:
                     doosra_map[uid] = doosra_map.get(uid, 0) + 1
                     
-        if bingo_pp_count >= 2:
-            switch_map[uid] = switch_map.get(uid, 0) + 1
+        # Post-loop checks per match
+        if sport in ("football", "soccer"):
+            if bingo_goals_count >= 2:
+                switch_map[uid] = switch_map.get(uid, 0) + 1
+        else:
+            if bingo_pp_count >= 2:
+                switch_map[uid] = switch_map.get(uid, 0) + 1
                     
         impact_map[uid] = impact_map.get(uid, 0) + match_impact
         if pts >= 30:
@@ -973,21 +1030,23 @@ async def get_analysis_data(tournament_id: str = "ipl-2026", db: AsyncSession = 
             "percentile": percentile_map.get(uid, 0),
             "total_points": points_map.get(uid, 0),
             "badges": [b for b in [
-                {"type": "streak", "name": "Heath Streak", "value": streak_map.get(uid, 0)} if streak_map.get(uid, 0) >= 2 else None,
-                {"type": "brave", "name": "Bravo Award", "value": bravo_map.get(uid, 0)} if bravo_map.get(uid, 0) >= 1 else None,
-                {"type": "bumrah", "name": "Yorker King", "value": bumrah_map.get(uid, 0)} if bumrah_map.get(uid, 0) >= 1 else None,
-                {"type": "wall", "name": "The Wall", "value": "Consistent"} if wall_map.get(uid, 0) >= 7 else None,
-                {"type": "malinga", "name": "Hat-Trick", "value": "Triple Threat"} if ht_map.get(uid, 0) >= 3 else None,
-                {"type": "sachin", "name": "Master Blaster", "value": "Milestone"} if points_map.get(uid, 0) >= 500 else None,
-                {"type": "maxwell", "name": "The Big Show", "value": f"{maxwell_map.get(uid, 0)} Pts"} if maxwell_map.get(uid, 0) >= 40 else None,
-                {"type": "kohli", "name": "Chase Master", "value": f"Up {chase_map.get(uid, 0)} ({chase_date_map.get(uid).strftime('%b %d') if chase_date_map.get(uid) else ''})"} if chase_map.get(uid, 0) >= 3 else None,
-                {"type": "russell", "name": "Impact Player", "value": "Powerplay King"} if impact_map.get(uid, 0) >= 100 else None,
-                {"type": "sixster", "name": "Sixster", "value": f"{sixster_map.get(uid, 0)} Sixes"} if sixster_map.get(uid, 0) >= 1 else None,
-                {"type": "fourster", "name": "Fourster", "value": f"{fourster_map.get(uid, 0)} Fours"} if fourster_map.get(uid, 0) >= 1 else None,
+                {"type": "streak", "name": "Winning Streak" if sport in ("football", "soccer") else "Heath Streak", "value": streak_map.get(uid, 0)} if streak_map.get(uid, 0) >= 2 else None,
+                {"type": "brave", "name": "Gung-Ho Striker" if sport in ("football", "soccer") else "Bravo Award", "value": bravo_map.get(uid, 0)} if bravo_map.get(uid, 0) >= 1 else None,
+                {"type": "bumrah", "name": "Clean Sheet Master" if sport in ("football", "soccer") else "Yorker King", "value": bumrah_map.get(uid, 0)} if bumrah_map.get(uid, 0) >= 1 else None,
+                {"type": "wall", "name": "Defense General" if sport in ("football", "soccer") else "The Wall", "value": "Consistent"} if wall_map.get(uid, 0) >= 7 else None,
+                {"type": "malinga", "name": "Hat-Trick" if sport in ("football", "soccer") else "Hat-Trick", "value": "Triple Threat"} if ht_map.get(uid, 0) >= 3 else None,
+                {"type": "sachin", "name": "Legendary Striker" if sport in ("football", "soccer") else "Master Blaster", "value": "Milestone"} if points_map.get(uid, 0) >= 500 else None,
+                {"type": "maxwell", "name": "Super Sub" if sport in ("football", "soccer") else "The Big Show", "value": f"{maxwell_map.get(uid, 0)} Pts"} if maxwell_map.get(uid, 0) >= 40 else None,
+                {"type": "kohli", "name": "Comeback King" if sport in ("football", "soccer") else "Chase Master", "value": f"Up {chase_map.get(uid, 0)} ({chase_date_map.get(uid).strftime('%b %d') if chase_date_map.get(uid) else ''})"} if chase_map.get(uid, 0) >= 3 else None,
+                {"type": "russell", "name": "Midfield Maestro" if sport in ("football", "soccer") else "Impact Player", "value": "Goal King" if sport in ("football", "soccer") else "Powerplay King"} if impact_map.get(uid, 0) >= 100 else None,
+                {"type": "sixster", "name": "Goal Machine" if sport in ("football", "soccer") else "Sixster", "value": f"{sixster_map.get(uid, 0)} Goals" if sport in ("football", "soccer") else f"{sixster_map.get(uid, 0)} Sixes"} if sixster_map.get(uid, 0) >= 1 else None,
+                {"type": "fourster", "name": "Playmaker" if sport in ("football", "soccer") else "Fourster", "value": f"{fourster_map.get(uid, 0)} Points" if sport in ("football", "soccer") else f"{fourster_map.get(uid, 0)} Fours"} if fourster_map.get(uid, 0) >= 1 else None,
             ] if b is not None]
         })
 
     analysis_data = {
+        "sport": sport,
+        "gender": tournament.gender if tournament else "mens",
         "weekly_podium": weekly_stats[:5],
         "today_podium": today_stats[:5],
         "recent_podiums": await get_match_podiums(db),
