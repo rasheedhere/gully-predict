@@ -94,9 +94,9 @@ export default function Layout() {
   ) || new URLSearchParams(location.search).has('tournamentId') || new URLSearchParams(location.search).has('leagueId');
 
   return (
-    <div className="min-h-screen flex flex-col bg-ipl-navy">
+    <div className="h-[100dvh] flex flex-col bg-ipl-navy overflow-hidden relative w-full">
       {/* Mobile Top Navigation Header */}
-      <nav className="fixed top-0 left-0 right-0 z-50 md:hidden bg-ipl-surface/85 backdrop-blur-xl border-b border-white/5 pt-[env(safe-area-inset-top)] select-none [-webkit-touch-callout:none]">
+      <nav className="absolute top-0 left-0 right-0 z-50 md:hidden bg-ipl-surface/85 backdrop-blur-xl border-b border-white/5 pt-[env(safe-area-inset-top)] select-none [-webkit-touch-callout:none]">
         <div className="px-4 flex items-center justify-between h-14">
           {/* Left Element: Back Button or Tournament Selector */}
           <div className="w-[30%] flex justify-start">
@@ -221,12 +221,12 @@ export default function Layout() {
       </nav>
 
       {/* Main Content Area */}
-      <main className="flex-1 w-full max-w-[1280px] mx-auto px-4 py-6 md:py-8 pt-[calc(4.5rem+env(safe-area-inset-top))] pb-[calc(5.5rem+env(safe-area-inset-bottom))] md:pt-8 md:pb-8">
+      <main className="flex-1 w-full max-w-[1280px] mx-auto px-4 py-6 md:py-8 pt-[calc(4.5rem+env(safe-area-inset-top))] pb-[calc(5.5rem+env(safe-area-inset-bottom))] md:pt-8 md:pb-8 overflow-y-auto custom-scrollbar">
         <Outlet />
       </main>
 
       {/* Mobile Fixed Bottom Tab Bar */}
-      <nav className="fixed bottom-0 left-0 right-0 z-50 md:hidden bg-ipl-surface/85 backdrop-blur-xl border-t border-white/5 pb-[env(safe-area-inset-bottom)] select-none [-webkit-touch-callout:none]">
+      <nav className="absolute bottom-0 left-0 right-0 z-50 md:hidden bg-ipl-surface/85 backdrop-blur-xl border-t border-white/5 pb-[env(safe-area-inset-bottom)] select-none [-webkit-touch-callout:none]">
         <div className="flex items-center justify-around h-14">
           {/* Matches Tab */}
           <Link

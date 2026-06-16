@@ -5,13 +5,14 @@ import { useQueryClient } from '@tanstack/react-query';
 import { useMatch, useSubmitPrediction, useMyPredictions, useAllMatchPredictions } from '../api/hooks/useMatches';
 import { Trophy, Target, CheckCircle2, Edit2, Check, X, Sparkles, MapPin, ChevronDown, Lock, User, Star } from 'lucide-react';
 import { useAuthStore } from '../store/auth';
-import { useTournamentQuestionBank, useTournamentMatchAnswers, useUpdateTournamentMatchAnswers } from '../api/hooks/useAdmin';
 import { apiClient } from '../api/client';
 import toast from 'react-hot-toast';
 import { getTeamColor, getTeamShortName, getAccessibleTeamTextColor } from '../utils/teamColors';
 import { getUserDisplayName } from '../utils/userUtils';
 import { getTeamLogo } from '../utils/teamLogos';
 import { useUiStore } from '../store/ui';
+import { AdminModal } from '../components/Admin/AdminModal';
+import { TournamentMatchGrading } from '../components/Admin/TournamentMatchGrading';
 
 export default function MatchPage() {
   const { id } = useParams();
@@ -22,7 +23,7 @@ export default function MatchPage() {
   const [hasAutoPredicted, setHasAutoPredicted] = useState(false);
   const [showAutoPredictConfirm, setShowAutoPredictConfirm] = useState(false);
   const [selectedBreakdown, setSelectedBreakdown] = useState<{ predictorName: string; points: number; rules: any[]; powerupUsed?: boolean } | null>(null);
-  const [isAdminGradingOpen, setIsAdminGradingOpen] = useState(false);
+  const [showGradingModal, setShowGradingModal] = useState(false);
   const { register, handleSubmit, reset, setValue, formState: { errors } } = useForm();
 
   const { data, isLoading, error } = useMatch(id || '');
@@ -799,7 +800,7 @@ export default function MatchPage() {
             </div>
           </div>
           <button
-            onClick={() => setIsAdminGradingOpen(true)}
+            onClick={() => setShowGradingModal(true)}
             className="w-full md:w-auto px-6 py-2.5 bg-ipl-gold text-black font-display text-xs font-bold uppercase tracking-widest rounded-xl hover:bg-white active:scale-95 transition-all shadow-[0_0_20px_rgba(244,196,48,0.2)] min-h-[44px] flex items-center justify-center font-black"
           >
             Grade Match
@@ -818,9 +819,19 @@ export default function MatchPage() {
             {isLocked ? 'Predictions Closed' : 'Predictions Open'}
           </div>
         </div>
-        <p className="text-gray-400 mt-2 md:mt-6 font-display uppercase tracking-[0.3em] font-bold text-xs md:text-sm ring-offset-2">
-          Match {matchNumber}
-        </p>
+        <div className="flex flex-col items-center gap-2">
+          <p className="text-gray-400 mt-2 md:mt-6 font-display uppercase tracking-[0.3em] font-bold text-xs md:text-sm ring-offset-2">
+            Match {matchNumber}
+          </p>
+          {currentUser?.is_admin && match?.tournament_id && (
+            <button
+              onClick={() => setShowGradingModal(true)}
+              className="mt-2 md:mt-4 px-4 py-1.5 bg-ipl-gold/20 text-ipl-gold border border-ipl-gold/40 rounded-full font-display text-[10px] uppercase tracking-widest hover:bg-ipl-gold hover:text-black transition-all"
+            >
+              Grade Match
+            </button>
+          )}
+        </div>
         <div className="flex items-start justify-center gap-4 md:gap-16 mt-6 md:mt-8">
           <div className="flex flex-col items-center gap-3 flex-1 min-w-0">
             <div
@@ -1585,6 +1596,21 @@ export default function MatchPage() {
         </div>
       )}
 
+      {/* Admin Grading Modal */}
+      {showGradingModal && match?.tournament_id && (
+        <AdminModal
+          isOpen={showGradingModal}
+          onClose={() => setShowGradingModal(false)}
+          title={null}
+        >
+          <TournamentMatchGrading
+            tournamentId={match.tournament_id}
+            matchId={match.id}
+            onClose={() => setShowGradingModal(false)}
+          />
+        </AdminModal>
+      )}
+
       {/* Points Breakdown Bottom Overlay */}
       {selectedBreakdown && (
         <div className="fixed inset-0 z-50 flex items-end justify-center">
@@ -1671,190 +1697,6 @@ export default function MatchPage() {
           </div>
         </div>
       )}
-
-      {isAdminGradingOpen && match && (
-        <MatchGradingModal
-          tournamentId={match.tournament_id || match.tournament?.id || ''}
-          matchId={match.id}
-          isOpen={isAdminGradingOpen}
-          onClose={() => {
-            setIsAdminGradingOpen(false);
-            queryClient.invalidateQueries({ queryKey: ['matches', id || match.id] });
-          }}
-          team1={match.team1}
-          team2={match.team2}
-        />
-      )}
-
-    </div>
-  );
-}
-
-function MatchGradingModal({
-  tournamentId,
-  matchId,
-  isOpen,
-  onClose,
-  team1,
-  team2,
-}: {
-  tournamentId: string;
-  matchId: string;
-  isOpen: boolean;
-  onClose: () => void;
-  team1: string;
-  team2: string;
-}) {
-  const { data: questionBank } = useTournamentQuestionBank(tournamentId);
-  const { data: answers, isLoading } = useTournamentMatchAnswers(tournamentId, matchId);
-  const { mutate: updateAnswers, isPending } = useUpdateTournamentMatchAnswers();
-  const [correctAnswers, setCorrectAnswers] = useState<Record<string, any>>({});
-
-  useEffect(() => {
-    if (answers?.correct_answers) {
-      setCorrectAnswers(answers.correct_answers);
-    } else {
-      setCorrectAnswers({});
-    }
-  }, [answers]);
-
-  const handleSave = () => {
-    updateAnswers(
-      {
-        tournamentId,
-        matchId,
-        correct_answers: correctAnswers,
-      },
-      {
-        onSuccess: () => {
-          toast.success('Grading complete. Scores triggered globally and per league!');
-          onClose();
-        },
-        onError: () => toast.error('Failed to save results'),
-      }
-    );
-  };
-
-  if (!isOpen) return null;
-
-  return (
-    <div className="fixed inset-0 z-[100] flex items-end md:items-center justify-center p-0 md:p-4 select-none md:select-text">
-      {/* Backdrop */}
-      <div
-        className="absolute inset-0 bg-black/80 backdrop-blur-sm animate-in fade-in duration-300"
-        onClick={onClose}
-      />
-
-      {/* Content Container */}
-      <div className="relative w-full md:max-w-2xl bg-ipl-surface border-t border-white/10 rounded-t-[28px] md:rounded-3xl shadow-2xl z-10 flex flex-col pb-[calc(4.5rem+env(safe-area-inset-bottom))] md:pb-8 p-6 md:p-8 md:border-t-4 md:border-ipl-gold animate-in slide-in-from-bottom md:zoom-in-95 duration-300 max-h-[90vh]">
-        {/* Mobile Pull Bar */}
-        <div className="w-12 h-1 bg-white/20 rounded-full mx-auto mb-5 shrink-0 md:hidden" />
-
-        {/* Close Button */}
-        <button
-          onClick={onClose}
-          className="absolute top-4 right-4 text-gray-500 hover:text-white transition-colors p-1 active:scale-90 z-20 min-w-[44px] min-h-[44px] flex items-center justify-center"
-        >
-          <X className="w-6 h-6" />
-        </button>
-
-        {/* Header */}
-        <div className="mb-6 pr-8">
-          <span className="text-[10px] font-display uppercase tracking-widest text-ipl-gold font-bold">
-            Admin Panel
-          </span>
-          <h3 className="text-xl font-display text-white italic uppercase tracking-tight mt-1">
-            Grade Match: {getTeamShortName(team1)} vs {getTeamShortName(team2)}
-          </h3>
-          <p className="text-[10px] text-gray-400 uppercase font-display tracking-widest mt-1">
-            Set correct answers for the entire tournament for this match
-          </p>
-        </div>
-
-        {/* Body (Questions List) */}
-        <div className="overflow-y-auto scrollbar-hide flex-1 max-md:-mx-2 max-md:px-2 pb-6 space-y-4">
-          {isLoading ? (
-            <div className="text-center py-10 animate-pulse font-display text-gray-500 text-xs">
-              LOADING MATCH ANSWERS...
-            </div>
-          ) : !questionBank?.questions || questionBank.questions.length === 0 ? (
-            <div className="text-center py-10 text-gray-500 font-display text-[10px] uppercase tracking-widest">
-              No questions in the tournament bank.
-            </div>
-          ) : (
-            questionBank.questions.map((q: any) => {
-              const replacedText = q.question_text
-                .replace(/\{\{Team1\}\}/gi, team1 || 'Team 1')
-                .replace(/\{\{Team2\}\}/gi, team2 || 'Team 2');
-
-              const choiceTypes = ['toggle', 'multiple_choice', 'dropdown'];
-              const isChoice = choiceTypes.includes(q.question_type);
-
-              const replacedOptions = q.options?.map((opt: string) =>
-                opt.replace(/\{\{Team1\}\}/gi, team1 || 'Team 1')
-                  .replace(/\{\{Team2\}\}/gi, team2 || 'Team 2')
-              );
-
-              return (
-                <div
-                  key={q.id}
-                  className="p-5 border-l-4 border-white/10 hover:border-ipl-gold transition-all bg-white/5 rounded-r-2xl rounded-l-md"
-                >
-                  <h4 className="text-xs font-display text-white tracking-widest uppercase mb-4 leading-relaxed">
-                    {replacedText}
-                  </h4>
-                  {isChoice && replacedOptions ? (
-                    <div className="flex flex-wrap gap-2.5">
-                      {replacedOptions.map((opt: string) => (
-                        <button
-                          key={opt}
-                          onClick={() =>
-                            setCorrectAnswers((prev) => ({ ...prev, [q.key]: opt }))
-                          }
-                          className={`px-4 py-2.5 font-display text-xs uppercase tracking-widest rounded-xl transition-all active:scale-95 min-h-[44px] ${
-                            correctAnswers[q.key] === opt
-                              ? 'bg-ipl-gold text-ipl-navy font-bold'
-                              : 'bg-white/5 text-gray-400 active:bg-white/10'
-                          }`}
-                        >
-                          {opt}
-                        </button>
-                      ))}
-                    </div>
-                  ) : (
-                    <input
-                      type={q.question_type === 'free_number' ? 'number' : 'text'}
-                      value={correctAnswers[q.key] || ''}
-                      onChange={(e) =>
-                        setCorrectAnswers((prev) => ({ ...prev, [q.key]: e.target.value }))
-                      }
-                      className="w-full bg-black/40 border border-white/10 p-3.5 rounded-2xl text-white font-display text-[17px] md:text-xs focus:border-ipl-gold focus:outline-none transition-all h-11"
-                      placeholder={`Enter correct ${q.question_type.replace('free_', '')}...`}
-                    />
-                  )}
-                </div>
-              );
-            })
-          )}
-        </div>
-
-        {/* Footer Actions */}
-        <div className="flex gap-3 w-full border-t border-white/10 pt-4 shrink-0 font-display">
-          <button
-            onClick={onClose}
-            className="flex-1 py-3 border border-white/10 text-gray-400 active:text-white font-display text-xs uppercase tracking-[0.2em] rounded-xl active:bg-white/5 transition-all active:scale-95 text-center min-h-[44px]"
-          >
-            Cancel
-          </button>
-          <button
-            onClick={handleSave}
-            disabled={isPending}
-            className="flex-1 flex items-center justify-center gap-2 py-3 bg-ipl-gold text-black font-display text-xs uppercase tracking-[0.2em] font-bold rounded-xl hover:bg-white transition-all disabled:opacity-30 active:scale-95 shadow-[0_0_20px_rgba(244,196,48,0.2)] min-h-[44px]"
-          >
-            {isPending ? 'Propagating...' : 'Release Scores'}
-          </button>
-        </div>
-      </div>
     </div>
   );
 }
