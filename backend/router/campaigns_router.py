@@ -99,7 +99,7 @@ def _validate_question(q: QuestionCreate, campaign_type: CampaignType = Campaign
             raise HTTPException(status_code=400, detail="free_text correct answer must contain only letters and spaces")
 
 
-def _serialize_campaign(campaign: Campaign, my_response: CampaignResponse | None = None) -> dict:
+def _serialize_campaign(campaign: Campaign, my_response: Optional[CampaignResponse] = None) -> dict:
     questions = [
         {
             "id": q.id,

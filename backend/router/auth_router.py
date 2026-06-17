@@ -123,9 +123,11 @@ async def auth_callback(request: Request, db: AsyncSession = Depends(get_db)):
         traceback.print_exc()
         return RedirectResponse(url=f"{os.environ.get('FRONTEND_URL', 'http://localhost:5000')}/login?error=auth_failed")
 
+from typing import Optional
+
 class VerifyTokenRequest(BaseModel):
-    access_token: str | None = None
-    credential: str | None = None
+    access_token: Optional[str] = None
+    credential: Optional[str] = None
 
 @router.post("/auth/google/verify")
 async def verify_google_token(payload: VerifyTokenRequest, db: AsyncSession = Depends(get_db)):

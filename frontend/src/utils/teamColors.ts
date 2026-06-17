@@ -184,7 +184,7 @@ export const getAccessibleTeamTextColor = (teamName: string | null | undefined, 
         }
       }
       if (shouldSwitch) {
-         return nationalTeamAltColors[normalizedTeam];
+        return nationalTeamAltColors[normalizedTeam];
       }
     }
   }
@@ -261,7 +261,7 @@ export const getTeamColor = (teamName: string | null | undefined, opponentName?:
         }
       }
       if (shouldSwitch) {
-         return nationalTeamAltColors[normalizedTeam];
+        return nationalTeamAltColors[normalizedTeam];
       }
     }
   }
@@ -273,20 +273,16 @@ export const getTeamShortName = (teamName: string | null | undefined) => {
   if (teamName === undefined || teamName === null) return '';
   const teamStr = String(teamName);
   const normalized = teamStr.trim().toUpperCase();
-  
-  const nationalShortNames: Record<string, string> = {
-    'DR CONGO': 'DOR',
-  };
-  if (nationalShortNames[normalized]) return nationalShortNames[normalized];
+
   if (nationalTeamColors[normalized]) return teamName;
   if (teamColors[normalized]) return normalized;
-  
+
   const words = teamStr.trim().split(/\s+/);
   if (words.length > 1) {
     const initials = words.map(w => w[0]).join('').toUpperCase();
     if (teamColors[initials]) return initials;
   }
-  
+
   const teamMapping: Record<string, string> = {
     'MUMBAI': 'MI',
     'CHENNAI': 'CSK',

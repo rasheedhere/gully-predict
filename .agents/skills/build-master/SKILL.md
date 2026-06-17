@@ -16,10 +16,11 @@ This skill provides a **post‑change checklist** that the Antigravity agent sho
 2. **Execute Unit & Integration Tests**
    - `npm run test` – run Vitest front‑end tests.
    - `pytest` – run back‑end tests.
-3. **Build Production Bundle**
+3. **Build Production Bundle & Verify Backend Python**
    - `npm run build` – generate the optimized static assets in `frontend/dist/`.
    - Verify the build succeeds with **zero** errors or warnings.
-   - `/.venv/bin/python -m compileall backend` – ensure backend python files are compiled.
+   - `./.venv/bin/python -m compileall backend` – ensure backend python files compile without syntax errors.
+   - `./.venv/bin/python -c "import pkgutil; import importlib; [importlib.import_module(n) for _, n, _ in pkgutil.walk_packages(['backend'], 'backend.')]"` – verify all backend python modules can be imported without syntax or runtime import errors.
 4. **Validate iOS‑PWA Safety**
    - Check that `manifest.json` contains `display: "standalone"`.
    - Confirm generated HTML includes the required meta tags (`viewport-fit=cover`, `apple-mobile-web-app-status-bar-style`).
