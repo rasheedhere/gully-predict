@@ -144,6 +144,7 @@ const getPrimaryAccessibleTeamTextColor = (teamName: string | null | undefined) 
   const teamStr = String(teamName);
   const normalized = teamStr.trim().toUpperCase();
   if (normalized === 'DRAW' || normalized === 'TIE') return '#94A3B8';
+  if (nationalTeamColors[normalized]) return nationalTeamColors[normalized];
   if (accessibleTeamColors[normalized]) return accessibleTeamColors[normalized];
   const words = teamStr.trim().split(/\s+/);
   if (words.length > 1) {
@@ -158,7 +159,6 @@ const getPrimaryAccessibleTeamTextColor = (teamName: string | null | undefined) 
   for (const [key, value] of Object.entries(teamMapping)) {
     if (normalized.includes(key)) return accessibleTeamColors[value];
   }
-  if (nationalTeamColors[normalized]) return nationalTeamColors[normalized];
   return '#ffffff';
 };
 
@@ -221,6 +221,7 @@ const getPrimaryTeamColor = (teamName: string | null | undefined) => {
   const teamStr = String(teamName);
   const normalized = teamStr.trim().toUpperCase();
   if (normalized === 'DRAW' || normalized === 'TIE') return '#475569';
+  if (nationalTeamColors[normalized]) return nationalTeamColors[normalized];
   if (teamColors[normalized]) return teamColors[normalized];
   const words = teamStr.trim().split(/\s+/);
   if (words.length > 1) {
@@ -235,7 +236,6 @@ const getPrimaryTeamColor = (teamName: string | null | undefined) => {
   for (const [key, value] of Object.entries(teamMapping)) {
     if (normalized.includes(key)) return teamColors[value];
   }
-  if (nationalTeamColors[normalized]) return nationalTeamColors[normalized];
   return '#ffffff';
 };
 
@@ -273,6 +273,12 @@ export const getTeamShortName = (teamName: string | null | undefined) => {
   if (teamName === undefined || teamName === null) return '';
   const teamStr = String(teamName);
   const normalized = teamStr.trim().toUpperCase();
+  
+  const nationalShortNames: Record<string, string> = {
+    'DR CONGO': 'DOR',
+  };
+  if (nationalShortNames[normalized]) return nationalShortNames[normalized];
+  if (nationalTeamColors[normalized]) return teamName;
   if (teamColors[normalized]) return normalized;
   
   const words = teamStr.trim().split(/\s+/);

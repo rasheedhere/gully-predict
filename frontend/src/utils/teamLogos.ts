@@ -72,17 +72,20 @@ export const getTeamLogo = (teamName: string | null | undefined): string | null 
   if (!teamName) return null;
   const teamStr = String(teamName).trim().toUpperCase();
   
-  // 1. Direct lookup
+  // 1. National team lookup
+  if (nationalTeamLogos[teamStr]) return nationalTeamLogos[teamStr];
+  
+  // 2. Direct lookup
   if (iplTeamLogos[teamStr]) return iplTeamLogos[teamStr];
   
-  // 2. Initials lookup (Mumbai Indians -> MI)
+  // 3. Initials lookup (Mumbai Indians -> MI)
   const words = teamStr.split(/\s+/);
   if (words.length > 1) {
     const initials = words.map(w => w[0]).join('').toUpperCase();
     if (iplTeamLogos[initials]) return iplTeamLogos[initials];
   }
 
-  // 3. Partial match (Chennai -> CSK, etc)
+  // 4. Partial match (Chennai -> CSK, etc)
   const teamMapping: Record<string, string> = {
     'MUMBAI': 'MI',
     'CHENNAI': 'CSK',
@@ -100,9 +103,6 @@ export const getTeamLogo = (teamName: string | null | undefined): string | null 
   for (const [key, value] of Object.entries(teamMapping)) {
     if (teamStr.includes(key)) return iplTeamLogos[value];
   }
-
-  // 4. National team lookup
-  if (nationalTeamLogos[teamStr]) return nationalTeamLogos[teamStr];
 
   return null;
 };
