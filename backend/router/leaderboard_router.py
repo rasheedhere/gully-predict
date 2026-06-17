@@ -97,6 +97,7 @@ async def fetch_leaderboard_data(db: AsyncSession, league_id: str):
             CampaignResponse.campaign_id,
             Campaign.title,
             Campaign.max_powerups,
+            Campaign.is_master,
             func.count(CampaignResponse.id)
         )
         .join(Campaign, CampaignResponse.campaign_id == Campaign.id)
@@ -107,14 +108,14 @@ async def fetch_leaderboard_data(db: AsyncSession, league_id: str):
             CampaignResponse.match_id.is_(None),
             Match.status != "upcoming"
         ))
-        .group_by(CampaignResponse.user_id, CampaignResponse.campaign_id, Campaign.title, Campaign.max_powerups)
+        .group_by(CampaignResponse.user_id, CampaignResponse.campaign_id, Campaign.title, Campaign.max_powerups, Campaign.is_master)
     )
     
     user_global_used = {}
     user_campaign_used = {}
     
-    for uid, cid, title, max_pw, count in powerups_used_res.all():
-        if max_pw is None:
+    for uid, cid, title, max_pw, is_master, count in powerups_used_res.all():
+        if is_master or max_pw is None:
             user_global_used[uid] = user_global_used.get(uid, 0) + count
         else:
             user_campaign_used.setdefault(uid, {})[cid] = count

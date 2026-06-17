@@ -180,6 +180,7 @@ async def generate_ai_prediction(db, match: Match, ai_user: User):
             )
         )
         response = resp_res.scalars().first()
+        already_used = response.use_powerup if response else False
         if response:
             response.answers = ans
             response.use_powerup = pu
@@ -195,12 +196,12 @@ async def generate_ai_prediction(db, match: Match, ai_user: User):
                 is_auto_predicted=True,
             )
             db.add(response)
-        return response
+        return response, already_used
 
-    master_response = await upsert_response(master_cam.id, master_answers, use_powerup)
+    master_response, already_used_powerup = await upsert_response(master_cam.id, master_answers, use_powerup)
 
     # Deduct powerup if used (incrementing mapped usage)
-    if use_powerup and not getattr(master_response, "use_powerup", False):
+    if use_powerup and not already_used_powerup:
         mapping.powerups_used += 1
 
     # 2. Generate league-specific campaign answers
