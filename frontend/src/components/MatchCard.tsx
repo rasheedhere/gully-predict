@@ -48,7 +48,7 @@ export default function MatchCard({ id, team1, team2, venue, tossTime, status, h
             {matchNumber && <span className="text-[10px] md:text-xs font-display tracking-[0.3em] uppercase text-gray-400">Match {matchNumber}</span>}
           </div>
           {status === 'live' && (
-            <span className="absolute right-0 top-1/2 -translate-y-1/2 text-[9px] font-display uppercase tracking-widest px-2 py-0.5 rounded bg-[#E84040]/10 text-[#E84040] animate-pulse">LIVE</span>
+            <span className="absolute right-0 top-1/2 -translate-y-1/2 text-[9px] font-display uppercase tracking-widest px-2 py-0.5 rounded bg-[#E84040]/10 text-[#E84040]">LIVE</span>
           )}
           {status === 'upcoming' && !user?.is_guest && !isLocked && (
             <div className={`absolute right-0 top-1/2 -translate-y-1/2 font-mono text-[9px] uppercase tracking-widest ${has_predicted ? 'text-green-500/80' : 'text-ipl-gold/80'}`}>

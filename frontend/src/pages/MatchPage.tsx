@@ -1214,7 +1214,7 @@ export default function MatchPage() {
                     {/* Live Guesses Pill */}
                     <div className="shrink-0">
                       {isLocked ? (
-                        <span className="bg-ipl-gold text-black text-[7px] md:text-[10px] font-display font-bold uppercase tracking-widest px-2 py-1 rounded-full shadow-[0_0_15px_rgba(255,215,0,0.3)] animate-pulse">
+                        <span className="bg-ipl-gold text-black text-[7px] md:text-[10px] font-display font-bold uppercase tracking-widest px-2 py-1 rounded-full shadow-[0_0_15px_rgba(255,215,0,0.3)]">
                           Live
                         </span>
                       ) : (

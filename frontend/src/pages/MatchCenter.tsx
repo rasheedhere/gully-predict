@@ -146,7 +146,7 @@ export default function MatchCenter() {
           <div className="flex items-center gap-3">
             <h2 className="text-xl font-display text-white tracking-wider uppercase font-extrabold">Match Day</h2>
             <div className="flex items-center gap-1 px-2.5 py-0.5 rounded-full border border-[#E84040]/30 bg-[#E84040]/10 text-[#E84040] text-[10px] font-display uppercase tracking-widest font-extrabold">
-              <span className="w-1.5 h-1.5 rounded-full bg-[#E84040] animate-pulse" />
+              <span className="w-1.5 h-1.5 rounded-full bg-[#E84040]" />
               Live
             </div>
           </div>
