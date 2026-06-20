@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
+import { Trophy } from 'lucide-react';
 import { useMyLeagues } from '../api/hooks/useMatches';
 import LeaderboardSection from '../components/LeaderboardSection';
 import LocalTournamentSelector from '../components/LocalTournamentSelector';
@@ -86,8 +87,19 @@ export default function Leaderboard() {
       })}
 
       {!activeTournamentId && (
-        <div className="p-8 text-center text-white font-display text-xl tracking-widest animate-pulse">
-          LOCATING ARENA...
+        <div className="flex flex-col items-center justify-center py-16 gap-5 text-center">
+          <div className="w-16 h-16 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center">
+            <Trophy className="w-8 h-8 text-ipl-gold/40" />
+          </div>
+          <div>
+            <p className="text-white font-display text-sm uppercase tracking-widest font-bold">Select a Tournament</p>
+            <p className="text-gray-500 text-xs mt-2 max-w-[220px] mx-auto leading-relaxed">
+              Choose a tournament above to view the standings and league leaderboards.
+            </p>
+          </div>
+          <div className="flex items-center gap-1 text-ipl-gold/60 text-xs font-display uppercase tracking-widest animate-bounce">
+            ↑ Pick one above
+          </div>
         </div>
       )}
     </div>

@@ -31,7 +31,7 @@ export default function Hub() {
   }, [announcements, isLoading, navigate, user?.last_read_announcements_at]);
 
   if (shouldShow === null || isLoading) {
-    return <div className="text-white text-center font-display tracking-widest animate-pulse mt-20">LOADING...</div>;
+    return <div className="flex items-center justify-center gap-3 mt-20"><div className="h-6 w-6 animate-spin rounded-full border-2 border-white/10 border-t-ipl-gold" /><span className="text-gray-500 font-display text-[10px] uppercase tracking-widest">Loading...</span></div>;
   }
 
   const activeAnnouncements = announcements?.filter(a => a.is_active) || [];

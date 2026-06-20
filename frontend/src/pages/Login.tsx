@@ -58,12 +58,16 @@ export default function Login() {
           <p className="text-gray-400 mt-2 font-display tracking-widest">PRIVATE LEAGUE</p>
         </div>
 
-        <div className="glass-panel p-8 rounded-none border border-white/10 relative group">
-          {/* Neon decorative accents */}
-          <div className="absolute top-0 left-0 w-8 h-[2px] bg-ipl-gold"></div>
-          <div className="absolute top-0 left-0 w-[2px] h-8 bg-ipl-gold"></div>
-          <div className="absolute bottom-0 right-0 w-8 h-[2px] bg-ipl-gold"></div>
-          <div className="absolute bottom-0 right-0 w-[2px] h-8 bg-ipl-gold"></div>
+        <div className="glass-panel p-8 rounded-2xl border border-white/10 relative group">
+          {/* Corner accents - intentional design, not a bug */}
+          <div className="absolute top-0 left-0 w-10 h-[3px] bg-ipl-gold shadow-[0_0_8px_rgba(244,196,48,0.6)]" />
+          <div className="absolute top-0 left-0 w-[3px] h-10 bg-ipl-gold shadow-[0_0_8px_rgba(244,196,48,0.6)]" />
+          <div className="absolute bottom-0 right-0 w-10 h-[3px] bg-ipl-gold shadow-[0_0_8px_rgba(244,196,48,0.6)]" />
+          <div className="absolute bottom-0 right-0 w-[3px] h-10 bg-ipl-gold shadow-[0_0_8px_rgba(244,196,48,0.6)]" />
+          <div className="absolute top-0 right-0 w-10 h-[3px] bg-ipl-gold/30" />
+          <div className="absolute top-0 right-0 w-[3px] h-10 bg-ipl-gold/30" />
+          <div className="absolute bottom-0 left-0 w-10 h-[3px] bg-ipl-gold/30" />
+          <div className="absolute bottom-0 left-0 w-[3px] h-10 bg-ipl-gold/30" />
 
           {error === 'not_invited' && (
             <div className="bg-ipl-live/20 border border-ipl-live text-white font-display text-center p-3 mb-6 animate-pulse">
@@ -75,14 +79,13 @@ export default function Login() {
             Sign in below to submit your predictions and access the leaderboard.
           </p>
 
-          <div className="flex justify-center w-full bg-white hover:bg-gray-100 transition-all active:scale-95 py-1">
+          <div className="flex justify-center w-full py-2">
             <GoogleLogin
               onSuccess={handleGoogleSuccess}
               onError={() => toast.error('Google sign-in was cancelled or failed.')}
               useOneTap
               theme="outline"
               size="large"
-              width="300"
               text="signin_with"
               shape="rectangular"
             />

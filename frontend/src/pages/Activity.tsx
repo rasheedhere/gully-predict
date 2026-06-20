@@ -5,13 +5,15 @@ import { Activity as ActivityIcon, ShieldAlert, Eye } from 'lucide-react';
 const Activity: React.FC = () => {
   return (
     <div className="w-full max-w-xl mx-auto space-y-6 md:space-y-8 select-none">
-      {/* Header (Hidden on Mobile) */}
-      <div className="hidden md:flex flex-col gap-2">
-        <h1 className="text-3xl font-display font-bold text-ipl-gold flex items-center gap-3 italic uppercase tracking-tighter">
-          <ActivityIcon className="w-8 h-8" />
-          Platform Activity
-        </h1>
-        <p className="text-gray-400 mt-1 uppercase text-[10px] tracking-[0.3em] font-display">
+      {/* Header — compact on mobile, full on desktop */}
+      <div className="flex items-center gap-3 md:flex-col md:items-start md:gap-2">
+        <div className="flex items-center gap-2">
+          <ActivityIcon className="w-5 h-5 text-ipl-gold md:w-8 md:h-8" />
+          <h1 className="text-base font-display font-bold text-white md:text-3xl md:text-ipl-gold md:italic md:tracking-tighter uppercase tracking-wide">
+            Activity
+          </h1>
+        </div>
+        <p className="hidden md:block text-gray-400 mt-1 uppercase text-[10px] tracking-[0.3em] font-display">
           Stay updated with predictions, league joins, and match results.
         </p>
       </div>

@@ -12,7 +12,8 @@ import {
   Activity as ActivityIcon,
   ChevronLeft,
   LayoutGrid,
-  Plus
+  Plus,
+  MoreHorizontal
 } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
@@ -60,6 +61,8 @@ export default function Layout() {
   if (!isAuthenticated) {
     return <Navigate to="/login" state={{ from: location }} replace />;
   }
+
+  const isNavActive = (prefix: string) => location.pathname.startsWith(prefix);
 
   // Determine if we should show a back button instead of the tournament selector
   const getPageTitle = (pathname: string) => {
@@ -118,7 +121,7 @@ export default function Layout() {
           {/* Center Element: Brand Title */}
           <div className="w-[40%] text-center">
             <span className="text-sm font-display font-extrabold text-ipl-gold tracking-widest uppercase block truncate">
-              {isDetailRoute ? (headerTitle || getPageTitle(location.pathname)) : 'GULLY PREDICT'}
+              {headerTitle || getPageTitle(location.pathname)}
             </span>
           </div>
 
@@ -153,64 +156,64 @@ export default function Layout() {
       <nav className="hidden md:block border-b border-white/5 bg-ipl-surface/90 backdrop-blur-sm sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
-            <div className="flex items-center space-x-8">
-              <Link to="/" className="text-2xl font-display font-bold text-ipl-gold tracking-widest flex items-center gap-2">
-                <Trophy className="w-6 h-6" />
-                Gully Predict
+            <div className="flex items-center space-x-2 lg:space-x-8">
+              <Link to="/" className="text-xl md:text-2xl font-display font-bold text-ipl-gold tracking-widest flex items-center gap-2 shrink-0">
+                <Trophy className="w-6 h-6 shrink-0" />
+                <span className="hidden lg:inline">Gully Predict</span>
               </Link>
 
-              <div className="flex space-x-4">
-                <Link to="/matchcenter" className="text-gray-300 hover:text-white flex items-center gap-2 px-3 py-2 text-sm font-medium transition-colors">
-                  <LayoutDashboard className="w-4 h-4" />
-                  MATCH CENTER
+              <div className="flex space-x-1 lg:space-x-2 xl:space-x-4">
+                <Link to="/matchcenter" title="Match Center" className={`text-gray-300 hover:text-white flex items-center gap-1.5 px-2 py-1.5 text-xs lg:text-sm font-medium transition-colors rounded-lg ${isNavActive('/matchcenter') ? 'text-ipl-gold bg-white/5 font-bold' : ''}`}>
+                  <LayoutDashboard className="w-4 h-4 shrink-0" />
+                  <span className="hidden lg:inline">MATCH CENTER</span>
                 </Link>
-                <Link to="/leaderboard" className="text-gray-300 hover:text-white flex items-center gap-2 px-3 py-2 text-sm font-medium transition-colors">
-                  <Trophy className="w-4 h-4" />
-                  LEADERBOARD
+                <Link to="/leaderboard" title="Leaderboard" className={`text-gray-300 hover:text-white flex items-center gap-1.5 px-2 py-1.5 text-xs lg:text-sm font-medium transition-colors rounded-lg ${isNavActive('/leaderboard') ? 'text-ipl-gold bg-white/5 font-bold' : ''}`}>
+                  <Trophy className="w-4 h-4 shrink-0" />
+                  <span className="hidden lg:inline">LEADERBOARD</span>
                 </Link>
-                <Link to="/analysis" className="text-gray-300 hover:text-white flex items-center gap-2 px-3 py-2 text-sm font-medium transition-colors">
-                  <BarChart2 className="w-4 h-4" />
-                  ANALYSIS
+                <Link to="/analysis" title="Analysis" className={`text-gray-300 hover:text-white flex items-center gap-1.5 px-2 py-1.5 text-xs lg:text-sm font-medium transition-colors rounded-lg ${isNavActive('/analysis') ? 'text-ipl-gold bg-white/5 font-bold' : ''}`}>
+                  <BarChart2 className="w-4 h-4 shrink-0" />
+                  <span className="hidden lg:inline">ANALYSIS</span>
                 </Link>
-                <Link to="/campaigns" className="text-gray-300 hover:text-white flex items-center gap-2 px-3 py-2 text-sm font-medium transition-colors">
-                  <Megaphone className="w-4 h-4" />
-                  CAMPAIGNS
+                <Link to="/campaigns" title="Campaigns" className={`text-gray-300 hover:text-white flex items-center gap-1.5 px-2 py-1.5 text-xs lg:text-sm font-medium transition-colors rounded-lg ${isNavActive('/campaigns') ? 'text-ipl-gold bg-white/5 font-bold' : ''}`}>
+                  <Megaphone className="w-4 h-4 shrink-0" />
+                  <span className="hidden lg:inline">CAMPAIGNS</span>
                 </Link>
-                <Link to="/leagues" className="text-gray-300 hover:text-white flex items-center gap-2 px-3 py-2 text-sm font-medium transition-colors">
-                  <Users className="w-4 h-4" />
-                  LEAGUES
+                <Link to="/leagues" title="Leagues" className={`text-gray-300 hover:text-white flex items-center gap-1.5 px-2 py-1.5 text-xs lg:text-sm font-medium transition-colors rounded-lg ${isNavActive('/leagues') ? 'text-ipl-gold bg-white/5 font-bold' : ''}`}>
+                  <Users className="w-4 h-4 shrink-0" />
+                  <span className="hidden lg:inline">LEAGUES</span>
                 </Link>
-                <Link to="/activity" className="text-gray-300 hover:text-white flex items-center gap-2 px-3 py-2 text-sm font-medium transition-colors">
-                  <ActivityIcon className="w-4 h-4" />
-                  ACTIVITY
+                <Link to="/activity" title="Activity" className={`text-gray-300 hover:text-white flex items-center gap-1.5 px-2 py-1.5 text-xs lg:text-sm font-medium transition-colors rounded-lg ${isNavActive('/activity') ? 'text-ipl-gold bg-white/5 font-bold' : ''}`}>
+                  <ActivityIcon className="w-4 h-4 shrink-0" />
+                  <span className="hidden lg:inline">ACTIVITY</span>
                 </Link>
                 {(user?.is_admin || user?.is_league_admin) && (
-                  <Link to="/admin" className="text-gray-300 hover:text-white flex items-center gap-2 px-3 py-2 text-sm font-medium transition-colors">
-                    <Settings className="w-4 h-4" />
-                    ADMIN
+                  <Link to="/admin" title="Admin" className={`text-gray-300 hover:text-white flex items-center gap-1.5 px-2 py-1.5 text-xs lg:text-sm font-medium transition-colors rounded-lg ${isNavActive('/admin') ? 'text-ipl-gold bg-white/5 font-bold' : ''}`}>
+                    <Settings className="w-4 h-4 shrink-0" />
+                    <span className="hidden lg:inline">ADMIN</span>
                   </Link>
                 )}
               </div>
             </div>
 
-            <div className="flex items-center gap-4">
+            <div className="flex items-center gap-2 lg:gap-4 shrink-0">
               {user && (
                 <div className="flex items-center gap-3 group">
                   <button
                     onClick={() => setIsProfileOpen(true)}
-                    className="flex flex-col items-end hover:text-ipl-gold transition-colors text-right"
+                    className="flex items-center gap-3 hover:text-ipl-gold transition-colors text-right"
                   >
-                    <span className="text-sm font-display font-bold hidden sm:block leading-none italic uppercase tracking-tight">
+                    <span className="text-sm font-display font-bold hidden lg:block leading-none italic uppercase tracking-tight">
                       {getUserDisplayName(user)}
                     </span>
-                  </button>
-                  <button onClick={() => setIsProfileOpen(true)} className="relative">
-                    <img src={user.avatar || `https://ui-avatars.com/api/?name=${getUserDisplayName(user)}&background=0B0E1A&color=F4C430`} alt="avatar" className="w-9 h-9 rounded-xl border border-white/10 group-hover:border-ipl-gold transition-all shadow-lg object-cover" />
-                    <div className="absolute -bottom-1 -right-1 w-3.5 h-3.5 bg-ipl-gold rounded-full border-2 border-ipl-navy flex items-center justify-center">
-                      <Settings className="w-2 h-2 text-ipl-navy" />
+                    <div className="relative">
+                      <img src={user.avatar || `https://ui-avatars.com/api/?name=${getUserDisplayName(user)}&background=0B0E1A&color=F4C430`} alt="avatar" className="w-9 h-9 rounded-xl border border-white/10 group-hover:border-ipl-gold transition-all shadow-lg object-cover" />
+                      <div className="absolute -bottom-1 -right-1 w-3.5 h-3.5 bg-ipl-gold rounded-full border-2 border-ipl-navy flex items-center justify-center">
+                        <Settings className="w-2 h-2 text-ipl-navy" />
+                      </div>
                     </div>
                   </button>
-                  <button onClick={handleLogout} className="text-gray-400 hover:text-white transition-colors ml-2" title="Logout">
+                  <button onClick={handleLogout} className="w-11 h-11 rounded-xl flex items-center justify-center text-gray-400 hover:text-white hover:bg-white/5 transition-all ml-1" title="Logout">
                     <LogOut className="w-5 h-5" />
                   </button>
                 </div>
@@ -221,7 +224,7 @@ export default function Layout() {
       </nav>
 
       {/* Main Content Area */}
-      <main className="flex-1 w-full max-w-[1280px] mx-auto px-4 py-6 md:py-8 pt-[calc(4.5rem+env(safe-area-inset-top))] pb-[calc(5.5rem+env(safe-area-inset-bottom))] md:pt-8 md:pb-8 overflow-y-auto custom-scrollbar">
+      <main key={location.pathname} className="flex-1 w-full max-w-[1280px] mx-auto px-4 py-6 md:py-8 pt-[calc(4.5rem+env(safe-area-inset-top))] pb-[calc(5.5rem+env(safe-area-inset-bottom))] md:pt-8 md:pb-8 overflow-y-auto custom-scrollbar animate-in fade-in duration-200">
         <Outlet />
       </main>
 
@@ -231,7 +234,7 @@ export default function Layout() {
           {/* Matches Tab */}
           <Link
             to="/matchcenter"
-            className={`flex flex-col items-center justify-center w-16 h-12 transition-all duration-150 active:scale-95 relative ${location.pathname.startsWith('/matchcenter') || location.pathname.startsWith('/match/')
+            className={`flex flex-col items-center justify-center w-16 h-16 transition-all duration-150 active:scale-95 relative ${location.pathname.startsWith('/matchcenter') || location.pathname.startsWith('/match/')
                 ? 'text-ipl-gold font-bold'
                 : 'text-[#5e6675]'
               }`}
@@ -246,7 +249,7 @@ export default function Layout() {
           {/* Leagues Tab */}
           <Link
             to="/leagues"
-            className={`flex flex-col items-center justify-center w-16 h-12 transition-all duration-150 active:scale-95 relative ${location.pathname.startsWith('/leagues') ? 'text-ipl-gold font-bold' : 'text-[#5e6675]'
+            className={`flex flex-col items-center justify-center w-16 h-16 transition-all duration-150 active:scale-95 relative ${location.pathname.startsWith('/leagues') ? 'text-ipl-gold font-bold' : 'text-[#5e6675]'
               }`}
           >
             <Users className="w-5 h-5" />
@@ -259,7 +262,7 @@ export default function Layout() {
           {/* Standings Tab */}
           <Link
             to="/leaderboard"
-            className={`flex flex-col items-center justify-center w-16 h-12 transition-all duration-150 active:scale-95 relative ${location.pathname.startsWith('/leaderboard') ? 'text-ipl-gold font-bold' : 'text-[#5e6675]'
+            className={`flex flex-col items-center justify-center w-16 h-16 transition-all duration-150 active:scale-95 relative ${location.pathname.startsWith('/leaderboard') ? 'text-ipl-gold font-bold' : 'text-[#5e6675]'
               }`}
           >
             <Trophy className="w-5 h-5" />
@@ -272,7 +275,7 @@ export default function Layout() {
           {/* Analysis Tab */}
           <Link
             to="/analysis"
-            className={`flex flex-col items-center justify-center w-16 h-12 transition-all duration-150 active:scale-95 relative ${location.pathname.startsWith('/analysis') ? 'text-ipl-gold font-bold' : 'text-[#5e6675]'
+            className={`flex flex-col items-center justify-center w-16 h-16 transition-all duration-150 active:scale-95 relative ${location.pathname.startsWith('/analysis') ? 'text-ipl-gold font-bold' : 'text-[#5e6675]'
               }`}
           >
             <BarChart3 className="w-5 h-5" />
@@ -285,15 +288,18 @@ export default function Layout() {
           {/* More Tab */}
           <Link
             to="/more"
-            className={`flex flex-col items-center justify-center w-16 h-12 transition-all duration-150 active:scale-95 relative ${location.pathname.startsWith('/more') || location.pathname.startsWith('/campaigns') || location.pathname.startsWith('/activity') || location.pathname.startsWith('/admin')
+            className={`flex flex-col items-center justify-center w-16 h-16 transition-all duration-150 active:scale-95 relative ${location.pathname.startsWith('/more') || location.pathname.startsWith('/campaigns') || location.pathname.startsWith('/activity') || location.pathname.startsWith('/admin')
                 ? 'text-ipl-gold font-bold'
                 : 'text-[#5e6675]'
               }`}
           >
-            <Settings className="w-5 h-5" />
+            <MoreHorizontal className="w-5 h-5" />
             <span className="text-[9px] font-display uppercase tracking-widest mt-1">More</span>
             {(location.pathname.startsWith('/more') || location.pathname.startsWith('/campaigns') || location.pathname.startsWith('/activity') || location.pathname.startsWith('/admin')) && (
               <span className="w-1 h-1 rounded-full bg-ipl-gold absolute bottom-0.5 animate-pulse" />
+            )}
+            {!location.pathname.startsWith('/more') && !location.pathname.startsWith('/campaigns') && !location.pathname.startsWith('/activity') && !location.pathname.startsWith('/admin') && (
+              <span className="absolute top-2 right-3 w-2 h-2 rounded-full bg-orange-400 border border-ipl-surface" />
             )}
           </Link>
         </div>

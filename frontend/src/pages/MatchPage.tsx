@@ -23,6 +23,7 @@ export default function MatchPage() {
   const [hasAutoPredicted, setHasAutoPredicted] = useState(false);
   const [showAutoPredictConfirm, setShowAutoPredictConfirm] = useState(false);
   const [selectedBreakdown, setSelectedBreakdown] = useState<{ predictorName: string; points: number; rules: any[]; powerupUsed?: boolean } | null>(null);
+  const [justSubmitted, setJustSubmitted] = useState(false);
   const [showGradingModal, setShowGradingModal] = useState(false);
   const { register, handleSubmit, reset, setValue, formState: { errors } } = useForm();
 
@@ -125,7 +126,7 @@ export default function MatchPage() {
 
 
 
-  if (isLoading) return <div className="text-white text-center font-display tracking-widest mt-20 animate-pulse">LOADING MATCH...</div>;
+  if (isLoading) return <div className="flex items-center justify-center gap-3 mt-20"><div className="h-6 w-6 animate-spin rounded-full border-2 border-white/10 border-t-ipl-gold" /><span className="text-gray-500 font-display text-[10px] uppercase tracking-widest">Loading...</span></div>;
   if (error || !data || !match) return <div className="text-ipl-live text-center font-display tracking-widest mt-20">FAILED TO LOAD MATCH</div>;
 
   const renderQuestion = (q: any) => {
@@ -256,7 +257,12 @@ export default function MatchPage() {
     if (isLocked) return;
     submitPrediction(formData, {
       onSuccess: () => {
-        toast.success('Prediction Locked!');
+        toast.success('Prediction Locked! 🔒');
+        setJustSubmitted(true);
+        // Haptic feedback on mobile
+        if ('vibrate' in navigator) navigator.vibrate(50);
+        // Reset the flash after 3s
+        setTimeout(() => setJustSubmitted(false), 3000);
       },
       onError: (err: any) => {
         if (err.response?.data?.detail === 'powerup_limit_reached') {
@@ -1116,16 +1122,29 @@ export default function MatchPage() {
                 )}
               </div>
 
-              <div className="pt-8">
+              <div className="pt-8 space-y-3">
+                {/* Prediction confirmed flash */}
+                {justSubmitted && (
+                  <div className="flex items-center justify-center gap-2 py-3 px-4 bg-green-500/10 border border-green-500/30 rounded-2xl animate-in fade-in slide-in-from-bottom-2 duration-300">
+                    <span className="text-green-400 text-lg">✓</span>
+                    <span className="text-green-400 font-display text-xs uppercase tracking-widest font-bold">Prediction Locked In!</span>
+                  </div>
+                )}
                 <button
                   type="submit"
                   disabled={isPending || isLocked}
-                  className="w-full bg-white text-ipl-navy rounded-2xl font-display font-bold uppercase tracking-widest py-4 transition-all active:scale-[0.98] disabled:bg-white/10 disabled:text-white/40 disabled:border-white/10 disabled:scale-100 shadow-[0_8px_20px_rgba(255,255,255,0.05)]"
+                  className={`w-full rounded-2xl font-display font-bold uppercase tracking-widest py-4 transition-all active:scale-[0.98] disabled:scale-100 shadow-[0_8px_20px_rgba(255,255,255,0.05)] ${
+                    isLocked
+                      ? 'bg-white/10 text-white/40'
+                      : hasPredicted
+                      ? 'bg-green-500/15 text-green-400 border border-green-500/30 hover:bg-green-500/20'
+                      : 'bg-white text-ipl-navy hover:bg-gray-100'
+                  }`}
                 >
-                  {isLocked ? 'LOCK PERIOD CLOSED' : (isPending ? 'LOCKING...' : (hasPredicted ? 'Update Lock' : 'Submit Lock'))}
+                  {isLocked ? 'LOCK PERIOD CLOSED' : (isPending ? 'LOCKING...' : (hasPredicted ? '✓ Update Prediction' : 'Submit Lock'))}
                 </button>
                 {isLocked && (
-                  <p className="text-gray-500 text-[10px] font-display uppercase mt-3 text-center">Prediction window ended 30m before the match start.</p>
+                  <p className="text-gray-500 text-[10px] font-display uppercase mt-1 text-center">Prediction window ended 30m before the match start.</p>
                 )}
               </div>
             </form>

@@ -39,8 +39,35 @@ export default function MatchCenter() {
   // Scroll index tracking for iOS-style pagination indicators
   const [activeTodayIdx, setActiveTodayIdx] = useState(0);
 
-  if (isLoading) return <div className="text-white text-center font-display tracking-widest animate-pulse mt-20">LOADING ARENA...</div>;
-  if (error) return <div className="text-ipl-live text-center font-display tracking-widest mt-20">FAILED TO LOAD MATCHES</div>;
+  if (isLoading) return (
+    <div className="space-y-8">
+      <div className="flex gap-3 overflow-x-hidden">
+        {[1,2].map(i => <div key={i} className="h-9 w-32 rounded-full bg-white/5 animate-pulse shrink-0" />)}
+      </div>
+      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+        {[1,2,3].map(i => (
+          <div key={i} className="bg-[#171a24] border border-white/5 rounded-[2rem] p-6 animate-pulse">
+            <div className="h-4 w-24 bg-white/5 rounded mb-6" />
+            <div className="flex items-center justify-center gap-8 my-6">
+              <div className="w-16 h-16 rounded-full bg-white/5" />
+              <div className="w-1 h-8 bg-white/5" />
+              <div className="w-16 h-16 rounded-full bg-white/5" />
+            </div>
+            <div className="h-10 w-full rounded-full bg-white/5 mt-6" />
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+  if (error) return (
+    <div className="flex flex-col items-center justify-center mt-20 gap-4 text-center">
+      <div className="text-ipl-live font-display tracking-widest text-sm uppercase">Failed to Load Matches</div>
+      <p className="text-gray-500 text-xs">Check your connection and try again.</p>
+      <button onClick={() => window.location.reload()} className="px-6 py-2.5 rounded-full border border-white/10 text-gray-300 font-display text-xs uppercase tracking-widest hover:bg-white/5 transition-colors min-h-[44px]">
+        Retry
+      </button>
+    </div>
+  );
 
   // Calculate tournament filters
   const filterCounts: Record<string, { name: string, count: number }> = {};
@@ -157,7 +184,7 @@ export default function MatchCenter() {
 
         <div
           onScroll={handleTodayScroll}
-          className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 max-md:flex max-md:overflow-x-auto max-md:snap-x max-md:snap-mandatory max-md:scrollbar-hide max-md:-mx-4 max-md:px-4 max-md:pb-4 max-md:w-[calc(100%+2rem)]"
+          className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 max-sm:flex max-sm:overflow-x-auto max-sm:snap-x max-sm:snap-mandatory max-sm:scrollbar-hide max-sm:-mx-4 max-sm:px-4 max-sm:pb-4 max-sm:w-[calc(100%+2rem)]"
         >
           {todayMatches.length === 0 ? (
             <div className="glass-panel p-8 text-center border-dashed border-2 border-white/5 opacity-50 col-span-full w-full rounded-2xl">
@@ -177,7 +204,7 @@ export default function MatchCenter() {
               const isLive = match.status === 'live';
 
               return (
-                <div key={match.id} className="max-md:snap-start max-md:shrink-0 max-md:w-[88%] max-md:max-w-[340px] w-full">
+                <div key={match.id} className="max-sm:snap-start max-sm:shrink-0 max-sm:w-[88%] max-sm:max-w-[340px] w-full">
                   <Link
                     to={`/match/${match.id}`}
                     className="block w-full bg-[#171a24] border border-white/5 rounded-[2rem] p-6 relative group transition-all duration-300 hover:border-ipl-gold/20 shadow-[0_4px_20px_rgba(0,0,0,0.3)]"
@@ -237,8 +264,8 @@ export default function MatchCenter() {
 
                       {/* VS Indicator */}
                       <div className="flex flex-col items-center justify-center px-1">
-                        <span className="text-[9px] font-display italic tracking-[0.4em] text-white/20 mb-1">VS</span>
-                        <div className="w-[1px] h-8 bg-gradient-to-b from-transparent via-white/10 to-transparent" />
+                        <span className="text-xs font-display italic tracking-[0.3em] text-white/50 mb-1">VS</span>
+                        <div className="w-[1px] h-8 bg-gradient-to-b from-transparent via-white/25 to-transparent" />
                       </div>
 
                       {/* Team 2 */}
@@ -283,7 +310,7 @@ export default function MatchCenter() {
 
         {/* Dynamic Carousel dot indicators on mobile */}
         {todayMatches.length > 1 && (
-          <div className="flex justify-center gap-1.5 mt-2 md:hidden select-none">
+          <div className="flex justify-center gap-1.5 mt-2 sm:hidden select-none">
             {todayMatches.map((_, idx) => (
               <div
                 key={idx}

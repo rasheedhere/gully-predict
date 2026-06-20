@@ -62,8 +62,20 @@ const SocialFeed: React.FC = () => {
 
   if (!events || events.length === 0) {
     return (
-      <div className="p-8 text-center text-white/40 italic text-xs font-display uppercase tracking-widest">
-        No recent activity found.
+      <div className="flex flex-col items-center justify-center py-12 gap-4 text-center px-6">
+        <div className="text-4xl select-none">🏏</div>
+        <div>
+          <p className="text-white font-display text-xs uppercase tracking-widest font-bold">The Arena is Quiet</p>
+          <p className="text-gray-500 text-xs mt-2 leading-relaxed max-w-[200px] mx-auto">
+            Be the first to make a prediction and spark the leaderboard!
+          </p>
+        </div>
+        <a
+          href="/matchcenter"
+          className="mt-1 px-5 py-2.5 rounded-full border border-ipl-gold/30 text-ipl-gold font-display text-[10px] uppercase tracking-widest hover:bg-ipl-gold/10 transition-colors"
+        >
+          View Matches →
+        </a>
       </div>
     );
   }

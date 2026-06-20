@@ -1578,12 +1578,15 @@ function TournamentMatchManager({ tournamentId, onBack }: { tournamentId: string
                         <div className="text-[8px] font-mono text-gray-500 mt-0.5">{new Date(match.start_time).toLocaleDateString([], { month: 'short', day: 'numeric' })}</div>
                       </div>
                     </div>
-                    <span className={`px-2 py-0.5 rounded text-[7px] uppercase tracking-widest font-bold border ${match.status === 'upcoming' ? 'bg-ipl-gold/10 text-ipl-gold border-ipl-gold/20' :
-                      match.status === 'live' ? 'bg-ipl-live/10 text-ipl-live border-ipl-live/20 animate-pulse' :
-                        'bg-white/5 text-gray-400 border-white/10'
-                      }`}>
-                      {match.status}
-                    </span>
+                    <div className="flex items-center gap-2">
+                      <span className={`px-2 py-0.5 rounded text-[7px] uppercase tracking-widest font-bold border ${match.status === 'upcoming' ? 'bg-ipl-gold/10 text-ipl-gold border-ipl-gold/20' :
+                        match.status === 'live' ? 'bg-ipl-live/10 text-ipl-live border-ipl-live/20 animate-pulse' :
+                          'bg-white/5 text-gray-400 border-white/10'
+                        }`}>
+                        {match.status}
+                      </span>
+                      <span className="text-[8px] font-display uppercase tracking-widest text-gray-400 border border-white/10 rounded px-1.5 py-0.5">Grade</span>
+                    </div>
                   </div>
                   {gradingMatchId === match.id && (
                     <div className="absolute inset-0 bg-gradient-to-r from-ipl-gold/5 to-transparent -z-0" />

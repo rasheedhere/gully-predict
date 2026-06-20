@@ -13,7 +13,7 @@ export default function PWAInstallBanner() {
     if (sessionStorage.getItem(DISMISSED_KEY)) return;
     if (canInstall) {
       // Small delay so it doesn't pop up immediately on load
-      const t = setTimeout(() => setVisible(true), 3000);
+      const t = setTimeout(() => setVisible(true), 5000);
       return () => clearTimeout(t);
     }
   }, [canInstall, isInstalled]);
@@ -41,8 +41,8 @@ export default function PWAInstallBanner() {
         bottom: 0,
         left: 0,
         right: 0,
-        zIndex: 9999,
-        padding: '0 16px 16px',
+        zIndex: 9000,
+        padding: `0 16px calc(env(safe-area-inset-bottom) + 72px)`,
         animation: 'pwa-slide-up 0.4s cubic-bezier(0.34, 1.56, 0.64, 1)',
       }}
     >
@@ -135,7 +135,7 @@ export default function PWAInstallBanner() {
               background: 'rgba(255,255,255,0.08)',
               border: '1px solid rgba(255,255,255,0.12)',
               borderRadius: '10px',
-              padding: '8px 12px',
+              padding: '10px 14px',
               color: 'rgba(255,255,255,0.5)',
               fontSize: '13px',
               cursor: 'pointer',

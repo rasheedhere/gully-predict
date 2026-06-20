@@ -63,7 +63,10 @@ function App() {
       />
       <Suspense fallback={
         <div className="flex h-screen w-full items-center justify-center bg-[#0B0E1A]">
-          <div className="h-8 w-8 animate-spin rounded-full border-4 border-[rgba(255,255,255,0.1)] border-t-[#F4C430]" />
+          <div className="flex flex-col items-center gap-4">
+            <div className="h-10 w-10 animate-spin rounded-full border-4 border-[rgba(255,255,255,0.08)] border-t-[#F4C430]" />
+            <span className="text-[10px] font-display tracking-[0.3em] text-ipl-gold/50 uppercase animate-pulse">Loading...</span>
+          </div>
         </div>
       }>
         <Routes>

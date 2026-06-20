@@ -39,7 +39,11 @@ export default function CountdownTimer({ targetDate }: CountdownTimerProps) {
       const minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
       const seconds = Math.floor((distance % (1000 * 60)) / 1000);
 
-      setTimeLeft(`${hours}h ${minutes}m ${seconds}s`);
+      if (hours > 0) {
+        setTimeLeft(`${hours}h ${String(minutes).padStart(2, '0')}m`);
+      } else {
+        setTimeLeft(`${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`);
+      }
       setUrgent(distance < 60 * 60 * 1000);
       return false;
     };
@@ -59,11 +63,11 @@ export default function CountdownTimer({ targetDate }: CountdownTimerProps) {
   if (isLocked) return null;
 
   return (
-    <div className={`flex items-center gap-2 font-display tracking-widest text-sm
-      ${urgent ? 'text-ipl-live animate-pulse' : 'text-ipl-gold'}`}
+    <div className={`flex items-center gap-1.5 font-display tracking-wider text-sm font-bold
+      ${urgent ? 'text-ipl-live animate-pulse' : 'text-ipl-gold/80'}`}
     >
-      <Clock className="w-4 h-4" />
-      LOCKS IN: {timeLeft}
+      <Clock className="w-3.5 h-3.5 shrink-0" />
+      <span>LOCKS IN: {timeLeft}</span>
     </div>
   );
 }
