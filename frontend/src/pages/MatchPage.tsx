@@ -1630,92 +1630,211 @@ export default function MatchPage() {
         </AdminModal>
       )}
 
-      {/* Points Breakdown Bottom Overlay */}
-      {selectedBreakdown && (
-        <div className="fixed inset-0 z-50 flex items-end justify-center">
-          {/* Backdrop */}
-          <div
-            className="absolute inset-0 bg-black/75 backdrop-blur-sm animate-in fade-in duration-200"
-            onClick={() => setSelectedBreakdown(null)}
-          />
-          {/* Drawer Panel */}
-          <div className="relative w-full max-w-md bg-[#0f172a]/95 backdrop-blur-md border-t border-white/10 rounded-t-3xl shadow-2xl p-6 pb-[calc(2rem+env(safe-area-inset-bottom))] max-h-[85vh] flex flex-col animate-in slide-in-from-bottom duration-300">
-            {/* Drawer handle pull-bar */}
-            <div className="w-12 h-1 bg-white/20 rounded-full mx-auto mb-5" />
+      {/* Points Breakdown Overlay — bottom drawer on mobile, centered dialog on desktop */}
+      {selectedBreakdown && (() => {
+        const pts = selectedBreakdown.points;
+        const ptsColor = pts > 0 ? 'text-green-400' : pts < 0 ? 'text-red-400' : 'text-gray-400';
+        const ptsBg   = pts > 0 ? 'bg-green-500/20 border-green-500/30' : pts < 0 ? 'bg-red-500/20 border-red-500/30' : 'bg-white/10 border-white/20';
+        const ringColor = pts > 0 ? '#4ade80' : pts < 0 ? '#f87171' : '#6b7280';
 
-            {/* Header */}
-            <div className="flex justify-between items-center mb-6">
-              <div>
-                <span className="text-[10px] font-display uppercase tracking-widest text-ipl-gold font-bold">
-                  Points Breakdown
-                </span>
-                <h3 className="text-white font-display text-base tracking-tight mt-0.5">
-                  {selectedBreakdown.predictorName}
-                </h3>
-              </div>
-              <div className="flex items-center gap-2">
-                <span className={`px-2.5 py-1 rounded font-mono font-bold text-sm ${selectedBreakdown.points > 0
-                  ? 'bg-green-500/20 text-green-400 border border-green-500/30'
-                  : selectedBreakdown.points < 0
-                    ? 'bg-red-500/20 text-red-400 border border-red-500/30'
-                    : 'bg-white/10 text-gray-400 border border-white/20'
-                  }`}>
-                  {selectedBreakdown.points > 0 ? '+' : ''}{selectedBreakdown.points} PTS
-                </span>
-                <button
-                  onClick={() => setSelectedBreakdown(null)}
-                  className="p-1.5 hover:bg-white/5 rounded-full text-gray-400 hover:text-white transition-colors"
-                >
-                  <X className="w-5 h-5" />
-                </button>
-              </div>
-            </div>
-
-            {/* Rules Breakdown List */}
-            <div className="space-y-3 max-h-[300px] overflow-y-auto pr-1">
-              {selectedBreakdown.rules.map((rule: any, idx: number) => {
-                const isRuleCorrect = rule.status === 'correct' || rule.status === 'bingo';
-                const isRuleRange = rule.status === 'range';
-                return (
-                  <div key={idx} className="flex justify-between items-center bg-white/5 border border-white/5 p-3 rounded-xl">
-                    <div className="flex items-center gap-3 min-w-0">
-                      {rule.was_boosted && <span className="text-ipl-gold shrink-0 text-xs">⚡</span>}
-                      <div className="shrink-0">
-                        {isRuleCorrect ? (
-                          <Check className="w-4 h-4 text-green-400" />
-                        ) : isRuleRange ? (
-                          <Target className="w-4 h-4 text-blue-400" />
-                        ) : (
-                          <X className="w-4 h-4 text-red-400 opacity-60" />
-                        )}
-                      </div>
-                      <span className="text-gray-200 font-display text-xs uppercase tracking-wide truncate">
-                        {rule.category}
-                      </span>
+        const rulesList = (
+          <div className="space-y-2.5 overflow-y-auto pr-1 flex-1">
+            {selectedBreakdown.rules.map((rule: any, idx: number) => {
+              const isCorrect = rule.status === 'correct' || rule.status === 'bingo';
+              const isRange   = rule.status === 'range';
+              return (
+                <div key={idx} className="flex justify-between items-center bg-white/5 border border-white/5 p-3 rounded-xl gap-3">
+                  <div className="flex items-center gap-2.5 min-w-0">
+                    {rule.was_boosted && <span className="text-ipl-gold shrink-0 text-xs">⚡</span>}
+                    <div className="shrink-0">
+                      {isCorrect ? (
+                        <Check className="w-4 h-4 text-green-400" />
+                      ) : isRange ? (
+                        <Target className="w-4 h-4 text-blue-400" />
+                      ) : (
+                        <X className="w-4 h-4 text-red-400 opacity-60" />
+                      )}
                     </div>
-                    <span className={`font-mono font-bold text-xs ${rule.points > 0 ? 'text-green-400' : rule.points < 0 ? 'text-red-400' : 'text-gray-500'
-                      }`}>
-                      {rule.points > 0 ? '+' : ''}{rule.points}
+                    <span className="text-gray-200 font-display text-xs uppercase tracking-wide truncate">
+                      {rule.category}
                     </span>
                   </div>
-                );
-              })}
+                  <span className={`font-mono font-bold text-xs shrink-0 ${rule.points > 0 ? 'text-green-400' : rule.points < 0 ? 'text-red-400' : 'text-gray-500'}`}>
+                    {rule.points > 0 ? '+' : ''}{rule.points}
+                  </span>
+                </div>
+              );
+            })}
+          </div>
+        );
+
+        return (
+          <>
+            {/* ── MOBILE: bottom drawer (unchanged) ── */}
+            <div className="md:hidden fixed inset-0 z-50 flex items-end justify-center">
+              <div
+                className="absolute inset-0 bg-black/75 backdrop-blur-sm animate-in fade-in duration-200"
+                onClick={() => setSelectedBreakdown(null)}
+              />
+              <div className="relative w-full max-w-md bg-[#0f172a]/95 backdrop-blur-md border-t border-white/10 rounded-t-3xl shadow-2xl p-6 pb-[calc(2rem+env(safe-area-inset-bottom))] max-h-[85vh] flex flex-col animate-in slide-in-from-bottom duration-300">
+                <div className="w-12 h-1 bg-white/20 rounded-full mx-auto mb-5" />
+                <div className="flex justify-between items-center mb-5">
+                  <div>
+                    <span className="text-[10px] font-display uppercase tracking-widest text-ipl-gold font-bold">Points Breakdown</span>
+                    <h3 className="text-white font-display text-base tracking-tight mt-0.5">{selectedBreakdown.predictorName}</h3>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className={`px-2.5 py-1 rounded font-mono font-bold text-sm border ${ptsBg} ${ptsColor}`}>
+                      {pts > 0 ? '+' : ''}{pts} PTS
+                    </span>
+                    <button onClick={() => setSelectedBreakdown(null)} className="p-1.5 hover:bg-white/5 rounded-full text-gray-400 hover:text-white transition-colors">
+                      <X className="w-5 h-5" />
+                    </button>
+                  </div>
+                </div>
+                <div className="space-y-2.5 max-h-[300px] overflow-y-auto pr-1">{rulesList}</div>
+                {selectedBreakdown.powerupUsed && (
+                  <div className="mt-4 p-3 bg-ipl-gold/10 border border-ipl-gold/20 rounded-xl flex justify-between items-center">
+                    <span className="text-xs font-display uppercase tracking-widest font-bold text-ipl-gold">⚡ 2X Booster Active</span>
+                    <span className="bg-ipl-gold text-black font-mono font-black text-xs px-2 py-0.5 rounded">x2 Multiplier</span>
+                  </div>
+                )}
+              </div>
             </div>
 
-            {/* Powerup Footer */}
-            {selectedBreakdown.powerupUsed && (
-              <div className="mt-4 p-3 bg-ipl-gold/10 border border-ipl-gold/20 rounded-xl flex justify-between items-center">
-                <span className="text-xs font-display uppercase tracking-widest font-bold text-ipl-gold">
-                  ⚡ 2X Booster Active
-                </span>
-                <span className="bg-ipl-gold text-black font-mono font-black text-xs px-2 py-0.5 rounded">
-                  x2 Multiplier
-                </span>
+            {/* ── DESKTOP: centered glassmorphism dialog ── */}
+            <div className="hidden md:flex fixed inset-0 z-50 items-center justify-center p-6">
+              {/* Backdrop */}
+              <div
+                className="absolute inset-0 bg-black/70 backdrop-blur-md animate-in fade-in duration-200"
+                onClick={() => setSelectedBreakdown(null)}
+              />
+
+              {/* Dialog panel */}
+              <div className="relative w-full max-w-2xl bg-[#0c1526]/95 backdrop-blur-xl border border-white/10 rounded-2xl shadow-[0_25px_60px_rgba(0,0,0,0.7)] animate-in zoom-in-95 fade-in duration-200 overflow-hidden">
+
+                {/* Gradient accent bar at top */}
+                <div className="h-0.5 w-full bg-gradient-to-r from-[#7B2FF7] via-ipl-gold to-[#004BA0]" />
+
+                <div className="flex min-h-0">
+                  {/* ── LEFT COLUMN: User summary ── */}
+                  <div className="w-56 shrink-0 flex flex-col items-center justify-center gap-5 p-8 border-r border-white/8 bg-white/[0.02]">
+                    {/* Score ring */}
+                    <div className="relative">
+                      <svg width="96" height="96" viewBox="0 0 96 96" className="-rotate-90">
+                        <circle cx="48" cy="48" r="40" fill="none" stroke="rgba(255,255,255,0.06)" strokeWidth="7" />
+                        <circle
+                          cx="48" cy="48" r="40"
+                          fill="none"
+                          stroke={ringColor}
+                          strokeWidth="7"
+                          strokeLinecap="round"
+                          strokeDasharray={`${Math.min(Math.abs(pts) / 50, 1) * 251} 251`}
+                          className="transition-all duration-700"
+                        />
+                      </svg>
+                      <div className="absolute inset-0 flex flex-col items-center justify-center">
+                        <span className={`font-mono font-black text-2xl leading-none ${ptsColor}`}>
+                          {pts > 0 ? '+' : ''}{pts}
+                        </span>
+                        <span className="text-gray-500 text-[9px] uppercase tracking-widest font-display mt-0.5">pts</span>
+                      </div>
+                    </div>
+
+                    {/* User name */}
+                    <div className="text-center">
+                      <p className="text-[10px] font-display uppercase tracking-widest text-ipl-gold font-bold mb-1">
+                        Points Breakdown
+                      </p>
+                      <p className="text-white font-display text-sm tracking-tight leading-snug">
+                        {selectedBreakdown.predictorName}
+                      </p>
+                    </div>
+
+                    {/* Summary chips */}
+                    <div className="w-full space-y-2">
+                      {(() => {
+                        const correct = selectedBreakdown.rules.filter((r: any) => r.status === 'correct' || r.status === 'bingo').length;
+                        const range   = selectedBreakdown.rules.filter((r: any) => r.status === 'range').length;
+                        const wrong   = selectedBreakdown.rules.filter((r: any) => r.status !== 'correct' && r.status !== 'bingo' && r.status !== 'range').length;
+                        return (
+                          <>
+                            <div className="flex items-center justify-between text-xs bg-green-500/10 border border-green-500/20 rounded-lg px-3 py-1.5">
+                              <span className="flex items-center gap-1.5 text-green-400 font-display uppercase tracking-wide"><Check className="w-3 h-3" /> Correct</span>
+                              <span className="font-mono font-bold text-green-400">{correct}</span>
+                            </div>
+                            {range > 0 && (
+                              <div className="flex items-center justify-between text-xs bg-blue-500/10 border border-blue-500/20 rounded-lg px-3 py-1.5">
+                                <span className="flex items-center gap-1.5 text-blue-400 font-display uppercase tracking-wide"><Target className="w-3 h-3" /> Range</span>
+                                <span className="font-mono font-bold text-blue-400">{range}</span>
+                              </div>
+                            )}
+                            <div className="flex items-center justify-between text-xs bg-red-500/10 border border-red-500/20 rounded-lg px-3 py-1.5">
+                              <span className="flex items-center gap-1.5 text-red-400/70 font-display uppercase tracking-wide"><X className="w-3 h-3" /> Wrong</span>
+                              <span className="font-mono font-bold text-red-400/70">{wrong}</span>
+                            </div>
+                          </>
+                        );
+                      })()}
+                    </div>
+
+                    {/* Booster badge */}
+                    {selectedBreakdown.powerupUsed && (
+                      <div className="w-full p-2.5 bg-ipl-gold/10 border border-ipl-gold/25 rounded-xl text-center">
+                        <span className="text-[10px] font-display uppercase tracking-widest font-bold text-ipl-gold">⚡ 2X Booster</span>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* ── RIGHT COLUMN: rules list ── */}
+                  <div className="flex-1 flex flex-col min-h-0 p-6">
+                    {/* Column header + close button */}
+                    <div className="flex items-center justify-between mb-4 shrink-0">
+                      <h3 className="text-white/60 font-display text-xs uppercase tracking-widest">Question Breakdown</h3>
+                      <button
+                        onClick={() => setSelectedBreakdown(null)}
+                        className="p-1.5 hover:bg-white/8 rounded-full text-gray-500 hover:text-white transition-colors"
+                      >
+                        <X className="w-4 h-4" />
+                      </button>
+                    </div>
+
+                    {/* Rules — scrollable */}
+                    <div className="space-y-2 overflow-y-auto pr-1 max-h-[55vh]">
+                      {selectedBreakdown.rules.map((rule: any, idx: number) => {
+                        const isCorrect = rule.status === 'correct' || rule.status === 'bingo';
+                        const isRange   = rule.status === 'range';
+                        return (
+                          <div key={idx} className="flex justify-between items-center bg-white/[0.04] hover:bg-white/[0.07] border border-white/[0.06] p-3.5 rounded-xl transition-colors gap-3">
+                            <div className="flex items-center gap-3 min-w-0">
+                              {rule.was_boosted && <span className="text-ipl-gold shrink-0 text-xs">⚡</span>}
+                              <div className={`shrink-0 w-6 h-6 rounded-full flex items-center justify-center ${isCorrect ? 'bg-green-500/15' : isRange ? 'bg-blue-500/15' : 'bg-red-500/10'}`}>
+                                {isCorrect ? (
+                                  <Check className="w-3.5 h-3.5 text-green-400" />
+                                ) : isRange ? (
+                                  <Target className="w-3.5 h-3.5 text-blue-400" />
+                                ) : (
+                                  <X className="w-3.5 h-3.5 text-red-400 opacity-60" />
+                                )}
+                              </div>
+                              <span className="text-gray-200 font-display text-xs uppercase tracking-wide truncate">
+                                {rule.category}
+                              </span>
+                            </div>
+                            <span className={`font-mono font-bold text-sm shrink-0 ${rule.points > 0 ? 'text-green-400' : rule.points < 0 ? 'text-red-400' : 'text-gray-500'}`}>
+                              {rule.points > 0 ? '+' : ''}{rule.points}
+                            </span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                </div>
               </div>
-            )}
-          </div>
-        </div>
-      )}
+            </div>
+          </>
+        );
+      })()}
     </div>
   );
 }
