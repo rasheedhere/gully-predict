@@ -270,3 +270,30 @@ async def update_tournament_status(
     await backend_cache.invalidate("tournaments_*")
     
     return {"message": f"Tournament status updated to {new_status.value}"}
+
+
+@router.post("/trigger-ai-grading")
+async def trigger_ai_grading(db: AsyncSession = Depends(get_db), current_admin: User = Depends(get_current_admin)):
+    from backend.scheduler import auto_grade_completed_matches_job
+    import asyncio
+    
+    asyncio.create_task(auto_grade_completed_matches_job())
+    return {"message": "AI grading job triggered in the background for all pending matches"}
+
+
+@router.post("/matches/{match_id}/trigger-ai-grading")
+async def trigger_single_match_ai_grading(
+    match_id: str,
+    db: AsyncSession = Depends(get_db),
+    current_admin: User = Depends(get_current_admin)
+):
+    from backend.agents.match_result_agent import match_result_agent
+    
+    result = await match_result_agent.fetch_match_results(match_id, db)
+    if not result:
+        raise HTTPException(
+            status_code=500,
+            detail=f"AI Agent failed to grade match {match_id}. Check server logs for details."
+        )
+    return {"message": f"Match {match_id} graded successfully via AI.", "result": result}
+

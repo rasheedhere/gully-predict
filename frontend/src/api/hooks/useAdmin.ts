@@ -95,6 +95,25 @@ export function useTriggerAIPredictions() {
   });
 }
 
+export function useTriggerAIGrading() {
+  return useMutation({
+    mutationFn: async () => {
+      const response = await apiClient.post('/admin/trigger-ai-grading');
+      return response.data;
+    },
+  });
+}
+
+export function useTriggerSingleMatchAIGrading() {
+  return useMutation({
+    mutationFn: async (matchId: string) => {
+      const response = await apiClient.post(`/admin/matches/${matchId}/trigger-ai-grading`);
+      return response.data;
+    },
+  });
+}
+
+
 export function useTournaments() {
   return useQuery({
     queryKey: ['tournaments', 'admin'],

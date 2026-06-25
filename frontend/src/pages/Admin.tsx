@@ -11,6 +11,7 @@ import {
   useAllUsers,
   useUpdateBasePoints,
   useTriggerAIPredictions,
+  useTriggerAIGrading,
   useTournaments,
   useAllLeagues,
   useCreateTournament,
@@ -757,6 +758,7 @@ function CampaignManagement() {
 
 function SystemManagement() {
   const { mutate: triggerAI, isPending } = useTriggerAIPredictions();
+  const { mutate: triggerGrading, isPending: isGradingPending } = useTriggerAIGrading();
   return (
     <div className="max-w-2xl mx-auto glass-panel p-10 border-t-2 border-blue-500 text-center rounded-3xl">
       <Cpu className="w-16 h-16 text-blue-500 mx-auto mb-6 opacity-20" />
@@ -765,10 +767,17 @@ function SystemManagement() {
 
       <div className="grid gap-6">
         <button
-          onClick={() => triggerAI(undefined, { onSuccess: () => toast.success('AI Assassin triggered') })}
+          onClick={() => triggerAI(undefined, { onSuccess: () => toast.success('AI Assassin predictions triggered') })}
           className="py-5 bg-gradient-to-r from-[#004BA0] to-[#7B2FF7] text-white font-display text-xs uppercase tracking-[0.4em] rounded-2xl hover:shadow-[0_0_20px_rgba(123,47,247,0.4)] active:scale-[0.98] transition-all shadow-neon shadow-[#7B2FF7]/20"
         >
           {isPending ? 'EXECUTING NEURAL NET...' : 'TRIGGER AI ASSASSIN'}
+        </button>
+        <button
+          onClick={() => triggerGrading(undefined, { onSuccess: () => toast.success('AI Auto-Grading triggered for pending matches') })}
+          disabled={isGradingPending}
+          className="py-5 bg-gradient-to-r from-ipl-gold to-yellow-600 text-black font-display text-xs uppercase tracking-[0.4em] font-bold rounded-2xl hover:shadow-[0_0_20px_rgba(244,196,48,0.4)] active:scale-[0.98] transition-all disabled:opacity-50"
+        >
+          {isGradingPending ? 'BATCH GRADING ACTIVE...' : 'TRIGGER GLOBAL AI GRADING'}
         </button>
         <div className="text-[10px] text-gray-600 font-mono uppercase tracking-widest italic">
           Last processed: {new Date().toLocaleString()}

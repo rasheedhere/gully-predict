@@ -264,10 +264,54 @@ async def auto_predict_daily_job():
     print("Auto-predict completed.")
 
 
+async def auto_grade_completed_matches_job():
+    """Periodic job to auto-grade matches that started > 5 hours ago and are not yet completed/cancelled."""
+    print(f"[{datetime.now(timezone.utc)}] Running auto_grade_completed_matches_job...")
+    
+    async with async_session() as db:
+        now = datetime.now(timezone.utc)
+        five_hours_ago = now - timedelta(hours=5)
+        
+        matches_res = await db.execute(
+            select(Match).where(
+                Match.status != MatchStatus.completed,
+                Match.status != MatchStatus.cancelled,
+                Match.start_time <= five_hours_ago
+            )
+        )
+        matches_to_grade = matches_res.scalars().all()
+        
+        if not matches_to_grade:
+            print("[auto_grade_completed_matches_job] No matches require auto-grading at this time.")
+            return
+            
+        from backend.agents.match_status_checker_agent import match_status_checker_agent
+        from backend.agents.match_result_agent import match_result_agent
+        
+        for match in matches_to_grade:
+            try:
+                # 1. Cheap lightweight completion check first
+                is_completed = await match_status_checker_agent.check_match_completed(match.id, db)
+                if not is_completed:
+                    continue
+                
+                # 2. Match is completed, fetch detailed results and score
+                await match_result_agent.fetch_match_results(match.id, db)
+            except Exception as e:
+                print(f"[auto_grade_completed_matches_job] Error grading match {match.id}: {str(e)}")
+
+
 def start_scheduler():
     scheduler.add_job(auto_predict_daily_job, trigger='cron', hour=0, minute=0, timezone='UTC')
+    scheduler.add_job(
+        auto_grade_completed_matches_job,
+        trigger='interval',
+        minutes=15,
+        next_run_time=datetime.now(timezone.utc)
+    )
     scheduler.start()
 
 
 def stop_scheduler():
     scheduler.shutdown()
+

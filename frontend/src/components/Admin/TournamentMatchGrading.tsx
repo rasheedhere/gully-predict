@@ -1,7 +1,13 @@
 import React, { useState } from "react";
 import toast from "react-hot-toast";
+import { Cpu } from "lucide-react";
 import { useMatches } from "../../api/hooks/useMatches";
-import { useTournamentQuestionBank, useTournamentMatchAnswers, useUpdateTournamentMatchAnswers } from "../../api/hooks/useAdmin";
+import { 
+  useTournamentQuestionBank, 
+  useTournamentMatchAnswers, 
+  useUpdateTournamentMatchAnswers,
+  useTriggerSingleMatchAIGrading 
+} from "../../api/hooks/useAdmin";
 
 export function TournamentMatchGrading({ tournamentId, matchId, onClose }: { tournamentId: string, matchId: string, onClose: () => void }) {
   const { data: matches } = useMatches(tournamentId);
@@ -10,6 +16,7 @@ export function TournamentMatchGrading({ tournamentId, matchId, onClose }: { tou
   const { data: questionBank } = useTournamentQuestionBank(tournamentId);
   const { data: answers, isLoading } = useTournamentMatchAnswers(tournamentId, matchId);
   const { mutate: updateAnswers, isPending } = useUpdateTournamentMatchAnswers();
+  const { mutate: triggerAiGrading, isPending: isAiPending } = useTriggerSingleMatchAIGrading();
   const [correctAnswers, setCorrectAnswers] = useState<Record<string, any>>({});
 
   React.useEffect(() => {
@@ -34,6 +41,25 @@ export function TournamentMatchGrading({ tournamentId, matchId, onClose }: { tou
     });
   };
 
+  const handleAiAutofill = () => {
+    const loadingToast = toast.loading("AI is gathering match facts...");
+    triggerAiGrading(matchId, {
+      onSuccess: (data) => {
+        toast.dismiss(loadingToast);
+        if (data?.result) {
+          setCorrectAnswers(data.result);
+          toast.success("Autofill complete! Review answers and click Release Scores.");
+        } else {
+          toast.error("AI returned no results");
+        }
+      },
+      onError: (err: any) => {
+        toast.dismiss(loadingToast);
+        toast.error(err?.response?.data?.detail || "AI Autofill failed");
+      }
+    });
+  };
+
   if (isLoading) return <div className="text-center py-10 animate-pulse font-display text-gray-600 text-xs">Loading keys...</div>;
   if (!questionBank?.questions || questionBank.questions.length === 0) {
     return <div className="text-center py-10 text-gray-500 font-display text-[10px] uppercase tracking-widest">No questions in the tournament bank.</div>;
@@ -46,7 +72,7 @@ export function TournamentMatchGrading({ tournamentId, matchId, onClose }: { tou
           <h3 className="text-xl font-display text-white italic uppercase tracking-tight">Match Results</h3>
           <p className="text-[10px] text-gray-400 uppercase font-display tracking-widest mt-1">Set correct answers for the entire tournament for this match</p>
         </div>
-        <div className="flex gap-3 w-full md:w-auto font-display">
+        <div className="flex flex-wrap gap-3 w-full md:w-auto font-display">
           <button
             onClick={onClose}
             className="flex-1 md:flex-none px-6 py-3 border border-white/10 text-gray-400 active:text-white font-display text-xs uppercase tracking-[0.2em] rounded-xl active:bg-white/5 transition-all active:scale-95 text-center min-h-[44px]"
@@ -54,8 +80,16 @@ export function TournamentMatchGrading({ tournamentId, matchId, onClose }: { tou
             Cancel
           </button>
           <button
+            onClick={handleAiAutofill}
+            disabled={isAiPending || isPending}
+            className="flex-1 md:flex-none flex items-center justify-center gap-2 px-6 py-3 bg-white/10 hover:bg-white/20 active:bg-white/30 text-white font-display text-xs uppercase tracking-[0.2em] font-bold rounded-xl transition-all disabled:opacity-30 active:scale-95 min-h-[44px]"
+          >
+            <Cpu className="w-4 h-4 text-ipl-gold" />
+            {isAiPending ? "AI Thinking..." : "AI Autofill"}
+          </button>
+          <button
             onClick={handleSave}
-            disabled={isPending}
+            disabled={isPending || isAiPending}
             className="flex-1 md:flex-none flex items-center justify-center gap-2 px-8 py-3 bg-ipl-gold text-black font-display text-xs uppercase tracking-[0.2em] font-bold rounded-xl hover:bg-white transition-all disabled:opacity-30 active:scale-95 shadow-[0_0_20px_rgba(244,196,48,0.2)] min-h-[44px]"
           >
             {isPending ? "Propagating..." : "Release Scores"}
