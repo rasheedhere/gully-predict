@@ -366,7 +366,7 @@ async def calculate_match_scores(match_id: str, db: AsyncSession):
                 points_breakdown=breakdown,
             ))
 
-    await db.commit()
+    await db.flush()
     await update_leaderboard_cache(db, match.tournament_id)
     
     # Log event
@@ -376,53 +376,62 @@ async def calculate_match_scores(match_id: str, db: AsyncSession):
         match_id=match_id,
         message=f"Match {match.id} ({match.team1} vs {match.team2}) has been scored."
     )
-    await db.commit()
+    await db.flush()
 
 
 async def update_leaderboard_cache(db: AsyncSession, tournament_id: str):
     """
     Rebuilds LeaderboardCache for all users across global and league scopes
-    for a given tournament.
+    for a given tournament in a highly optimized way (bulk aggregations instead of N+1 loops).
     """
-    users_res = await db.execute(select(User).where(User.is_guest == False, User.is_dev == False))
-    all_users = users_res.scalars().all()
-    
-    # Pre-fetch tournament mappings
+    # Fetch all non-guest, non-dev users
+    users_res = await db.execute(select(User.id).where(User.is_guest == False, User.is_dev == False))
+    user_ids = [uid for (uid,) in users_res.all()]
+    if not user_ids:
+        return
+
+    # Pre-fetch tournament mappings base points
     mapping_res = await db.execute(
-        select(TournamentUserMapping).where(TournamentUserMapping.tournament_id == tournament_id)
+        select(TournamentUserMapping.user_id, TournamentUserMapping.base_points)
+        .where(TournamentUserMapping.tournament_id == tournament_id)
     )
-    mapping_map = {m.user_id: m.base_points for m in mapping_res.scalars().all()}
+    mapping_map = {uid: base_pts for uid, base_pts in mapping_res.all()}
 
-    # ── Global cache (league_id=None) ────────────────────────────────────────
-    for user in all_users:
-        uid = user.id
-        # Match points
-        pts_res = await db.execute(
-            select(LeaderboardEntry.points)
-            .join(Match, LeaderboardEntry.match_id == Match.id)
-            .where(
-                LeaderboardEntry.user_id == uid,
-                Match.tournament_id == tournament_id,
-                LeaderboardEntry.league_id == None,
-            )
+    # ── 1. Global Match Points ────────────────────────────────────────────────
+    # Sum of LeaderboardEntry.points where match.tournament_id == tournament_id and league_id is null
+    global_match_res = await db.execute(
+        select(LeaderboardEntry.user_id, func.sum(LeaderboardEntry.points))
+        .join(Match, LeaderboardEntry.match_id == Match.id)
+        .where(
+            LeaderboardEntry.user_id.in_(user_ids),
+            Match.tournament_id == tournament_id,
+            LeaderboardEntry.league_id == None,
         )
-        match_points = sum(pts for (pts,) in pts_res.all())
+        .group_by(LeaderboardEntry.user_id)
+    )
+    global_match_points = {uid: total for uid, total in global_match_res.all()}
 
-        # General campaign points (Global)
-        camp_pts_res = await db.execute(
-            select(LeaderboardEntry.points)
-            .join(Campaign, LeaderboardEntry.campaign_id == Campaign.id)
-            .where(
-                LeaderboardEntry.user_id == uid,
-                Campaign.tournament_id == tournament_id,
-                LeaderboardEntry.league_id == None,
-                LeaderboardEntry.match_id == None,
-            )
+    # ── 2. Global General Campaign Points ─────────────────────────────────────
+    # Sum of LeaderboardEntry.points where campaign.tournament_id == tournament_id, league_id is null, match_id is null
+    global_camp_res = await db.execute(
+        select(LeaderboardEntry.user_id, func.sum(LeaderboardEntry.points))
+        .join(Campaign, LeaderboardEntry.campaign_id == Campaign.id)
+        .where(
+            LeaderboardEntry.user_id.in_(user_ids),
+            Campaign.tournament_id == tournament_id,
+            LeaderboardEntry.league_id == None,
+            LeaderboardEntry.match_id == None,
         )
-        camp_points = sum(pts for (pts,) in camp_pts_res.all() if pts is not None)
+        .group_by(LeaderboardEntry.user_id)
+    )
+    global_camp_points = {uid: total for uid, total in global_camp_res.all()}
 
-        base_points = mapping_map.get(uid, 0)
-        total = match_points + camp_points + base_points
+    # Update or insert Global LeaderboardCache entries
+    for uid in user_ids:
+        match_pts = global_match_points.get(uid, 0) or 0
+        camp_pts = global_camp_points.get(uid, 0) or 0
+        base_pts = mapping_map.get(uid, 0) or 0
+        total = match_pts + camp_pts + base_pts
 
         cache_res = await db.execute(
             select(LeaderboardCache).where(
@@ -436,85 +445,98 @@ async def update_leaderboard_cache(db: AsyncSession, tournament_id: str):
             cache.total_points = total
         else:
             db.add(LeaderboardCache(
-                user_id=uid, tournament_id=tournament_id,
-                league_id=None, total_points=total
+                user_id=uid,
+                tournament_id=tournament_id,
+                league_id=None,
+                total_points=total
             ))
 
-    # ── Per-league caches ─────────────────────────────────────────────────────
-    leagues_res = await db.execute(select(League).where(League.tournament_id == tournament_id))
-    leagues = leagues_res.scalars().all()
+    # ── 3. Per-League Caches ──────────────────────────────────────────────────
+    # Fetch all leagues for this tournament
+    leagues_res = await db.execute(select(League.id).where(League.tournament_id == tournament_id))
+    league_ids = [lid for (lid,) in leagues_res.all()]
 
-    for league in leagues:
+    if league_ids:
+        # Fetch league user mappings (joined_at)
         mappings_res = await db.execute(
-            select(LeagueUserMapping).where(LeagueUserMapping.league_id == league.id)
+            select(LeagueUserMapping.league_id, LeagueUserMapping.user_id, LeagueUserMapping.joined_at)
+            .where(LeagueUserMapping.league_id.in_(league_ids))
         )
-        for mapping in mappings_res.scalars().all():
-            uid = mapping.user_id
-            joined_at = mapping.joined_at
+        league_user_mappings = mappings_res.all()
 
-            # Global match points earned AFTER joining
-            global_pts_res = await db.execute(
-                select(LeaderboardEntry.points)
-                .join(Match, LeaderboardEntry.match_id == Match.id)
-                .where(
-                    LeaderboardEntry.user_id == uid,
-                    Match.tournament_id == tournament_id,
-                    LeaderboardEntry.league_id == None,
-                    Match.start_time >= joined_at,
+        # Group mappings by league for processing
+        for lid in league_ids:
+            mappings_for_league = [m for m in league_user_mappings if m.league_id == lid]
+            if not mappings_for_league:
+                continue
+
+            for mapping in mappings_for_league:
+                uid = mapping.user_id
+                joined_at = mapping.joined_at
+
+                # Global match points earned AFTER joining
+                global_pts_res = await db.execute(
+                    select(func.sum(LeaderboardEntry.points))
+                    .join(Match, LeaderboardEntry.match_id == Match.id)
+                    .where(
+                        LeaderboardEntry.user_id == uid,
+                        Match.tournament_id == tournament_id,
+                        LeaderboardEntry.league_id == None,
+                        Match.start_time >= joined_at,
+                    )
                 )
-            )
-            global_match_points = sum(pts for (pts,) in global_pts_res.all())
+                global_match_pts = global_pts_res.scalar() or 0
 
-            # Global general campaign points earned AFTER joining
-            # We use Campaign.ends_at (fallback to created_at) to determine if it locked after joining
-            global_camp_pts_res = await db.execute(
-                select(LeaderboardEntry.points)
-                .join(Campaign, LeaderboardEntry.campaign_id == Campaign.id)
-                .where(
-                    LeaderboardEntry.user_id == uid,
-                    Campaign.tournament_id == tournament_id,
-                    LeaderboardEntry.league_id == None,
-                    LeaderboardEntry.match_id == None,
-                    func.coalesce(Campaign.ends_at, Campaign.created_at) >= joined_at,
+                # Global general campaign points earned AFTER joining
+                global_camp_pts_res = await db.execute(
+                    select(func.sum(LeaderboardEntry.points))
+                    .join(Campaign, LeaderboardEntry.campaign_id == Campaign.id)
+                    .where(
+                        LeaderboardEntry.user_id == uid,
+                        Campaign.tournament_id == tournament_id,
+                        LeaderboardEntry.league_id == None,
+                        LeaderboardEntry.match_id == None,
+                        func.coalesce(Campaign.ends_at, Campaign.created_at) >= joined_at,
+                    )
                 )
-            )
-            global_camp_points = sum(pts for (pts,) in global_camp_pts_res.all() if pts is not None)
+                global_camp_pts = global_camp_pts_res.scalar() or 0
 
-            # League-specific campaign points
-            league_pts_res = await db.execute(
-                select(LeaderboardEntry.points).where(
-                    LeaderboardEntry.user_id == uid,
-                    LeaderboardEntry.league_id == league.id,
+                # League-specific campaign points
+                league_pts_res = await db.execute(
+                    select(func.sum(LeaderboardEntry.points))
+                    .where(
+                        LeaderboardEntry.user_id == uid,
+                        LeaderboardEntry.league_id == lid,
+                    )
                 )
-            )
-            league_points = sum(pts for (pts,) in league_pts_res.all() if pts is not None)
+                league_pts = league_pts_res.scalar() or 0
 
-            base_points = mapping_map.get(uid, 0)
-            total = global_match_points + global_camp_points + league_points + base_points
+                base_pts = mapping_map.get(uid, 0) or 0
+                total = global_match_pts + global_camp_pts + league_pts + base_pts
 
-            cache_res = await db.execute(
-                select(LeaderboardCache).where(
-                    LeaderboardCache.user_id == uid,
-                    LeaderboardCache.tournament_id == tournament_id,
-                    LeaderboardCache.league_id == league.id,
+                cache_res = await db.execute(
+                    select(LeaderboardCache).where(
+                        LeaderboardCache.user_id == uid,
+                        LeaderboardCache.tournament_id == tournament_id,
+                        LeaderboardCache.league_id == lid,
+                    )
                 )
-            )
-            cache = cache_res.scalars().first()
-            if cache:
-                cache.total_points = total
-            else:
-                db.add(LeaderboardCache(
-                    user_id=uid,
-                    tournament_id=tournament_id,
-                    league_id=league.id,
-                    total_points=total
-                ))
+                cache = cache_res.scalars().first()
+                if cache:
+                    cache.total_points = total
+                else:
+                    db.add(LeaderboardCache(
+                        user_id=uid,
+                        tournament_id=tournament_id,
+                        league_id=lid,
+                        total_points=total
+                    ))
 
-    await db.commit()
+    await db.flush()
 
     # Invalidate memory cache for all leaderboards, analysis, and podiums
     from backend.utils.cache import backend_cache
-    backend_cache.invalidate("leaderboard_*")
-    backend_cache.invalidate("analysis_*")
-    backend_cache.invalidate("match_podiums")
-    backend_cache.invalidate("user_pred_status:*")
+    await backend_cache.invalidate("leaderboard_*")
+    await backend_cache.invalidate("analysis_*")
+    await backend_cache.invalidate("match_podiums")
+    await backend_cache.invalidate("user_pred_status:*")

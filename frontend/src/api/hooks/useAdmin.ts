@@ -286,6 +286,7 @@ export function useUpdateTournamentMatchAnswers() {
     },
     onSuccess: (_, { tournamentId, matchId }) => {
       queryClient.invalidateQueries({ queryKey: ['tournaments', tournamentId, 'matches', matchId, 'answers'] });
+      queryClient.invalidateQueries({ queryKey: ['matches'] });
       queryClient.invalidateQueries({ queryKey: ['admin', 'campaigns'] });
       queryClient.invalidateQueries({ queryKey: ['campaigns'] });
     },

@@ -448,6 +448,9 @@ async def set_tournament_match_answers(
     from backend.scoring import calculate_match_scores
     await calculate_match_scores(match_id, db)
 
+    # Commit the transaction once scoring completes successfully
+    await db.commit()
+
     # Invalidate cache for leaderboards & podiums
     from backend.utils.cache import backend_cache
     await backend_cache.invalidate("leaderboard_*")
