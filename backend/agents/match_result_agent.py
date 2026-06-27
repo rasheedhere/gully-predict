@@ -99,10 +99,23 @@ class MatchResultAgent:
 
         status_val = result_data.get("match_status", "completed").lower()
 
+        # Fetch the grading agent user by email
+        from backend.models import User
+        agent_res = await db.execute(select(User).where(User.email == "gradingagent@gully-predict.com"))
+        agent_user = agent_res.scalars().first()
+        
+        # Fallback to general AI user if the grading agent email is not found
+        if not agent_user:
+            ai_user_res = await db.execute(select(User).where(User.is_ai == True))
+            agent_user = ai_user_res.scalars().first()
+
+        agent_user_id = agent_user.id if agent_user else None
+
         if status_val in ("cancelled", "abandoned", "washed out") or result_data.get("winner") == "No Result":
             print(f"[MatchResultAgent] WARNING: Match {match_id} was identified as {status_val}. Skipping scoring.")
             match.status = MatchStatus.cancelled
             match.report_method = "agent"
+            match.reported_by = agent_user_id
             match.raw_result_json = result_data
             await db.commit()
             return result_data
@@ -111,6 +124,7 @@ class MatchResultAgent:
         match.raw_result_json = result_data
         match.status = MatchStatus.completed
         match.report_method = "agent"
+        match.reported_by = agent_user_id
         
         await db.commit()
         await db.refresh(match)

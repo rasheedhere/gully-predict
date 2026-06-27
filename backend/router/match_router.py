@@ -97,7 +97,7 @@ async def list_matches(tournament_id: Optional[str] = None, db: AsyncSession = D
             "sport": m.tournament.sport if m.tournament else "cricket",
             "gender": m.tournament.gender if m.tournament else "mens",
             "report_method": m.report_method,
-            "reported_by_name": m.reporter.name if m.reporter else None,
+            "reported_by_name": m.reporter.name if m.reporter else ("GullyPredict Agent" if m.report_method == "agent" else None),
             "reported_by_email": m.reporter.email if m.reporter else None,
             "winner": m.raw_result_json.get("winner") if m.raw_result_json else None,
             "raw_result_json": m.raw_result_json,
@@ -257,7 +257,7 @@ async def get_match(
             "gender": m.tournament.gender if m.tournament else "mens",
         } if m.tournament else None,
         "report_method": m.report_method,
-        "reported_by_name": m.reporter.name if m.reporter else None,
+        "reported_by_name": m.reporter.name if m.reporter else ("GullyPredict Agent" if m.report_method == "agent" else None),
         "reported_by_email": m.reporter.email if m.reporter else None,
     }
 
