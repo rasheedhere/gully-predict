@@ -27,7 +27,12 @@ if "channel_binding=" in DATABASE_URL:
     DATABASE_URL = DATABASE_URL.rstrip('?&')
 
 # Create the async engine
-engine = create_async_engine(DATABASE_URL, echo=False)
+engine = create_async_engine(
+    DATABASE_URL,
+    echo=False,
+    pool_pre_ping=True,
+    pool_recycle=1800,
+)
 
 # Create the async session factory
 async_session = async_sessionmaker(
