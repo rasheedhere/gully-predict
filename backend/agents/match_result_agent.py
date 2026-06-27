@@ -92,7 +92,7 @@ class MatchResultAgent:
         IMPORTANT: Use the Google Search tool to verify the ACTUAL results for this match in {match.start_time.year}.
         Verify if the match was abandoned, washed out, cancelled, or finished.
 
-        IMPORTANT: For any question of type 'multiple_choice' or 'dropdown', the correct answer MUST be chosen exactly from the provided 'Options' list. Do not paraphrase or alter the option spelling.
+        IMPORTANT: For any question where the 'Type' is 'toggle', 'multiple_choice', or 'dropdown', the correct answer MUST be chosen exactly from the provided 'Options' list. Do not paraphrase or alter the option spelling. If the 'Type' is 'free_number', the answer MUST be numeric, and if the 'Type' is 'free_text', the answer MUST be a string.
 
         Please determine the correct answers for the following match questions:
         1. match_status: 'completed', 'cancelled', 'abandoned', or 'live'
