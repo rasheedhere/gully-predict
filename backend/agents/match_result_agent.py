@@ -1,8 +1,9 @@
 import json
 from sqlalchemy.future import select
+from sqlalchemy import or_
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
-from backend.models import Match, MatchStatus, Campaign, Tournament
+from backend.models import Match, MatchStatus, Campaign, Tournament, TournamentQuestion, TournamentMatchAnswer
 from .gemini_client import gemini_client
 
 class MatchResultAgent:
@@ -35,27 +36,39 @@ class MatchResultAgent:
         elif tournament_gender.lower() == "womens":
             gender_str = "Women's "
 
-        # Fetch the master campaign and its questions to make the prompt dynamic
-        cam_res = await db.execute(
-            select(Campaign).options(selectinload(Campaign.questions), selectinload(Campaign.target_matches))
-            .where(Campaign.tournament_id == match.tournament_id, Campaign.is_master == True)
-        )
-        all_masters = cam_res.scalars().all()
-        master_cam = None
-        fallback_master = None
-        for mc in all_masters:
-            if mc.target_matches:
-                if any(tm.id == match_id for tm in mc.target_matches):
-                    master_cam = mc
-                    break
-            else:
-                fallback_master = mc
+        # 1. Fetch tournament questions (master bank) for the tournament
+        questions_to_use = []
+        if match.tournament_id:
+            tq_res = await db.execute(
+                select(TournamentQuestion).where(TournamentQuestion.tournament_id == match.tournament_id)
+            )
+            questions_to_use = list(tq_res.scalars().all())
 
-        if not master_cam:
-            master_cam = fallback_master
+        # 2. Fall back to master campaign questions if no tournament question bank is found
+        if not questions_to_use:
+            cam_res = await db.execute(
+                select(Campaign).options(selectinload(Campaign.questions), selectinload(Campaign.target_matches))
+                .where(Campaign.tournament_id == match.tournament_id, Campaign.is_master == True)
+            )
+            all_masters = cam_res.scalars().all()
+            master_cam = None
+            fallback_master = None
+            for mc in all_masters:
+                if mc.target_matches:
+                    if any(tm.id == match_id for tm in mc.target_matches):
+                        master_cam = mc
+                        break
+                else:
+                    fallback_master = mc
 
-        if not master_cam or not master_cam.questions:
-            print(f"[MatchResultAgent] No campaign questions found for match {match_id} in tournament {match.tournament_id}. Skipping grading.")
+            if not master_cam:
+                master_cam = fallback_master
+            
+            if master_cam:
+                questions_to_use = master_cam.questions
+
+        if not questions_to_use:
+            print(f"[MatchResultAgent] No campaign or tournament questions found for match {match_id}. Skipping grading.")
             return None
 
         questions_prompt = ""
@@ -63,7 +76,7 @@ class MatchResultAgent:
             "match_status": "completed"
         }
 
-        for q in master_cam.questions:
+        for q in questions_to_use:
             key_name = q.key if q.key else q.id
             questions_prompt += f"- {key_name}: {q.question_text} (Type: {q.question_type.value}, Options: {q.options or 'N/A'})\n"
             json_template[key_name] = "..."
@@ -78,6 +91,8 @@ class MatchResultAgent:
 
         IMPORTANT: Use the Google Search tool to verify the ACTUAL results for this match in {match.start_time.year}.
         Verify if the match was abandoned, washed out, cancelled, or finished.
+
+        IMPORTANT: For any question of type 'multiple_choice' or 'dropdown', the correct answer MUST be chosen exactly from the provided 'Options' list. Do not paraphrase or alter the option spelling.
 
         Please determine the correct answers for the following match questions:
         1. match_status: 'completed', 'cancelled', 'abandoned', or 'live'
@@ -126,18 +141,71 @@ class MatchResultAgent:
         match.report_method = "agent"
         match.reported_by = agent_user_id
         
+        # 3. Upsert TournamentMatchAnswer
+        if match.tournament_id:
+            tma_res = await db.execute(
+                select(TournamentMatchAnswer).where(
+                    TournamentMatchAnswer.tournament_id == match.tournament_id,
+                    TournamentMatchAnswer.match_id == match.id
+                )
+            )
+            tma = tma_res.scalars().first()
+            
+            correct_answers = {
+                q.key if q.key else q.id: result_data[q.key if q.key else q.id]
+                for q in questions_to_use
+                if (q.key if q.key else q.id) in result_data
+            }
+            
+            if tma:
+                tma.correct_answers = correct_answers
+            else:
+                tma = TournamentMatchAnswer(
+                    tournament_id=match.tournament_id,
+                    match_id=match.id,
+                    correct_answers=correct_answers
+                )
+                db.add(tma)
+        
         await db.commit()
         await db.refresh(match)
         
-        print(f"[MatchResultAgent] Match {match.id} marked completed. Triggering scoring engine...")
+        print(f"[MatchResultAgent] Match {match.id} marked completed. Triggering campaign scoring...")
         
-        # Trigger the scoring engine
+        # 4. Trigger Campaign-wide scoring
+        if match.tournament_id:
+            from backend.models import CampaignStatus as CS, CampaignType
+            from backend.campaigns_scoring import calculate_campaign_scores
+            
+            try:
+                campaigns_res = await db.execute(
+                    select(Campaign).options(selectinload(Campaign.questions), selectinload(Campaign.target_matches)).where(
+                        Campaign.tournament_id == match.tournament_id,
+                        Campaign.type == CampaignType.match,
+                        Campaign.status == CS.active,
+                        or_(
+                            Campaign.target_matches.any(Match.id == match.id),
+                            ~Campaign.target_matches.any()
+                        )
+                    )
+                )
+                campaigns = campaigns_res.scalars().all()
+                for campaign in campaigns:
+                    try:
+                        await calculate_campaign_scores(campaign.id, match.id, db)
+                        print(f"[MatchResultAgent] Successfully scored campaign {campaign.id} for match {match.id}")
+                    except Exception as e:
+                        print(f"[MatchResultAgent] Error scoring campaign {campaign.id}: {str(e)}")
+            except Exception as e:
+                print(f"[MatchResultAgent] Error querying/scoring campaigns: {str(e)}")
+                
+        # Also run legacy / compatibility match scoring
         from backend.scoring import calculate_match_scores
         try:
             await calculate_match_scores(match.id, db)
-            print(f"[MatchResultAgent] Scoring completed successfully for match {match.id}.")
+            print(f"[MatchResultAgent] Legacy scoring completed successfully for match {match.id}.")
         except Exception as e:
-            print(f"[MatchResultAgent] Error during scoring for match {match.id}: {str(e)}")
+            print(f"[MatchResultAgent] Error during legacy scoring for match {match.id}: {str(e)}")
 
         return result_data
 
