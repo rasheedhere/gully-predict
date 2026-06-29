@@ -30,7 +30,7 @@ import {
 import { getUserDisplayName } from '../utils/userUtils';
 import { useMatches } from '../api/hooks/useMatches';
 import { useCreateLeague, useLeagueDetails, useToggleLeagueAdmin, useKickMember } from '../api/hooks/useLeagues';
-import { teamColors, getTeamColor, getTeamShortName } from '../utils/teamColors';
+import { teamColors, nationalTeamColors, getTeamColor, getTeamShortName } from '../utils/teamColors';
 import { getTeamLogo } from '../utils/teamLogos';
 import { useAdminCampaigns } from '../api/hooks/useCampaigns';
 import { useAdminAnnouncements, useCreateAnnouncement, useUpdateAnnouncement, useDeleteAnnouncement } from '../api/hooks/useAnnouncements';
@@ -1028,14 +1028,19 @@ function TournamentMatchManager({ tournamentId, onBack }: { tournamentId: string
   const createMatch = useCreateMatch();
   const updateMatch = useUpdateMatch();
   const bulkImport = useBulkImportMatches();
-  const { data: rankings } = useTournamentRankings(tournamentId);
 
   const teamOptions = useMemo(() => {
-    if (rankings && rankings.length > 0) {
-      return rankings.map(r => r.team_name);
+    const teamsSet = new Set<string>();
+
+    if (matches) {
+      matches.forEach(m => {
+        if (m.team1) teamsSet.add(m.team1);
+        if (m.team2) teamsSet.add(m.team2);
+      });
     }
-    return Object.keys(teamColors);
-  }, [rankings]);
+
+    return Array.from(teamsSet).sort();
+  }, [matches]);
 
   const { setHeaderTitle } = useUiStore();
 
@@ -2385,16 +2390,15 @@ function TournamentRankingsManager({ tournamentId }: { tournamentId: string }) {
                     {rankings.map((r, idx) => {
                       const teamColor = getTeamColor(r.team_name, "");
                       const teamLogo = getTeamLogo(r.team_name);
-                      
+
                       return (
                         <tr key={r.id || idx} className="hover:bg-white/5 transition-colors group">
                           <td className="py-4 px-6 text-center">
-                            <span className={`inline-flex items-center justify-center w-7 h-7 rounded-lg text-xs font-mono font-bold ${
-                              r.rank === 1 ? 'bg-ipl-gold/20 text-ipl-gold border border-ipl-gold/40' :
+                            <span className={`inline-flex items-center justify-center w-7 h-7 rounded-lg text-xs font-mono font-bold ${r.rank === 1 ? 'bg-ipl-gold/20 text-ipl-gold border border-ipl-gold/40' :
                               r.rank === 2 ? 'bg-gray-400/20 text-gray-300 border border-gray-400/40' :
-                              r.rank === 3 ? 'bg-amber-600/20 text-amber-500 border border-amber-600/40' :
-                              'bg-white/5 text-gray-400 border border-white/10'
-                            }`}>
+                                r.rank === 3 ? 'bg-amber-600/20 text-amber-500 border border-amber-600/40' :
+                                  'bg-white/5 text-gray-400 border border-white/10'
+                              }`}>
                               {r.rank}
                             </span>
                           </td>
