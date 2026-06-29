@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { AdminModal } from '../components/Admin/AdminModal';
 import { TournamentMatchGrading } from '../components/Admin/TournamentMatchGrading';
 import { Users, ShieldCheck, Mail, Trash2, Cpu, Plus, Trophy, RefreshCw, Calendar, MapPin, Sword, Star, Pencil, X, List, ChevronLeft, Search, ChevronDown, Megaphone, ListOrdered } from 'lucide-react';
@@ -1028,6 +1028,14 @@ function TournamentMatchManager({ tournamentId, onBack }: { tournamentId: string
   const createMatch = useCreateMatch();
   const updateMatch = useUpdateMatch();
   const bulkImport = useBulkImportMatches();
+  const { data: rankings } = useTournamentRankings(tournamentId);
+
+  const teamOptions = useMemo(() => {
+    if (rankings && rankings.length > 0) {
+      return rankings.map(r => r.team_name);
+    }
+    return Object.keys(teamColors);
+  }, [rankings]);
 
   const { setHeaderTitle } = useUiStore();
 
@@ -1403,7 +1411,7 @@ function TournamentMatchManager({ tournamentId, onBack }: { tournamentId: string
                     className="w-full bg-black/40 border-2 border-white/10 p-3.5 rounded-2xl text-white font-display text-sm focus:border-ipl-gold focus:outline-none transition-all"
                   >
                     <option value="" className="bg-ipl-navy">Select...</option>
-                    {Object.keys(teamColors).map(t => <option key={t} value={t} className="bg-ipl-navy">{t}</option>)}
+                    {teamOptions.map(t => <option key={t} value={t} className="bg-ipl-navy">{t}</option>)}
                   </select>
                 </div>
                 <div>
@@ -1414,7 +1422,7 @@ function TournamentMatchManager({ tournamentId, onBack }: { tournamentId: string
                     className="w-full bg-black/40 border-2 border-white/10 p-3.5 rounded-2xl text-white font-display text-sm focus:border-ipl-gold focus:outline-none transition-all"
                   >
                     <option value="" className="bg-ipl-navy">Select...</option>
-                    {Object.keys(teamColors).map(t => <option key={t} value={t} className="bg-ipl-navy">{t}</option>)}
+                    {teamOptions.map(t => <option key={t} value={t} className="bg-ipl-navy">{t}</option>)}
                   </select>
                 </div>
               </div>
