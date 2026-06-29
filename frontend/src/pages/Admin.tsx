@@ -1028,10 +1028,12 @@ function TournamentMatchManager({ tournamentId, onBack }: { tournamentId: string
   const createMatch = useCreateMatch();
   const updateMatch = useUpdateMatch();
   const bulkImport = useBulkImportMatches();
+  const { data: rankings } = useTournamentRankings(tournamentId);
 
   const teamOptions = useMemo(() => {
     const teamsSet = new Set<string>();
 
+    // 1. Add teams from match fixtures
     if (matches) {
       matches.forEach(m => {
         if (m.team1) teamsSet.add(m.team1);
@@ -1039,8 +1041,22 @@ function TournamentMatchManager({ tournamentId, onBack }: { tournamentId: string
       });
     }
 
+    // 2. Add teams from rankings data
+    if (rankings) {
+      rankings.forEach(r => {
+        if (r.team_name) teamsSet.add(r.team_name);
+      });
+    }
+
+    // 3. Add fallbacks (IPL and National Teams)
+    const fallbackTeams = [
+      ...Object.keys(teamColors || {}),
+      ...Object.keys(nationalTeamColors || {})
+    ];
+    fallbackTeams.forEach(t => teamsSet.add(t));
+
     return Array.from(teamsSet).sort();
-  }, [matches]);
+  }, [matches, rankings]);
 
   const { setHeaderTitle } = useUiStore();
 
@@ -1410,25 +1426,31 @@ function TournamentMatchManager({ tournamentId, onBack }: { tournamentId: string
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-[10px] font-display uppercase tracking-[0.2em] text-gray-500 mb-2">Team 1</label>
-                  <select
+                  <input
+                    type="text"
                     value={team1}
                     onChange={(e) => setTeam1(e.target.value)}
+                    list="team1-options"
+                    placeholder="Select or type team..."
                     className="w-full bg-black/40 border-2 border-white/10 p-3.5 rounded-2xl text-white font-display text-sm focus:border-ipl-gold focus:outline-none transition-all"
-                  >
-                    <option value="" className="bg-ipl-navy">Select...</option>
-                    {teamOptions.map(t => <option key={t} value={t} className="bg-ipl-navy">{t}</option>)}
-                  </select>
+                  />
+                  <datalist id="team1-options">
+                    {teamOptions.map(t => <option key={t} value={t} />)}
+                  </datalist>
                 </div>
                 <div>
                   <label className="block text-[10px] font-display uppercase tracking-[0.2em] text-gray-500 mb-2">Team 2</label>
-                  <select
+                  <input
+                    type="text"
                     value={team2}
                     onChange={(e) => setTeam2(e.target.value)}
+                    list="team2-options"
+                    placeholder="Select or type team..."
                     className="w-full bg-black/40 border-2 border-white/10 p-3.5 rounded-2xl text-white font-display text-sm focus:border-ipl-gold focus:outline-none transition-all"
-                  >
-                    <option value="" className="bg-ipl-navy">Select...</option>
-                    {teamOptions.map(t => <option key={t} value={t} className="bg-ipl-navy">{t}</option>)}
-                  </select>
+                  />
+                  <datalist id="team2-options">
+                    {teamOptions.map(t => <option key={t} value={t} />)}
+                  </datalist>
                 </div>
               </div>
               <div>
