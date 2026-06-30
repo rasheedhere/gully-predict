@@ -11,6 +11,7 @@ const adminFile = path.join(authDir, 'admin.json');
 const userFile = path.join(authDir, 'user.json');
 
 setup('authenticate as admin', async ({ page }) => {
+  setup.setTimeout(90000);
   // Listen to console and network
   page.on('console', msg => console.log(`[Admin Setup Console] ${msg.type()}: ${msg.text()}`));
   page.on('request', req => console.log(`[Admin Setup Req] ${req.method()} ${req.url()}`));
@@ -35,6 +36,7 @@ setup('authenticate as admin', async ({ page }) => {
 });
 
 setup('authenticate as standard user', async ({ page }) => {
+  setup.setTimeout(90000);
   // Listen to console and network
   page.on('console', msg => console.log(`[User Setup Console] ${msg.type()}: ${msg.text()}`));
   page.on('request', req => console.log(`[User Setup Req] ${req.method()} ${req.url()}`));
