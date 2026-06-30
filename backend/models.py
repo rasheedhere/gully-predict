@@ -1,6 +1,6 @@
 from datetime import datetime, timezone
 import enum
-from sqlalchemy import String, Integer, Float, DateTime, Boolean, JSON, ForeignKey, Enum as SAEnum, UniqueConstraint
+from sqlalchemy import String, Integer, Float, DateTime, Boolean, JSON, ForeignKey, Enum as SAEnum, UniqueConstraint, Text
 from sqlalchemy.orm import relationship, Mapped, mapped_column
 from typing import Any, Optional, List
 from .database import Base
@@ -417,4 +417,34 @@ class TournamentTeamRanking(Base):
     rank: Mapped[int] = mapped_column(Integer)
     rating: Mapped[float] = mapped_column(Float, default=0.0)
     metadata_json: Mapped[Optional[dict]] = mapped_column(JSON, nullable=True)
+
+
+class AdminChatSession(Base):
+    __tablename__ = "admin_chat_sessions"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    user_id: Mapped[str] = mapped_column(String, ForeignKey("users.id"), index=True)
+    title: Mapped[str] = mapped_column(String)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
+
+    messages: Mapped[List["AdminChatMessage"]] = relationship(
+        "AdminChatMessage", back_populates="session", cascade="all, delete-orphan"
+    )
+    user: Mapped["User"] = relationship("User")
+
+
+class AdminChatMessage(Base):
+    __tablename__ = "admin_chat_messages"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    session_id: Mapped[int] = mapped_column(Integer, ForeignKey("admin_chat_sessions.id", ondelete="CASCADE"), index=True)
+    role: Mapped[str] = mapped_column(String)  # "user" or "model" / "assistant"
+    content: Mapped[str] = mapped_column(Text)
+    sql_query: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    query_results: Mapped[Optional[Any]] = mapped_column(JSON, nullable=True)
+    chart_config: Mapped[Optional[dict]] = mapped_column(JSON, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
+
+    session: Mapped["AdminChatSession"] = relationship("AdminChatSession", back_populates="messages")
 
