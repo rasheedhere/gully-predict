@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import {
   ResponsiveContainer,
   BarChart,
@@ -128,7 +128,7 @@ function RechartsViewer({ data, config }: { data: any[]; config: any }) {
   const COLORS = ['#F5C043', '#1F51FF', '#00E676', '#FF3D00', '#D500F9', '#FFD600', '#00E5FF'];
 
   return (
-    <div className="w-full h-full min-h-[300px] flex flex-col justify-between p-4 bg-slate-955 rounded-2xl border border-white/10 backdrop-blur-md">
+    <div className="w-full h-full min-h-[300px] flex flex-col justify-between p-4 bg-slate-950 rounded-2xl border border-white/10 backdrop-blur-md">
       <div className="flex-1 w-full h-[320px] mt-2">
         <ResponsiveContainer width="100%" height="100%">
           {chartType === 'bar' ? (
@@ -202,6 +202,127 @@ function RechartsViewer({ data, config }: { data: any[]; config: any }) {
   );
 }
 
+function MarkdownRenderer({ text }: { text: string }) {
+  const lines = text.split('\n');
+  const elements: React.ReactNode[] = [];
+  let currentList: { type: 'ul' | 'ol'; items: string[] } | null = null;
+
+  const renderInline = (str: string): React.ReactNode[] => {
+    const parts: React.ReactNode[] = [];
+    let currentIdx = 0;
+    const regex = /(\*\*|__)(.*?)\1|(`)(.*?)\3/g;
+    let match;
+
+    while ((match = regex.exec(str)) !== null) {
+      const matchIdx = match.index;
+      if (matchIdx > currentIdx) {
+        parts.push(str.substring(currentIdx, matchIdx));
+      }
+      if (match[1]) {
+        parts.push(<strong key={matchIdx} className="font-bold text-white">{match[2]}</strong>);
+      } else if (match[3]) {
+        parts.push(<code key={matchIdx} className="font-mono text-xs bg-black/40 px-1.5 py-0.5 rounded border border-white/5 text-emerald-400">{match[4]}</code>);
+      }
+      currentIdx = regex.lastIndex;
+    }
+
+    if (currentIdx < str.length) {
+      parts.push(str.substring(currentIdx));
+    }
+
+    return parts.length > 0 ? parts : [str];
+  };
+
+  const flushList = (key: string | number) => {
+    if (!currentList) return null;
+    const listType = currentList.type;
+    const items = currentList.items;
+    currentList = null;
+
+    if (listType === 'ul') {
+      return (
+        <ul key={key} className="list-disc pl-5 my-2 space-y-1 text-gray-200">
+          {items.map((item, idx) => (
+            <li key={idx}>{renderInline(item)}</li>
+          ))}
+        </ul>
+      );
+    } else {
+      return (
+        <ol key={key} className="list-decimal pl-5 my-2 space-y-1 text-gray-200">
+          {items.map((item, idx) => (
+            <li key={idx}>{renderInline(item)}</li>
+          ))}
+        </ol>
+      );
+    }
+  };
+
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+    const ulMatch = line.match(/^(\s*)[-*•]\s+(.*)/);
+    const olMatch = line.match(/^(\s*)\d+\.\s+(.*)/);
+
+    if (ulMatch) {
+      if (!currentList || currentList.type !== 'ul') {
+        if (currentList) {
+          elements.push(flushList(`list-${i}`));
+        }
+        currentList = { type: 'ul', items: [] };
+      }
+      currentList.items.push(ulMatch[2]);
+      continue;
+    }
+
+    if (olMatch) {
+      if (!currentList || currentList.type !== 'ol') {
+        if (currentList) {
+          elements.push(flushList(`list-${i}`));
+        }
+        currentList = { type: 'ol', items: [] };
+      }
+      currentList.items.push(olMatch[2]);
+      continue;
+    }
+
+    if (currentList) {
+      elements.push(flushList(`list-${i}`));
+    }
+
+    const headerMatch = line.match(/^(#{1,6})\s+(.*)/);
+    if (headerMatch) {
+      const level = headerMatch[1].length;
+      const content = headerMatch[2];
+      const headerClasses =
+        level === 1 ? "text-xl font-bold text-white mt-4 mb-2 font-display" :
+        level === 2 ? "text-lg font-bold text-white mt-3 mb-2 font-display" :
+        "text-base font-bold text-white mt-2 mb-1 font-display";
+      const tag = `h${Math.min(level, 6)}` as 'h1' | 'h2' | 'h3' | 'h4' | 'h5' | 'h6';
+      elements.push(
+        React.createElement(tag, { key: i, className: headerClasses }, ...renderInline(content))
+      );
+      continue;
+    }
+
+    if (line.trim() === '') {
+      elements.push(<div key={i} className="h-2" />);
+      continue;
+    }
+
+    elements.push(
+      <p key={i} className="mb-2 leading-relaxed">
+        {renderInline(line)}
+      </p>
+    );
+  }
+
+  if (currentList) {
+    elements.push(flushList('list-end'));
+  }
+
+  return <div className="space-y-1">{elements}</div>;
+}
+
 export function AdminSQLAssistant() {
   const [isOpen, setIsOpen] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(typeof window !== 'undefined' ? window.innerWidth >= 768 : true);
@@ -213,6 +334,17 @@ export function AdminSQLAssistant() {
   const [loadingSessions, setLoadingSessions] = useState(false);
   const [showRawMap, setShowRawMap] = useState<Record<string, boolean>>({});
   const [activeChatTab, setActiveChatTab] = useState<'chat' | 'chart'>('chat');
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  };
+
+  useEffect(() => {
+    if (activeChatTab === 'chat') {
+      scrollToBottom();
+    }
+  }, [messages, loading, activeChatTab]);
 
   const latestChartMessage = useMemo(() => {
     return [...messages]
@@ -365,7 +497,7 @@ export function AdminSQLAssistant() {
           
           {/* Sidebar for Sessions */}
           {sidebarOpen && (
-            <div className="absolute md:relative left-0 top-[57px] bottom-[69px] md:top-0 md:bottom-0 z-20 w-[200px] md:w-[220px] bg-slate-950/95 md:bg-slate-955 border-r border-white/10 flex flex-col shrink-0">
+            <div className="absolute md:relative left-0 top-[57px] bottom-[69px] md:top-0 md:bottom-0 z-20 w-[200px] md:w-[220px] bg-slate-950 border-r border-white/10 flex flex-col shrink-0">
               <div className="p-3 border-b border-white/10 flex items-center justify-between min-h-[56px]">
                 <span className="font-display text-[9px] uppercase tracking-widest text-gray-500 font-bold">Sessions</span>
                 <button
@@ -420,7 +552,7 @@ export function AdminSQLAssistant() {
           {/* Main Chat Area */}
           <div className="flex-1 flex flex-col bg-slate-900/50">
             {/* Header */}
-            <div className="px-4 py-3 bg-gradient-to-r from-slate-955 via-slate-900 to-slate-800 border-b border-white/10 flex justify-between items-center min-h-[56px]">
+            <div className="px-4 py-3 bg-gradient-to-r from-slate-950 via-slate-900 to-slate-800 border-b border-white/10 flex justify-between items-center min-h-[56px]">
               <div className="flex items-center gap-2">
                 <button
                   onClick={() => setSidebarOpen(!sidebarOpen)}
@@ -444,7 +576,7 @@ export function AdminSQLAssistant() {
 
             {/* Messages Area */}
             {latestChartMessage && (
-              <div className="flex border-b border-white/10 bg-slate-955 p-1 backdrop-blur-md">
+              <div className="flex border-b border-white/10 bg-slate-950 p-1 backdrop-blur-md">
                 <button
                   type="button"
                   onClick={() => setActiveChatTab('chat')}
@@ -497,7 +629,13 @@ export function AdminSQLAssistant() {
                           : 'bg-white/5 text-gray-200 border border-white/10 rounded-bl-none'
                       }`}
                     >
-                      <p className="break-words select-text leading-relaxed">{msg.text}</p>
+                      {msg.sender === 'user' ? (
+                          <p className="break-words select-text leading-relaxed">{msg.text}</p>
+                      ) : (
+                        <div className="select-text">
+                          <MarkdownRenderer text={msg.text} />
+                        </div>
+                      )}
                       
                       {msg.sql && (
                         <div className="mt-3 bg-black/60 p-2.5 rounded-lg border border-white/10 font-mono text-[11px] text-emerald-400 overflow-x-auto whitespace-pre select-text">
@@ -509,7 +647,7 @@ export function AdminSQLAssistant() {
                       )}
 
                       {msg.error && (
-                        <div className="mt-2 bg-red-955 p-2.5 rounded-lg border border-red-500/20 text-red-400 font-mono text-[11px] select-text">
+                        <div className="mt-2 bg-red-950/60 p-2.5 rounded-lg border border-red-500/20 text-red-400 font-mono text-[11px] select-text">
                           <div className="text-[9px] text-red-500 font-sans font-bold mb-1 tracking-widest">DATABASE ERROR</div>
                           {msg.error}
                         </div>
@@ -553,6 +691,7 @@ export function AdminSQLAssistant() {
                     </div>
                   </div>
                 )}
+                <div ref={messagesEndRef} />
               </div>
             ) : (
               <div className="flex-1 p-4 overflow-y-auto flex flex-col">
@@ -569,7 +708,7 @@ export function AdminSQLAssistant() {
             )}
 
             {/* Input Form */}
-            <form onSubmit={handleSend} className="p-3 bg-slate-955 border-t border-white/10 flex gap-2 min-h-[68px]">
+            <form onSubmit={handleSend} className="p-3 bg-slate-950 border-t border-white/10 flex gap-2 min-h-[68px]">
               <input
                 type="text"
                 value={input}
