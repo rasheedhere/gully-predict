@@ -39,16 +39,18 @@ CUSTOM_FIELD_ANNOTATIONS = {
     }
 }
 
+ALLOWED_TABLES = {
+    "tournaments", "matches", "announcements", "campaigns", 
+    "campaign_questions", "campaign_responses", "campaign_results", 
+    "leaderboard_entries", "match_stats"
+}
+
 def get_db_schema_context() -> str:
     """
     Dynamically aggregates and formats allowed tables, columns, constraints,
     foreign keys, and annotations into a clean textual prompt context.
     """
-    allowed_tables = {
-        "tournaments", "matches", "announcements", "campaigns", 
-        "campaign_questions", "campaign_responses", "campaign_results", 
-        "leaderboard_entries", "match_stats"
-    }
+    allowed_tables = ALLOWED_TABLES
     
     lines = []
     lines.append("The database has the following tables and schemas:")

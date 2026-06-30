@@ -1,4 +1,18 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import {
+  ResponsiveContainer,
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  LineChart,
+  Line,
+  PieChart,
+  Pie,
+  Cell
+} from 'recharts';
 import { AdminModal } from '../components/Admin/AdminModal';
 import { TournamentMatchGrading } from '../components/Admin/TournamentMatchGrading';
 import { Users, ShieldCheck, Mail, Trash2, Cpu, Plus, Trophy, RefreshCw, Calendar, MapPin, Sword, Star, Pencil, X, List, ChevronLeft, Search, ChevronDown, Megaphone, ListOrdered, MessageSquare, Send, Loader2, Terminal, ChevronUp } from 'lucide-react';
@@ -167,15 +181,6 @@ interface SQLMessage {
   sql?: string;
   results?: any[];
   error?: string;
-}
-
-interface SQLMessage {
-  id: string;
-  sender: 'user' | 'assistant';
-  text: string;
-  sql?: string;
-  results?: any[];
-  error?: string;
   chart_config?: any;
 }
 
@@ -188,8 +193,11 @@ interface ChatSession {
 
 function QuickChart({ data, config }: { data: any[]; config: any }) {
   if (!config || !data || data.length === 0) return null;
-  const xAxis = config.xAxis;
-  const yAxis = config.yAxis;
+  const xAxis = config.x_key || config.xAxis;
+  const yAxis = config.y_key || config.yAxis;
+  const chartType = config.chart_type || config.type || 'none';
+
+  if (chartType === 'none' || !xAxis || !yAxis) return null;
 
   const points = data.map(item => ({
     label: String(item[xAxis] || ''),
@@ -204,7 +212,7 @@ function QuickChart({ data, config }: { data: any[]; config: any }) {
     <div className="mt-4 p-4 bg-black/45 rounded-2xl border border-white/10 backdrop-blur-md">
       <h4 className="text-[11px] font-display text-ipl-gold mb-3 uppercase tracking-widest font-bold">{config.title || 'Data Insights'}</h4>
       
-      {config.type === 'pie' ? (
+      {chartType === 'pie' ? (
         <div className="space-y-2 max-h-[180px] overflow-y-auto pr-1">
           {(() => {
             const total = points.reduce((sum, p) => sum + p.value, 0) || 1;
@@ -247,6 +255,110 @@ function QuickChart({ data, config }: { data: any[]; config: any }) {
   );
 }
 
+function RechartsViewer({ data, config }: { data: any[]; config: any }) {
+  if (!config || !data || data.length === 0) {
+    return (
+      <div className="flex items-center justify-center h-full text-gray-400">
+        No chart data available.
+      </div>
+    );
+  }
+
+  const chartType = config.chart_type || config.type || 'none';
+  const xKey = config.x_key || config.xAxis;
+  const yKey = config.y_key || config.yAxis;
+
+  if (chartType === 'none' || !xKey || !yKey) {
+    return (
+      <div className="flex items-center justify-center h-full text-gray-400 font-display uppercase tracking-widest text-xs">
+        No chart type recommended for this data.
+      </div>
+    );
+  }
+
+  const chartData = data.map(item => ({
+    ...item,
+    [xKey]: String(item[xKey] || ''),
+    [yKey]: Number(item[yKey]) || 0
+  }));
+
+  const COLORS = ['#F5C043', '#1F51FF', '#00E676', '#FF3D00', '#D500F9', '#FFD600', '#00E5FF'];
+
+  return (
+    <div className="w-full h-full min-h-[300px] flex flex-col justify-between p-4 bg-slate-950/45 rounded-2xl border border-white/10 backdrop-blur-md">
+      <div className="flex-1 w-full h-[320px] mt-2">
+        <ResponsiveContainer width="100%" height="100%">
+          {chartType === 'bar' ? (
+            <BarChart data={chartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+              <CartesianGrid strokeDasharray="3 3" stroke="rgba(255, 255, 255, 0.05)" />
+              <XAxis dataKey={xKey} stroke="#94a3b8" fontSize={10} tickLine={false} />
+              <YAxis stroke="#94a3b8" fontSize={10} tickLine={false} />
+              <Tooltip
+                contentStyle={{
+                  backgroundColor: 'rgba(15, 23, 42, 0.9)',
+                  borderColor: 'rgba(255, 255, 255, 0.1)',
+                  borderRadius: '12px',
+                  color: '#fff',
+                }}
+              />
+              <Bar dataKey={yKey} fill="#F5C043" radius={[4, 4, 0, 0]}>
+                {chartData.map((_, index) => (
+                  <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                ))}
+              </Bar>
+            </BarChart>
+          ) : chartType === 'line' ? (
+            <LineChart data={chartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+              <CartesianGrid strokeDasharray="3 3" stroke="rgba(255, 255, 255, 0.05)" />
+              <XAxis dataKey={xKey} stroke="#94a3b8" fontSize={10} tickLine={false} />
+              <YAxis stroke="#94a3b8" fontSize={10} tickLine={false} />
+              <Tooltip
+                contentStyle={{
+                  backgroundColor: 'rgba(15, 23, 42, 0.9)',
+                  borderColor: 'rgba(255, 255, 255, 0.1)',
+                  borderRadius: '12px',
+                  color: '#fff',
+                }}
+              />
+              <Line type="monotone" dataKey={yKey} stroke="#F5C043" strokeWidth={3} activeDot={{ r: 6 }} />
+            </LineChart>
+          ) : chartType === 'pie' ? (
+            <PieChart>
+              <Pie
+                data={chartData}
+                cx="50%"
+                cy="50%"
+                labelLine={false}
+                label={({ name, percent }: { name?: string; percent?: number }) => `${(name || '').substring(0, 10)}: ${((percent || 0) * 100).toFixed(0)}%`}
+                outerRadius={80}
+                fill="#8884d8"
+                dataKey={yKey}
+                nameKey={xKey}
+              >
+                {chartData.map((_, index) => (
+                  <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                ))}
+              </Pie>
+              <Tooltip
+                contentStyle={{
+                  backgroundColor: 'rgba(15, 23, 42, 0.9)',
+                  borderColor: 'rgba(255, 255, 255, 0.1)',
+                  borderRadius: '12px',
+                  color: '#fff',
+                }}
+              />
+            </PieChart>
+          ) : (
+            <div className="flex items-center justify-center h-full text-gray-400">
+              Unsupported chart type.
+            </div>
+          )}
+        </ResponsiveContainer>
+      </div>
+    </div>
+  );
+}
+
 function AdminSQLAssistant() {
   const [isOpen, setIsOpen] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(true);
@@ -257,6 +369,19 @@ function AdminSQLAssistant() {
   const [loading, setLoading] = useState(false);
   const [loadingSessions, setLoadingSessions] = useState(false);
   const [showRawMap, setShowRawMap] = useState<Record<string, boolean>>({});
+  const [activeChatTab, setActiveChatTab] = useState<'chat' | 'chart'>('chat');
+
+  const latestChartMessage = useMemo(() => {
+    return [...messages]
+      .reverse()
+      .find(m => m.sender === 'assistant' && m.chart_config && m.chart_config.chart_type && m.chart_config.chart_type !== 'none' && m.results && m.results.length > 0);
+  }, [messages]);
+
+  useEffect(() => {
+    if (!latestChartMessage) {
+      setActiveChatTab('chat');
+    }
+  }, [latestChartMessage]);
 
   const fetchSessions = async () => {
     setLoadingSessions(true);
@@ -360,6 +485,9 @@ function AdminSQLAssistant() {
           chart_config: msg.chart_config,
         }
       ]);
+      if (msg.chart_config && msg.chart_config.chart_type && msg.chart_config.chart_type !== 'none' && msg.query_results && msg.query_results.length > 0) {
+        setActiveChatTab('chart');
+      }
     } catch (err: any) {
       setMessages(prev => [
         ...prev,
@@ -465,88 +593,130 @@ function AdminSQLAssistant() {
             </div>
 
             {/* Messages Area */}
-            <div className="flex-1 p-4 overflow-y-auto space-y-4 scrollbar-thin scrollbar-thumb-white/10">
-              {messages.length === 0 && (
-                <div className="h-full flex flex-col items-center justify-center text-center text-gray-400 px-4">
-                  <Terminal className="w-12 h-12 text-ipl-gold/45 mb-3" />
-                  <p className="text-sm font-semibold text-white uppercase tracking-wider font-display text-ipl-gold">Query Database with AI</p>
-                  <p className="text-xs text-gray-400 mt-2 max-w-[280px]">
-                    Ask questions in plain English, and the assistant will generate and execute SQL.
-                  </p>
-                  <p className="text-[10px] text-ipl-gold/70 mt-4 font-mono bg-white/5 px-3 py-1.5 rounded-full border border-white/10">
-                    Example: "show top 5 users by points"
-                  </p>
-                </div>
-              )}
-              
-              {messages.map((msg, index) => (
-                <div 
-                  key={index} 
-                  className={`flex flex-col ${msg.sender === 'user' ? 'items-end' : 'items-start'}`}
+            {latestChartMessage && (
+              <div className="flex border-b border-white/10 bg-slate-950/40 p-1 backdrop-blur-md">
+                <button
+                  type="button"
+                  onClick={() => setActiveChatTab('chat')}
+                  className={`flex-1 py-2.5 min-h-[44px] flex items-center justify-center text-xs font-display uppercase tracking-wider text-center rounded-xl transition-all ${
+                    activeChatTab === 'chat'
+                      ? 'bg-ipl-gold text-ipl-navy font-bold shadow-lg shadow-ipl-gold/20'
+                      : 'text-gray-400 hover:text-white hover:bg-white/5'
+                  }`}
                 >
+                  Chat History
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setActiveChatTab('chart')}
+                  className={`flex-1 py-2.5 min-h-[44px] flex items-center justify-center text-xs font-display uppercase tracking-wider text-center rounded-xl transition-all ${
+                    activeChatTab === 'chart'
+                      ? 'bg-ipl-gold text-ipl-navy font-bold shadow-lg shadow-ipl-gold/20'
+                      : 'text-gray-400 hover:text-white hover:bg-white/5'
+                  }`}
+                >
+                  Visualization
+                </button>
+              </div>
+            )}
+
+            {activeChatTab === 'chat' ? (
+              <div className="flex-1 p-4 overflow-y-auto space-y-4 scrollbar-thin scrollbar-thumb-white/10">
+                {messages.length === 0 && (
+                  <div className="h-full flex flex-col items-center justify-center text-center text-gray-400 px-4">
+                    <Terminal className="w-12 h-12 text-ipl-gold/45 mb-3" />
+                    <p className="text-sm font-semibold text-white uppercase tracking-wider font-display text-ipl-gold">Query Database with AI</p>
+                    <p className="text-xs text-gray-400 mt-2 max-w-[280px]">
+                      Ask questions in plain English, and the assistant will generate and execute SQL.
+                    </p>
+                    <p className="text-[10px] text-ipl-gold/70 mt-4 font-mono bg-white/5 px-3 py-1.5 rounded-full border border-white/10">
+                      Example: "show top 5 users by points"
+                    </p>
+                  </div>
+                )}
+                
+                {messages.map((msg, index) => (
                   <div 
-                    className={`max-w-[95%] rounded-2xl px-4 py-3 text-sm ${
-                      msg.sender === 'user' 
-                        ? 'bg-ipl-gold text-ipl-navy font-bold rounded-br-none shadow-md shadow-ipl-gold/10 font-display' 
-                        : 'bg-white/5 text-gray-200 border border-white/10 rounded-bl-none'
-                    }`}
+                    key={index} 
+                    className={`flex flex-col ${msg.sender === 'user' ? 'items-end' : 'items-start'}`}
                   >
-                    <p className="whitespace-pre-wrap">{msg.text}</p>
-                    
-                    {msg.sql && (
-                      <div className="mt-3 bg-black/60 p-2.5 rounded-lg border border-white/10 font-mono text-[11px] text-emerald-400 overflow-x-auto whitespace-pre">
-                        <div className="flex justify-between items-center text-[9px] text-gray-500 mb-1 font-sans font-bold tracking-widest">
-                          <span>GENERATED SQL</span>
+                    <div 
+                      className={`max-w-[95%] rounded-2xl px-4 py-3 text-sm ${
+                        msg.sender === 'user' 
+                          ? 'bg-ipl-gold text-ipl-navy font-bold rounded-br-none shadow-md shadow-ipl-gold/10 font-display' 
+                          : 'bg-white/5 text-gray-200 border border-white/10 rounded-bl-none'
+                      }`}
+                    >
+                      <p className="whitespace-pre-wrap">{msg.text}</p>
+                      
+                      {msg.sql && (
+                        <div className="mt-3 bg-black/60 p-2.5 rounded-lg border border-white/10 font-mono text-[11px] text-emerald-400 overflow-x-auto whitespace-pre">
+                          <div className="flex justify-between items-center text-[9px] text-gray-500 mb-1 font-sans font-bold tracking-widest">
+                            <span>GENERATED SQL</span>
+                          </div>
+                          {msg.sql}
                         </div>
-                        {msg.sql}
-                      </div>
-                    )}
+                      )}
 
-                    {msg.error && (
-                      <div className="mt-2 bg-red-950/40 p-2.5 rounded-lg border border-red-500/20 text-red-400 font-mono text-[11px]">
-                        <div className="text-[9px] text-red-500 font-sans font-bold mb-1 tracking-widest">DATABASE ERROR</div>
-                        {msg.error}
-                      </div>
-                    )}
+                      {msg.error && (
+                        <div className="mt-2 bg-red-950/40 p-2.5 rounded-lg border border-red-500/20 text-red-400 font-mono text-[11px]">
+                          <div className="text-[9px] text-red-500 font-sans font-bold mb-1 tracking-widest">DATABASE ERROR</div>
+                          {msg.error}
+                        </div>
+                      )}
 
-                    {msg.chart_config && msg.results && msg.results.length > 0 && (
-                      <QuickChart data={msg.results} config={msg.chart_config} />
-                    )}
+                      {msg.chart_config && msg.results && msg.results.length > 0 && (
+                        <QuickChart data={msg.results} config={msg.chart_config} />
+                      )}
 
-                    {msg.results && msg.results.length > 0 && (
-                      <div className="mt-3 border-t border-white/5 pt-2">
-                        <button
-                          onClick={() => toggleRaw(msg.id)}
-                          className="flex items-center gap-1 text-[11px] text-ipl-gold hover:text-white transition-colors"
-                        >
-                          {showRawMap[msg.id] ? 'Hide' : 'Show'} Raw Data ({msg.results.length} rows)
-                          {showRawMap[msg.id] ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
-                        </button>
-                        
-                        {showRawMap[msg.id] && (
-                          <pre className="mt-2 bg-black/60 p-2 rounded-lg border border-white/10 font-mono text-[10px] text-gray-300 max-h-[150px] overflow-auto whitespace-pre-wrap">
-                            {JSON.stringify(msg.results, null, 2)}
-                          </pre>
-                        )}
-                      </div>
-                    )}
+                      {msg.results && msg.results.length > 0 && (
+                        <div className="mt-3 border-t border-white/5 pt-2">
+                          <button
+                            type="button"
+                            onClick={() => toggleRaw(msg.id)}
+                            className="flex items-center gap-1 text-[11px] text-ipl-gold hover:text-white transition-colors"
+                          >
+                            {showRawMap[msg.id] ? 'Hide' : 'Show'} Raw Data ({msg.results.length} rows)
+                            {showRawMap[msg.id] ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
+                          </button>
+                          
+                          {showRawMap[msg.id] && (
+                            <pre className="mt-2 bg-black/60 p-2 rounded-lg border border-white/10 font-mono text-[10px] text-gray-300 max-h-[150px] overflow-auto whitespace-pre-wrap">
+                              {JSON.stringify(msg.results, null, 2)}
+                            </pre>
+                          )}
+                        </div>
+                      )}
 
-                    {msg.results && msg.results.length === 0 && !msg.error && msg.sender === 'assistant' && (
-                      <p className="text-[11px] text-gray-400 italic mt-2">No matching records found.</p>
-                    )}
+                      {msg.results && msg.results.length === 0 && !msg.error && msg.sender === 'assistant' && (
+                        <p className="text-[11px] text-gray-400 italic mt-2">No matching records found.</p>
+                      )}
+                    </div>
                   </div>
-                </div>
-              ))}
-              
-              {loading && (
-                <div className="flex justify-start">
-                  <div className="bg-white/5 border border-white/10 rounded-2xl rounded-bl-none px-4 py-3 text-sm text-gray-400 flex items-center gap-2">
-                    <Loader2 className="w-4 h-4 animate-spin text-ipl-gold" />
-                    <span>Thinking & querying DB...</span>
+                ))}
+                
+                {loading && (
+                  <div className="flex justify-start">
+                    <div className="bg-white/5 border border-white/10 rounded-2xl rounded-bl-none px-4 py-3 text-sm text-gray-400 flex items-center gap-2">
+                      <Loader2 className="w-4 h-4 animate-spin text-ipl-gold" />
+                      <span>Thinking & querying DB...</span>
+                    </div>
                   </div>
+                )}
+              </div>
+            ) : (
+              <div className="flex-1 p-4 overflow-y-auto flex flex-col">
+                <div className="mb-3 px-2 py-1.5 bg-white/5 border border-white/10 rounded-xl flex items-center justify-between">
+                  <span className="text-[10px] font-display text-gray-400 uppercase tracking-widest font-bold">Active Visualization</span>
+                  <span className="text-[10px] font-mono text-ipl-gold uppercase tracking-wider bg-ipl-gold/10 px-2 py-0.5 rounded-full border border-ipl-gold/20">
+                    {latestChartMessage?.chart_config?.chart_type} Chart
+                  </span>
                 </div>
-              )}
-            </div>
+                <div className="flex-1 min-h-[300px]">
+                  <RechartsViewer data={latestChartMessage?.results || []} config={latestChartMessage?.chart_config} />
+                </div>
+              </div>
+            )}
 
             {/* Input Form */}
             <form onSubmit={handleSend} className="p-3 bg-slate-955 border-t border-white/10 flex gap-2">

@@ -368,6 +368,15 @@ async def sql_assistant_chat(
             detail=f"Failed to generate SQL query: {str(e)}"
         )
         
+    from backend.utils.sql_validator import validate_and_sanitize_sql
+    try:
+        sql = validate_and_sanitize_sql(sql)
+    except ValueError as e:
+        raise HTTPException(
+            status_code=400,
+            detail=f"SQL safety violation: {str(e)}"
+        )
+
     results = []
     error_msg = None
     
@@ -375,6 +384,7 @@ async def sql_assistant_chat(
         async with db.begin_nested() if db.in_transaction() else db.begin():
             if "sqlite" not in str(db.bind.url):
                 await db.execute(text("SET TRANSACTION READ ONLY"))
+                await db.execute(text("SET local statement_timeout = 3000"))
             
             db_res = await db.execute(text(sql))
             if db_res.returns_rows:
@@ -544,6 +554,15 @@ async def sql_assistant_session_chat(
             detail=f"Failed to generate SQL query: {str(e)}"
         )
 
+    from backend.utils.sql_validator import validate_and_sanitize_sql
+    try:
+        sql = validate_and_sanitize_sql(sql)
+    except ValueError as e:
+        raise HTTPException(
+            status_code=400,
+            detail=f"SQL safety violation: {str(e)}"
+        )
+
     results = []
     error_msg = None
 
@@ -558,6 +577,7 @@ async def sql_assistant_session_chat(
             async with db.begin_nested() if db.in_transaction() else db.begin():
                 if "sqlite" not in str(db.bind.url):
                     await db.execute(text("SET TRANSACTION READ ONLY"))
+                    await db.execute(text("SET local statement_timeout = 3000"))
                 
                 db_res = await db.execute(text(sql))
                 if db_res.returns_rows:
@@ -586,20 +606,35 @@ async def sql_assistant_session_chat(
         summary = f"Results retrieved but failed to generate text summary: {str(e)}"
 
     # 6. Optional: Generate Chart Config
-    chart_config = None
+    chart_config = { "chart_type": "none", "x_key": None, "y_key": None }
     if not error_msg and len(results) > 0:
-        chart_prompt = f"Data sample: {results[:5]}\nGenerate a simple chart configuration if this data is suitable for a chart. If not, respond with 'none'. Otherwise, return a JSON object with keys: 'type' ('bar'|'line'|'pie'), 'xAxis' (field name), 'yAxis' (field name), 'title' (short title). Do not include markdown formatting or extra text."
+        chart_prompt = (
+            f"Data sample: {results[:5]}\n"
+            f"Query: {payload.query}\n"
+            "Recommend a chart visualization suggestion. "
+            "Return a JSON object containing keys: "
+            "'chart_type' ('bar' | 'line' | 'pie' | 'none'), "
+            "'x_key' (string name of the field for x-axis or category/labels, or null if chart_type is none), "
+            "'y_key' (string name of the numeric field for y-axis/values, or null if chart_type is none). "
+            "Return ONLY the raw JSON object. Do not include markdown formatting, markdown code block backticks, or extra text."
+        )
         try:
             chart_res = await llm.generate_text(prompt=chart_prompt)
             chart_res_clean = chart_res.strip()
-            if "none" not in chart_res_clean.lower():
-                if chart_res_clean.startswith("```"):
-                    chart_res_clean = chart_res_clean.split("\n", 1)[1].rsplit("```", 1)[0].strip()
-                if chart_res_clean.lower().startswith("json"):
-                    chart_res_clean = chart_res_clean[4:].strip()
-                chart_config = json.loads(chart_res_clean)
-        except:
-            chart_config = None
+            if chart_res_clean.startswith("```"):
+                chart_res_clean = chart_res_clean.split("\n", 1)[1].rsplit("```", 1)[0].strip()
+            if chart_res_clean.lower().startswith("json"):
+                chart_res_clean = chart_res_clean[4:].strip()
+            parsed_cfg = json.loads(chart_res_clean)
+            if "chart_type" in parsed_cfg:
+                chart_config = {
+                    "chart_type": parsed_cfg.get("chart_type", "none"),
+                    "x_key": parsed_cfg.get("x_key"),
+                    "y_key": parsed_cfg.get("y_key")
+                }
+        except Exception as e:
+            print(f"Error parsing chart config: {str(e)}")
+            chart_config = { "chart_type": "none", "x_key": None, "y_key": None }
 
     # 7. Persist Assistant message
     assistant_msg = AdminChatMessage(
