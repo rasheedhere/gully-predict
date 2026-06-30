@@ -1,5 +1,6 @@
 import os
 from abc import ABC, abstractmethod
+from typing import List
 from google import genai
 from google.genai import types
 
@@ -8,6 +9,13 @@ class BaseLLMClient(ABC):
     async def generate_text(self, prompt: str, system_instruction: str = None) -> str:
         """
         Generates text using the LLM.
+        """
+        pass
+
+    @abstractmethod
+    async def generate_chat_response(self, history: List[dict], system_instruction: str = None) -> str:
+        """
+        Generates text response using chat history.
         """
         pass
 
@@ -29,6 +37,30 @@ class GeminiLLMClient(BaseLLMClient):
         response = await self.client.aio.models.generate_content(
             model=self.model_name,
             contents=prompt,
+            config=config
+        )
+        return response.text
+
+    async def generate_chat_response(self, history: List[dict], system_instruction: str = None) -> str:
+        contents = []
+        for msg in history:
+            role = "user" if msg["role"] == "user" else "model"
+            contents.append(
+                types.Content(
+                    role=role,
+                    parts=[types.Part.from_text(text=msg["content"])]
+                )
+            )
+        
+        config = None
+        if system_instruction:
+            config = types.GenerateContentConfig(
+                system_instruction=system_instruction
+            )
+            
+        response = await self.client.aio.models.generate_content(
+            model=self.model_name,
+            contents=contents,
             config=config
         )
         return response.text

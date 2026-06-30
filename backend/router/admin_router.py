@@ -6,7 +6,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 from sqlalchemy.orm import selectinload
 from backend.database import get_db
-from backend.models import User, AllowlistedEmail, Match, LeagueAdminMapping, TournamentUserMapping
+from backend.models import User, AllowlistedEmail, Match, LeagueAdminMapping, TournamentUserMapping, AdminChatSession, AdminChatMessage
+from datetime import datetime, timezone
 from backend.dependencies import get_current_admin, get_current_user
 from backend.scoring import calculate_match_scores
 from backend.utils.cache import backend_cache
@@ -520,5 +521,350 @@ async def sql_assistant_chat(
         summary=summary,
         error=error_msg
     )
+
+
+@router.get("/sql-assistant/sessions")
+async def list_chat_sessions(
+    db: AsyncSession = Depends(get_db),
+    current_admin: User = Depends(get_current_admin)
+):
+    result = await db.execute(
+        select(AdminChatSession)
+        .where(AdminChatSession.user_id == current_admin.id)
+        .order_by(AdminChatSession.updated_at.desc())
+    )
+    return result.scalars().all()
+
+
+@router.get("/sql-assistant/sessions/{session_id}")
+async def get_session_messages(
+    session_id: int,
+    db: AsyncSession = Depends(get_db),
+    current_admin: User = Depends(get_current_admin)
+):
+    sess_res = await db.execute(
+        select(AdminChatSession).where(
+            AdminChatSession.id == session_id,
+            AdminChatSession.user_id == current_admin.id
+        )
+    )
+    if not sess_res.scalars().first():
+        raise HTTPException(status_code=404, detail="Chat session not found")
+
+    result = await db.execute(
+        select(AdminChatMessage)
+        .where(AdminChatMessage.session_id == session_id)
+        .order_by(AdminChatMessage.created_at.asc())
+    )
+    return result.scalars().all()
+
+
+@router.post("/sql-assistant/sessions/{session_id}/chat")
+async def sql_assistant_session_chat(
+    session_id: str,
+    payload: SQLAssistantRequest,
+    db: AsyncSession = Depends(get_db),
+    current_admin: User = Depends(get_current_admin)
+):
+    from backend.utils.llm_client import GeminiLLMClient
+    from sqlalchemy import text
+    import hashlib
+    import json
+
+    # 1. Resolve Session (or create fallback if "new")
+    if session_id == "new":
+        session = AdminChatSession(
+            user_id=current_admin.id,
+            title=payload.query[:50]
+        )
+        db.add(session)
+        await db.commit()
+        await db.refresh(session)
+        session_id_val = session.id
+    else:
+        try:
+            session_id_val = int(session_id)
+        except ValueError:
+            raise HTTPException(status_code=400, detail="Invalid session ID format")
+
+        res = await db.execute(
+            select(AdminChatSession).where(
+                AdminChatSession.id == session_id_val,
+                AdminChatSession.user_id == current_admin.id
+            )
+        )
+        session = res.scalars().first()
+        if not session:
+            raise HTTPException(status_code=404, detail="Chat session not found")
+
+    # Update session updated_at
+    session.updated_at = datetime.now(timezone.utc)
+
+    # 2. Persist User Message
+    user_msg = AdminChatMessage(
+        session_id=session_id_val,
+        role="user",
+        content=payload.query
+    )
+    db.add(user_msg)
+    await db.commit()
+    await db.refresh(user_msg)
+
+    # 3. Fetch all messages in session for history
+    hist_res = await db.execute(
+        select(AdminChatMessage)
+        .where(AdminChatMessage.session_id == session_id_val)
+        .order_by(AdminChatMessage.created_at.asc())
+    )
+    db_messages = hist_res.scalars().all()
+
+    # If first message (besides the one we just added), update session title
+    if len(db_messages) <= 2:
+        session.title = payload.query[:50]
+        await db.commit()
+
+    # Format history as flat list
+    history = []
+    for msg in db_messages:
+        history.append({
+            "role": msg.role,
+            "content": msg.content
+        })
+
+    llm = GeminiLLMClient()
+
+    # 4. Generate SQL
+    schema_desc = """
+    You are an expert system that translates natural language questions into PostgreSQL-compatible SQL queries for the Gully Predict database.
+    The database has the following tables and schemas:
+
+    1. users (Stores users):
+      - id: VARCHAR (Primary Key)
+      - google_id: VARCHAR
+      - email: VARCHAR
+      - name: VARCHAR
+      - alias: VARCHAR
+      - use_alias: BOOLEAN
+      - avatar_url: VARCHAR
+      - is_admin: BOOLEAN
+      - is_ai: BOOLEAN
+      - is_guest: BOOLEAN
+      - is_league_admin: BOOLEAN
+      - is_telegram_admin: BOOLEAN
+      - is_dev: BOOLEAN
+      - telegram_username: VARCHAR
+      - created_at: TIMESTAMP
+
+    2. tournaments (Tournaments e.g. cricket/IPL):
+      - id: VARCHAR (Primary Key)
+      - name: VARCHAR
+      - sport: VARCHAR
+      - gender: VARCHAR
+      - status: VARCHAR ('upcoming', 'active', 'completed')
+      - starts_at: TIMESTAMP
+      - ends_at: TIMESTAMP
+      - master_campaign_id: VARCHAR
+
+    3. matches (Matches in tournaments):
+      - id: VARCHAR (Primary Key)
+      - external_id: VARCHAR
+      - team1: VARCHAR
+      - team2: VARCHAR
+      - venue: VARCHAR
+      - start_time: TIMESTAMP
+      - status: VARCHAR ('upcoming', 'live', 'completed', 'cancelled')
+      - tournament_id: VARCHAR
+      - raw_result_json: JSON
+      - reported_by: VARCHAR
+      - report_method: VARCHAR
+
+    4. campaigns (Prediction campaigns):
+      - id: VARCHAR (Primary Key)
+      - title: VARCHAR
+      - description: VARCHAR
+      - type: VARCHAR ('match', 'general')
+      - is_master: BOOLEAN
+      - status: VARCHAR ('draft', 'active', 'closed')
+      - created_by: VARCHAR
+      - starts_at: TIMESTAMP
+      - ends_at: TIMESTAMP
+      - max_powerups: INTEGER
+      - non_participation_penalty: INTEGER
+      - tournament_id: VARCHAR
+      - league_id: VARCHAR
+      - parent_campaign_id: VARCHAR
+
+    5. campaign_questions (Questions within campaigns):
+      - id: VARCHAR (Primary Key)
+      - campaign_id: VARCHAR
+      - key: VARCHAR
+      - question_text: VARCHAR
+      - question_type: VARCHAR ('toggle', 'multiple_choice', 'dropdown', 'free_text', 'free_number')
+      - options: JSON
+      - scoring_rules: JSON
+      - order_index: INTEGER
+
+    6. campaign_responses (Users' predictions):
+      - id: VARCHAR (Primary Key)
+      - campaign_id: VARCHAR
+      - user_id: VARCHAR
+      - match_id: VARCHAR
+      - answers: JSON (e.g. {question_id/key: answer_value})
+      - use_powerup: BOOLEAN
+      - is_auto_predicted: BOOLEAN
+      - total_points: INTEGER
+      - points_breakdown: JSON
+
+    7. leagues (User-created or global leagues):
+      - id: VARCHAR (Primary Key)
+      - name: VARCHAR
+      - tournament_id: VARCHAR
+      - join_code: VARCHAR
+      - is_global: BOOLEAN
+      - settings: JSON
+      - created_by: VARCHAR
+      - created_at: TIMESTAMP
+
+    8. league_user_mappings (League participants):
+      - league_id: VARCHAR
+      - user_id: VARCHAR
+      - joined_at: TIMESTAMP
+
+    9. leaderboard_entries (Points log):
+      - id: VARCHAR (Primary Key)
+      - user_id: VARCHAR
+      - match_id: VARCHAR
+      - campaign_id: VARCHAR
+      - league_id: VARCHAR
+      - points: INTEGER
+      - points_breakdown: JSON
+
+    10. leaderboard_cache (Cached total points):
+      - id: INTEGER (Primary Key)
+      - user_id: VARCHAR
+      - tournament_id: VARCHAR
+      - league_id: VARCHAR
+      - total_points: INTEGER
+      
+    11. tournament_user_mappings (User preferences and stats per tournament):
+      - tournament_id: VARCHAR
+      - user_id: VARCHAR
+      - base_points: INTEGER
+      - base_powerups: INTEGER
+      - powerups_used: INTEGER
+
+    Return ONLY the raw SQL query. Do not wrap the SQL query in markdown blocks, formatting, explanation, or commentary. Do not write anything other than the SQL query.
+    """
+
+    try:
+        raw_llm_response = await llm.generate_chat_response(history=history, system_instruction=schema_desc)
+        sql = raw_llm_response.strip()
+        if sql.startswith("```"):
+            lines = sql.split("\n")
+            if lines[0].startswith("```"):
+                lines = lines[1:]
+            if lines and lines[-1].strip() == "```":
+                lines = lines[:-1]
+            sql = "\n".join(lines).strip()
+        if sql.lower().startswith("sql"):
+            sql = sql[3:].strip()
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Failed to generate SQL query: {str(e)}"
+        )
+
+    results = []
+    error_msg = None
+
+    sql_hash = hashlib.md5(sql.encode('utf-8')).hexdigest()
+    cache_key = f"sql_cache_{sql_hash}"
+    cached_results = await backend_cache.get(cache_key)
+
+    if cached_results is not None:
+        results = cached_results
+    else:
+        try:
+            async with db.begin_nested() if db.in_transaction() else db.begin():
+                if "sqlite" not in str(db.bind.url):
+                    await db.execute(text("SET TRANSACTION READ ONLY"))
+                
+                db_res = await db.execute(text(sql))
+                if db_res.returns_rows:
+                    for row in db_res.all():
+                        results.append(make_serializable(dict(row._mapping)))
+            await backend_cache.set(cache_key, results, ttl=300)
+        except Exception as e:
+            error_msg = str(e)
+
+    # 5. Generate Text Summary
+    summary_prompt = f"User query: {payload.query}\nGenerated SQL: {sql}\n"
+    if error_msg:
+        summary_prompt += f"Execution Error: {error_msg}\nExplain the error and suggest fixes."
+    else:
+        summary_prompt += f"Execution Results (up to first 100 rows shown): {results[:100]}\nSummarize the findings clearly."
+        
+    summary_instruction = """
+    You are an intelligent assistant for the Gully Predict admin dashboard.
+    Analyze the user's natural language question, the generated SQL, and the execution results (or error), then write a concise, clear summary explaining the results.
+    If there is an error, explain the issue. Keep your tone professional, concise, and helpful.
+    """
+    
+    try:
+        summary = await llm.generate_text(prompt=summary_prompt, system_instruction=summary_instruction)
+    except Exception as e:
+        summary = f"Results retrieved but failed to generate text summary: {str(e)}"
+
+    # 6. Optional: Generate Chart Config
+    chart_config = None
+    if not error_msg and len(results) > 0:
+        chart_prompt = f"Data sample: {results[:5]}\nGenerate a simple chart configuration if this data is suitable for a chart. If not, respond with 'none'. Otherwise, return a JSON object with keys: 'type' ('bar'|'line'|'pie'), 'xAxis' (field name), 'yAxis' (field name), 'title' (short title). Do not include markdown formatting or extra text."
+        try:
+            chart_res = await llm.generate_text(prompt=chart_prompt)
+            chart_res_clean = chart_res.strip()
+            if "none" not in chart_res_clean.lower():
+                if chart_res_clean.startswith("```"):
+                    chart_res_clean = chart_res_clean.split("\n", 1)[1].rsplit("```", 1)[0].strip()
+                if chart_res_clean.lower().startswith("json"):
+                    chart_res_clean = chart_res_clean[4:].strip()
+                chart_config = json.loads(chart_res_clean)
+        except:
+            chart_config = None
+
+    # 7. Persist Assistant message
+    assistant_msg = AdminChatMessage(
+        session_id=session_id_val,
+        role="model",
+        content=summary,
+        sql_query=sql,
+        query_results=results,
+        chart_config=chart_config
+    )
+    db.add(assistant_msg)
+    await db.commit()
+    await db.refresh(assistant_msg)
+
+    return assistant_msg
+
+
+@router.delete("/sql-assistant/sessions/{session_id}")
+async def delete_chat_session(
+    session_id: int,
+    db: AsyncSession = Depends(get_db),
+    current_admin: User = Depends(get_current_admin)
+):
+    res = await db.execute(
+        select(AdminChatSession).where(
+            AdminChatSession.id == session_id,
+            AdminChatSession.user_id == current_admin.id
+        )
+    )
+    session = res.scalars().first()
+    if not session:
+        raise HTTPException(status_code=404, detail="Chat session not found")
+
+    await db.delete(session)
+    await db.commit()
+    return {"message": "Session deleted successfully"}
 
 

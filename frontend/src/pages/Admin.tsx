@@ -169,42 +169,195 @@ interface SQLMessage {
   error?: string;
 }
 
+interface SQLMessage {
+  id: string;
+  sender: 'user' | 'assistant';
+  text: string;
+  sql?: string;
+  results?: any[];
+  error?: string;
+  chart_config?: any;
+}
+
+interface ChatSession {
+  id: number;
+  title: string;
+  created_at: string;
+  updated_at: string;
+}
+
+function QuickChart({ data, config }: { data: any[]; config: any }) {
+  if (!config || !data || data.length === 0) return null;
+  const xAxis = config.xAxis;
+  const yAxis = config.yAxis;
+
+  const points = data.map(item => ({
+    label: String(item[xAxis] || ''),
+    value: Number(item[yAxis] || 0)
+  })).filter(item => !isNaN(item.value));
+
+  if (points.length === 0) return null;
+
+  const maxValue = Math.max(...points.map(p => p.value), 1);
+
+  return (
+    <div className="mt-4 p-4 bg-black/45 rounded-2xl border border-white/10 backdrop-blur-md">
+      <h4 className="text-[11px] font-display text-ipl-gold mb-3 uppercase tracking-widest font-bold">{config.title || 'Data Insights'}</h4>
+      
+      {config.type === 'pie' ? (
+        <div className="space-y-2 max-h-[180px] overflow-y-auto pr-1">
+          {(() => {
+            const total = points.reduce((sum, p) => sum + p.value, 0) || 1;
+            return points.map((p, idx) => {
+              const pct = ((p.value / total) * 100).toFixed(1);
+              return (
+                <div key={idx} className="flex items-center justify-between text-xs text-gray-300 font-display">
+                  <div className="flex items-center gap-2">
+                    <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: `hsl(${(idx * 137.5) % 360}, 75%, 60%)` }}></span>
+                    <span className="truncate max-w-[120px]">{p.label}</span>
+                  </div>
+                  <span className="font-mono text-gray-400">{p.value} ({pct}%)</span>
+                </div>
+              );
+            });
+          })()}
+        </div>
+      ) : (
+        <div className="space-y-3 max-h-[180px] overflow-y-auto pr-1">
+          {points.map((p, idx) => {
+            const pct = Math.min((p.value / maxValue) * 100, 100);
+            return (
+              <div key={idx} className="space-y-1">
+                <div className="flex justify-between text-xs text-gray-300 font-display">
+                  <span className="truncate max-w-[150px]">{p.label}</span>
+                  <span className="font-mono text-ipl-gold">{p.value}</span>
+                </div>
+                <div className="h-2 w-full bg-white/5 rounded-full overflow-hidden">
+                  <div 
+                    className="h-full bg-gradient-to-r from-ipl-gold to-amber-500 rounded-full transition-all duration-500" 
+                    style={{ width: `${pct}%` }}
+                  />
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function AdminSQLAssistant() {
   const [isOpen, setIsOpen] = useState(false);
+  const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [sessions, setSessions] = useState<ChatSession[]>([]);
+  const [activeSessionId, setActiveSessionId] = useState<number | 'new'>('new');
   const [messages, setMessages] = useState<SQLMessage[]>([]);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
+  const [loadingSessions, setLoadingSessions] = useState(false);
   const [showRawMap, setShowRawMap] = useState<Record<string, boolean>>({});
+
+  const fetchSessions = async () => {
+    setLoadingSessions(true);
+    try {
+      const res = await apiClient.get('/admin/sql-assistant/sessions');
+      setSessions(res.data);
+    } catch (err) {
+      console.error('Failed to load chat sessions', err);
+    } finally {
+      setLoadingSessions(false);
+    }
+  };
+
+  useEffect(() => {
+    if (isOpen) {
+      fetchSessions();
+    }
+  }, [isOpen]);
+
+  const loadSession = async (sessionId: number) => {
+    setLoading(true);
+    try {
+      const res = await apiClient.get(`/admin/sql-assistant/sessions/${sessionId}`);
+      const mapped = res.data.map((msg: any) => ({
+        id: msg.id.toString(),
+        sender: msg.role === 'user' ? 'user' : 'assistant',
+        text: msg.content,
+        sql: msg.sql_query,
+        results: msg.query_results,
+        chart_config: msg.chart_config,
+      }));
+      setMessages(mapped);
+      setActiveSessionId(sessionId);
+    } catch (err) {
+      toast.error('Failed to load session messages');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleNewSession = () => {
+    setActiveSessionId('new');
+    setMessages([]);
+  };
+
+  const handleDeleteSession = async (sessionId: number, e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!confirm('Are you sure you want to delete this chat session?')) return;
+    try {
+      await apiClient.delete(`/admin/sql-assistant/sessions/${sessionId}`);
+      toast.success('Session deleted');
+      if (activeSessionId === sessionId) {
+        handleNewSession();
+      }
+      fetchSessions();
+    } catch (err) {
+      toast.error('Failed to delete session');
+    }
+  };
 
   const handleSend = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!input.trim() || loading) return;
 
-    const userMessageId = Math.random().toString();
     const userQuery = input.trim();
-    const newMsg: SQLMessage = {
-      id: userMessageId,
-      sender: 'user',
-      text: userQuery,
-    };
-
-    setMessages(prev => [...prev, newMsg]);
+    const tempUserMsgId = Math.random().toString();
+    
+    setMessages(prev => [
+      ...prev,
+      {
+        id: tempUserMsgId,
+        sender: 'user',
+        text: userQuery,
+      }
+    ]);
     setInput('');
     setLoading(true);
 
     try {
-      const response = await apiClient.post('/admin/sql-assistant/chat', { query: userQuery });
-      const { sql, results, summary, error } = response.data;
+      const response = await apiClient.post(`/admin/sql-assistant/sessions/${activeSessionId}/chat`, { query: userQuery });
+      const msg = response.data;
       
+      if (activeSessionId === 'new') {
+        setActiveSessionId(msg.session_id);
+        fetchSessions();
+      }
+
       setMessages(prev => [
-        ...prev,
+        ...prev.filter(m => m.id !== tempUserMsgId),
         {
           id: Math.random().toString(),
+          sender: 'user',
+          text: userQuery,
+        },
+        {
+          id: msg.id.toString(),
           sender: 'assistant',
-          text: summary || 'Query executed.',
-          sql,
-          results,
-          error,
+          text: msg.content || 'Query executed.',
+          sql: msg.sql_query,
+          results: msg.query_results,
+          chart_config: msg.chart_config,
         }
       ]);
     } catch (err: any) {
@@ -227,122 +380,193 @@ function AdminSQLAssistant() {
   };
 
   return (
-    <div className="fixed bottom-6 right-6 z-50 flex flex-col items-end">
+    <div className="fixed bottom-6 right-6 z-50 flex flex-col items-end pb-[env(safe-area-inset-bottom)] pr-[env(safe-area-inset-right)]">
       {/* Chat Window Panel */}
       {isOpen && (
-        <div className="w-[380px] h-[550px] bg-slate-900/95 backdrop-blur-xl border border-white/10 rounded-2xl shadow-2xl flex flex-col mb-4 overflow-hidden animate-in fade-in slide-in-from-bottom-4 duration-300">
-          {/* Header */}
-          <div className="px-4 py-3 bg-gradient-to-r from-slate-950 via-slate-900 to-slate-800 border-b border-white/10 flex justify-between items-center">
-            <div className="flex items-center gap-2">
-              <Terminal className="w-4 h-4 text-ipl-gold animate-pulse" />
-              <span className="font-display text-[11px] uppercase tracking-wider text-white">AI SQL Assistant</span>
-            </div>
-            <button 
-              onClick={() => setIsOpen(false)}
-              className="p-1 text-gray-400 hover:text-white rounded-lg active:scale-95 transition-all min-w-[44px] min-h-[44px] flex items-center justify-center"
-            >
-              <X className="w-5 h-5" />
-            </button>
-          </div>
-
-          {/* Messages Area */}
-          <div className="flex-1 p-4 overflow-y-auto space-y-4 scrollbar-thin scrollbar-thumb-white/10">
-            {messages.length === 0 && (
-              <div className="h-full flex flex-col items-center justify-center text-center text-gray-400 px-4">
-                <Terminal className="w-12 h-12 text-ipl-gold/45 mb-3" />
-                <p className="text-sm font-semibold text-white">Query Database with AI</p>
-                <p className="text-xs text-gray-400 mt-1 max-w-[250px]">
-                  Ask questions in plain English, and the assistant will generate and execute SQL.
-                </p>
-                <p className="text-[11px] text-ipl-gold/70 mt-3 font-mono">
-                  Example: "show top 5 users by points"
-                </p>
-              </div>
-            )}
-            
-            {messages.map((msg) => (
-              <div 
-                key={msg.id} 
-                className={`flex flex-col ${msg.sender === 'user' ? 'items-end' : 'items-start'}`}
-              >
-                <div 
-                  className={`max-w-[90%] rounded-2xl px-4 py-3 text-sm ${
-                    msg.sender === 'user' 
-                      ? 'bg-ipl-gold text-ipl-navy font-bold rounded-br-none' 
-                      : 'bg-white/5 text-gray-200 border border-white/10 rounded-bl-none'
-                  }`}
+        <div className="w-[380px] md:w-[720px] h-[580px] bg-slate-900/95 backdrop-blur-xl border border-white/10 rounded-3xl shadow-2xl flex mb-4 overflow-hidden animate-in fade-in slide-in-from-bottom-4 duration-300">
+          
+          {/* Sidebar for Sessions */}
+          {sidebarOpen && (
+            <div className="w-[180px] md:w-[220px] bg-slate-955 border-r border-white/10 flex flex-col shrink-0">
+              <div className="p-3 border-b border-white/10 flex items-center justify-between">
+                <span className="font-display text-[9px] uppercase tracking-widest text-gray-500 font-bold">Sessions</span>
+                <button
+                  onClick={handleNewSession}
+                  className="p-1 text-ipl-gold hover:text-white rounded-lg active:scale-95 transition-all min-w-[32px] min-h-[32px] flex items-center justify-center bg-white/5 border border-white/10"
+                  title="New Session"
                 >
-                  <p className="whitespace-pre-wrap">{msg.text}</p>
-                  
-                  {msg.sql && (
-                    <div className="mt-3 bg-black/60 p-2.5 rounded-lg border border-white/10 font-mono text-[11px] text-emerald-400 overflow-x-auto whitespace-pre">
-                      <div className="flex justify-between items-center text-[10px] text-gray-500 mb-1 font-sans">
-                        <span>GENERATED SQL</span>
-                      </div>
-                      {msg.sql}
-                    </div>
-                  )}
+                  <Plus className="w-4 h-4" />
+                </button>
+              </div>
 
-                  {msg.error && (
-                    <div className="mt-2 bg-red-950/40 p-2.5 rounded-lg border border-red-500/20 text-red-400 font-mono text-[11px]">
-                      <div className="text-[10px] text-red-500 font-sans font-bold mb-1">DATABASE ERROR</div>
-                      {msg.error}
-                    </div>
-                  )}
-
-                  {msg.results && msg.results.length > 0 && (
-                    <div className="mt-3 border-t border-white/5 pt-2">
+              {/* Sessions List */}
+              <div className="flex-1 overflow-y-auto p-2 space-y-1.5 scrollbar-thin">
+                {loadingSessions ? (
+                  <div className="flex items-center justify-center py-8">
+                    <Loader2 className="w-5 h-5 animate-spin text-gray-500" />
+                  </div>
+                ) : sessions.length === 0 ? (
+                  <div className="text-center py-8 text-gray-600 text-xs font-display uppercase tracking-widest">No sessions yet.</div>
+                ) : (
+                  sessions.map((sess) => (
+                    <div
+                      key={sess.id}
+                      onClick={() => loadSession(sess.id)}
+                      className={`group flex items-center justify-between px-3 py-2.5 rounded-xl cursor-pointer transition-all duration-200 border text-xs select-none ${
+                        activeSessionId === sess.id
+                          ? 'bg-ipl-gold text-ipl-navy font-bold border-ipl-gold shadow-md'
+                          : 'bg-white/5 text-gray-400 hover:text-white border-transparent hover:bg-white/10'
+                      }`}
+                    >
+                      <span className="truncate pr-2 font-display uppercase tracking-wider text-[10px]">
+                        {sess.title || `Chat #${sess.id}`}
+                      </span>
                       <button
-                        onClick={() => toggleRaw(msg.id)}
-                        className="flex items-center gap-1 text-[11px] text-ipl-gold hover:text-white transition-colors"
+                        onClick={(e) => handleDeleteSession(sess.id, e)}
+                        className={`opacity-0 group-hover:opacity-100 transition-opacity p-1 rounded-md min-w-[28px] min-h-[28px] flex items-center justify-center ${
+                          activeSessionId === sess.id
+                            ? 'text-ipl-navy hover:bg-ipl-navy/10'
+                            : 'text-gray-500 hover:text-red-400 hover:bg-white/5'
+                        }`}
+                        title="Delete Session"
                       >
-                        {showRawMap[msg.id] ? 'Hide' : 'Show'} Raw Data ({msg.results.length} rows)
-                        {showRawMap[msg.id] ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
+                        <Trash2 className="w-3.5 h-3.5" />
                       </button>
-                      
-                      {showRawMap[msg.id] && (
-                        <pre className="mt-2 bg-black/60 p-2 rounded-lg border border-white/10 font-mono text-[10px] text-gray-300 max-h-[150px] overflow-auto whitespace-pre-wrap">
-                          {JSON.stringify(msg.results, null, 2)}
-                        </pre>
-                      )}
                     </div>
-                  )}
+                  ))
+                )}
+              </div>
+            </div>
+          )}
 
-                  {msg.results && msg.results.length === 0 && !msg.error && (
-                    <p className="text-[11px] text-gray-400 italic mt-2">No matching records found.</p>
-                  )}
-                </div>
+          {/* Main Chat Area */}
+          <div className="flex-1 flex flex-col bg-slate-900/50">
+            {/* Header */}
+            <div className="px-4 py-3 bg-gradient-to-r from-slate-950 via-slate-900 to-slate-800 border-b border-white/10 flex justify-between items-center">
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => setSidebarOpen(!sidebarOpen)}
+                  className="p-1.5 text-gray-400 hover:text-white rounded-lg active:scale-95 transition-all min-w-[36px] min-h-[36px] flex items-center justify-center bg-white/5 border border-white/10"
+                  title="Toggle Sidebar"
+                >
+                  <List className="w-4 h-4" />
+                </button>
+                <Terminal className="w-4 h-4 text-ipl-gold animate-pulse" />
+                <span className="font-display text-[10px] uppercase tracking-widest text-white font-bold">
+                  {activeSessionId === 'new' ? 'New AI Assistant' : 'AI SQL Assistant'}
+                </span>
               </div>
-            ))}
-            
-            {loading && (
-              <div className="flex justify-start">
-                <div className="bg-white/5 border border-white/10 rounded-2xl rounded-bl-none px-4 py-3 text-sm text-gray-400 flex items-center gap-2">
-                  <Loader2 className="w-4 h-4 animate-spin text-ipl-gold" />
-                  <span>Thinking & querying DB...</span>
+              <button 
+                onClick={() => setIsOpen(false)}
+                className="p-1 text-gray-400 hover:text-white rounded-lg active:scale-95 transition-all min-w-[44px] min-h-[44px] flex items-center justify-center"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Messages Area */}
+            <div className="flex-1 p-4 overflow-y-auto space-y-4 scrollbar-thin scrollbar-thumb-white/10">
+              {messages.length === 0 && (
+                <div className="h-full flex flex-col items-center justify-center text-center text-gray-400 px-4">
+                  <Terminal className="w-12 h-12 text-ipl-gold/45 mb-3" />
+                  <p className="text-sm font-semibold text-white uppercase tracking-wider font-display text-ipl-gold">Query Database with AI</p>
+                  <p className="text-xs text-gray-400 mt-2 max-w-[280px]">
+                    Ask questions in plain English, and the assistant will generate and execute SQL.
+                  </p>
+                  <p className="text-[10px] text-ipl-gold/70 mt-4 font-mono bg-white/5 px-3 py-1.5 rounded-full border border-white/10">
+                    Example: "show top 5 users by points"
+                  </p>
                 </div>
-              </div>
-            )}
+              )}
+              
+              {messages.map((msg, index) => (
+                <div 
+                  key={index} 
+                  className={`flex flex-col ${msg.sender === 'user' ? 'items-end' : 'items-start'}`}
+                >
+                  <div 
+                    className={`max-w-[95%] rounded-2xl px-4 py-3 text-sm ${
+                      msg.sender === 'user' 
+                        ? 'bg-ipl-gold text-ipl-navy font-bold rounded-br-none shadow-md shadow-ipl-gold/10 font-display' 
+                        : 'bg-white/5 text-gray-200 border border-white/10 rounded-bl-none'
+                    }`}
+                  >
+                    <p className="whitespace-pre-wrap">{msg.text}</p>
+                    
+                    {msg.sql && (
+                      <div className="mt-3 bg-black/60 p-2.5 rounded-lg border border-white/10 font-mono text-[11px] text-emerald-400 overflow-x-auto whitespace-pre">
+                        <div className="flex justify-between items-center text-[9px] text-gray-500 mb-1 font-sans font-bold tracking-widest">
+                          <span>GENERATED SQL</span>
+                        </div>
+                        {msg.sql}
+                      </div>
+                    )}
+
+                    {msg.error && (
+                      <div className="mt-2 bg-red-950/40 p-2.5 rounded-lg border border-red-500/20 text-red-400 font-mono text-[11px]">
+                        <div className="text-[9px] text-red-500 font-sans font-bold mb-1 tracking-widest">DATABASE ERROR</div>
+                        {msg.error}
+                      </div>
+                    )}
+
+                    {msg.chart_config && msg.results && msg.results.length > 0 && (
+                      <QuickChart data={msg.results} config={msg.chart_config} />
+                    )}
+
+                    {msg.results && msg.results.length > 0 && (
+                      <div className="mt-3 border-t border-white/5 pt-2">
+                        <button
+                          onClick={() => toggleRaw(msg.id)}
+                          className="flex items-center gap-1 text-[11px] text-ipl-gold hover:text-white transition-colors"
+                        >
+                          {showRawMap[msg.id] ? 'Hide' : 'Show'} Raw Data ({msg.results.length} rows)
+                          {showRawMap[msg.id] ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
+                        </button>
+                        
+                        {showRawMap[msg.id] && (
+                          <pre className="mt-2 bg-black/60 p-2 rounded-lg border border-white/10 font-mono text-[10px] text-gray-300 max-h-[150px] overflow-auto whitespace-pre-wrap">
+                            {JSON.stringify(msg.results, null, 2)}
+                          </pre>
+                        )}
+                      </div>
+                    )}
+
+                    {msg.results && msg.results.length === 0 && !msg.error && msg.sender === 'assistant' && (
+                      <p className="text-[11px] text-gray-400 italic mt-2">No matching records found.</p>
+                    )}
+                  </div>
+                </div>
+              ))}
+              
+              {loading && (
+                <div className="flex justify-start">
+                  <div className="bg-white/5 border border-white/10 rounded-2xl rounded-bl-none px-4 py-3 text-sm text-gray-400 flex items-center gap-2">
+                    <Loader2 className="w-4 h-4 animate-spin text-ipl-gold" />
+                    <span>Thinking & querying DB...</span>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Input Form */}
+            <form onSubmit={handleSend} className="p-3 bg-slate-955 border-t border-white/10 flex gap-2">
+              <input
+                type="text"
+                value={input}
+                onChange={(e) => setInput(e.target.value)}
+                placeholder="Ask the database..."
+                disabled={loading}
+                className="flex-1 bg-white/5 border border-white/10 rounded-xl px-4 py-2 text-white placeholder-gray-500 focus:outline-none focus:border-ipl-gold/50 text-[17px] disabled:opacity-50"
+              />
+              <button
+                type="submit"
+                disabled={!input.trim() || loading}
+                className="bg-ipl-gold text-ipl-navy hover:bg-white hover:text-ipl-navy transition-all rounded-xl min-w-[44px] min-h-[44px] flex items-center justify-center disabled:opacity-50 disabled:hover:bg-ipl-gold disabled:hover:text-ipl-navy"
+              >
+                <Send className="w-4 h-4" />
+              </button>
+            </form>
           </div>
-
-          {/* Input Form */}
-          <form onSubmit={handleSend} className="p-3 bg-slate-950 border-t border-white/10 flex gap-2">
-            <input
-              type="text"
-              value={input}
-              onChange={(e) => setInput(e.target.value)}
-              placeholder="Ask the database..."
-              disabled={loading}
-              className="flex-1 bg-white/5 border border-white/10 rounded-xl px-4 py-2 text-white placeholder-gray-500 focus:outline-none focus:border-ipl-gold/50 text-[17px] disabled:opacity-50"
-            />
-            <button
-              type="submit"
-              disabled={!input.trim() || loading}
-              className="bg-ipl-gold text-ipl-navy hover:bg-white hover:text-ipl-navy transition-all rounded-xl min-w-[44px] min-h-[44px] flex items-center justify-center disabled:opacity-50 disabled:hover:bg-ipl-gold disabled:hover:text-ipl-navy"
-            >
-              <Send className="w-4 h-4" />
-            </button>
-          </form>
         </div>
       )}
 
