@@ -1,7 +1,7 @@
 import uuid
 from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel
-from typing import List
+from typing import List, Optional
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 from sqlalchemy.orm import selectinload
@@ -340,127 +340,12 @@ async def sql_assistant_chat(
     
     llm = GeminiLLMClient()
     
-    schema_desc = """
-    You are an expert system that translates natural language questions into PostgreSQL-compatible SQL queries for the Gully Predict database.
-    The database has the following tables and schemas:
-
-    1. users (Stores users):
-      - id: VARCHAR (Primary Key)
-      - google_id: VARCHAR
-      - email: VARCHAR
-      - name: VARCHAR
-      - alias: VARCHAR
-      - use_alias: BOOLEAN
-      - avatar_url: VARCHAR
-      - is_admin: BOOLEAN
-      - is_ai: BOOLEAN
-      - is_guest: BOOLEAN
-      - is_league_admin: BOOLEAN
-      - is_telegram_admin: BOOLEAN
-      - is_dev: BOOLEAN
-      - telegram_username: VARCHAR
-      - created_at: TIMESTAMP
-
-    2. tournaments (Tournaments e.g. cricket/IPL):
-      - id: VARCHAR (Primary Key)
-      - name: VARCHAR
-      - sport: VARCHAR
-      - gender: VARCHAR
-      - status: VARCHAR ('upcoming', 'active', 'completed')
-      - starts_at: TIMESTAMP
-      - ends_at: TIMESTAMP
-      - master_campaign_id: VARCHAR
-
-    3. matches (Matches in tournaments):
-      - id: VARCHAR (Primary Key)
-      - external_id: VARCHAR
-      - team1: VARCHAR
-      - team2: VARCHAR
-      - venue: VARCHAR
-      - start_time: TIMESTAMP
-      - status: VARCHAR ('upcoming', 'live', 'completed', 'cancelled')
-      - tournament_id: VARCHAR
-      - raw_result_json: JSON
-      - reported_by: VARCHAR
-      - report_method: VARCHAR
-
-    4. campaigns (Prediction campaigns):
-      - id: VARCHAR (Primary Key)
-      - title: VARCHAR
-      - description: VARCHAR
-      - type: VARCHAR ('match', 'general')
-      - is_master: BOOLEAN
-      - status: VARCHAR ('draft', 'active', 'closed')
-      - created_by: VARCHAR
-      - starts_at: TIMESTAMP
-      - ends_at: TIMESTAMP
-      - max_powerups: INTEGER
-      - non_participation_penalty: INTEGER
-      - tournament_id: VARCHAR
-      - league_id: VARCHAR
-      - parent_campaign_id: VARCHAR
-
-    5. campaign_questions (Questions within campaigns):
-      - id: VARCHAR (Primary Key)
-      - campaign_id: VARCHAR
-      - key: VARCHAR
-      - question_text: VARCHAR
-      - question_type: VARCHAR ('toggle', 'multiple_choice', 'dropdown', 'free_text', 'free_number')
-      - options: JSON
-      - scoring_rules: JSON
-      - order_index: INTEGER
-
-    6. campaign_responses (Users' predictions):
-      - id: VARCHAR (Primary Key)
-      - campaign_id: VARCHAR
-      - user_id: VARCHAR
-      - match_id: VARCHAR
-      - answers: JSON (e.g. {question_id/key: answer_value})
-      - use_powerup: BOOLEAN
-      - is_auto_predicted: BOOLEAN
-      - total_points: INTEGER
-      - points_breakdown: JSON
-
-    7. leagues (User-created or global leagues):
-      - id: VARCHAR (Primary Key)
-      - name: VARCHAR
-      - tournament_id: VARCHAR
-      - join_code: VARCHAR
-      - is_global: BOOLEAN
-      - settings: JSON
-      - created_by: VARCHAR
-      - created_at: TIMESTAMP
-
-    8. league_user_mappings (League participants):
-      - league_id: VARCHAR
-      - user_id: VARCHAR
-      - joined_at: TIMESTAMP
-
-    9. leaderboard_entries (Points log):
-      - id: VARCHAR (Primary Key)
-      - user_id: VARCHAR
-      - match_id: VARCHAR
-      - campaign_id: VARCHAR
-      - league_id: VARCHAR
-      - points: INTEGER
-      - points_breakdown: JSON
-
-    10. leaderboard_cache (Cached total points):
-      - id: INTEGER (Primary Key)
-      - user_id: VARCHAR
-      - tournament_id: VARCHAR
-      - league_id: VARCHAR
-      - total_points: INTEGER
-      
-    11. tournament_user_mappings (User preferences and stats per tournament):
-      - tournament_id: VARCHAR
-      - user_id: VARCHAR
-      - base_points: INTEGER
-      - base_powerups: INTEGER
-      - powerups_used: INTEGER
-
-    Return ONLY the raw SQL query. Do not wrap the SQL query in markdown blocks, formatting, explanation, or commentary. Do not write anything other than the SQL query.
-    """
+    from backend.utils.sql_assistant_registry import get_db_schema_context
+    schema_desc = (
+        "You are an expert system that translates natural language questions into PostgreSQL-compatible SQL queries for the Gully Predict database.\n"
+        + get_db_schema_context()
+        + "\n\nReturn ONLY the raw SQL query. Do not wrap the SQL query in markdown blocks, formatting, explanation, or commentary. Do not write anything other than the SQL query."
+    )
     
     prompt = f"Convert this question into a single PostgreSQL-compatible read-only SQL query: {payload.query}"
     
@@ -634,127 +519,12 @@ async def sql_assistant_session_chat(
     llm = GeminiLLMClient()
 
     # 4. Generate SQL
-    schema_desc = """
-    You are an expert system that translates natural language questions into PostgreSQL-compatible SQL queries for the Gully Predict database.
-    The database has the following tables and schemas:
-
-    1. users (Stores users):
-      - id: VARCHAR (Primary Key)
-      - google_id: VARCHAR
-      - email: VARCHAR
-      - name: VARCHAR
-      - alias: VARCHAR
-      - use_alias: BOOLEAN
-      - avatar_url: VARCHAR
-      - is_admin: BOOLEAN
-      - is_ai: BOOLEAN
-      - is_guest: BOOLEAN
-      - is_league_admin: BOOLEAN
-      - is_telegram_admin: BOOLEAN
-      - is_dev: BOOLEAN
-      - telegram_username: VARCHAR
-      - created_at: TIMESTAMP
-
-    2. tournaments (Tournaments e.g. cricket/IPL):
-      - id: VARCHAR (Primary Key)
-      - name: VARCHAR
-      - sport: VARCHAR
-      - gender: VARCHAR
-      - status: VARCHAR ('upcoming', 'active', 'completed')
-      - starts_at: TIMESTAMP
-      - ends_at: TIMESTAMP
-      - master_campaign_id: VARCHAR
-
-    3. matches (Matches in tournaments):
-      - id: VARCHAR (Primary Key)
-      - external_id: VARCHAR
-      - team1: VARCHAR
-      - team2: VARCHAR
-      - venue: VARCHAR
-      - start_time: TIMESTAMP
-      - status: VARCHAR ('upcoming', 'live', 'completed', 'cancelled')
-      - tournament_id: VARCHAR
-      - raw_result_json: JSON
-      - reported_by: VARCHAR
-      - report_method: VARCHAR
-
-    4. campaigns (Prediction campaigns):
-      - id: VARCHAR (Primary Key)
-      - title: VARCHAR
-      - description: VARCHAR
-      - type: VARCHAR ('match', 'general')
-      - is_master: BOOLEAN
-      - status: VARCHAR ('draft', 'active', 'closed')
-      - created_by: VARCHAR
-      - starts_at: TIMESTAMP
-      - ends_at: TIMESTAMP
-      - max_powerups: INTEGER
-      - non_participation_penalty: INTEGER
-      - tournament_id: VARCHAR
-      - league_id: VARCHAR
-      - parent_campaign_id: VARCHAR
-
-    5. campaign_questions (Questions within campaigns):
-      - id: VARCHAR (Primary Key)
-      - campaign_id: VARCHAR
-      - key: VARCHAR
-      - question_text: VARCHAR
-      - question_type: VARCHAR ('toggle', 'multiple_choice', 'dropdown', 'free_text', 'free_number')
-      - options: JSON
-      - scoring_rules: JSON
-      - order_index: INTEGER
-
-    6. campaign_responses (Users' predictions):
-      - id: VARCHAR (Primary Key)
-      - campaign_id: VARCHAR
-      - user_id: VARCHAR
-      - match_id: VARCHAR
-      - answers: JSON (e.g. {question_id/key: answer_value})
-      - use_powerup: BOOLEAN
-      - is_auto_predicted: BOOLEAN
-      - total_points: INTEGER
-      - points_breakdown: JSON
-
-    7. leagues (User-created or global leagues):
-      - id: VARCHAR (Primary Key)
-      - name: VARCHAR
-      - tournament_id: VARCHAR
-      - join_code: VARCHAR
-      - is_global: BOOLEAN
-      - settings: JSON
-      - created_by: VARCHAR
-      - created_at: TIMESTAMP
-
-    8. league_user_mappings (League participants):
-      - league_id: VARCHAR
-      - user_id: VARCHAR
-      - joined_at: TIMESTAMP
-
-    9. leaderboard_entries (Points log):
-      - id: VARCHAR (Primary Key)
-      - user_id: VARCHAR
-      - match_id: VARCHAR
-      - campaign_id: VARCHAR
-      - league_id: VARCHAR
-      - points: INTEGER
-      - points_breakdown: JSON
-
-    10. leaderboard_cache (Cached total points):
-      - id: INTEGER (Primary Key)
-      - user_id: VARCHAR
-      - tournament_id: VARCHAR
-      - league_id: VARCHAR
-      - total_points: INTEGER
-      
-    11. tournament_user_mappings (User preferences and stats per tournament):
-      - tournament_id: VARCHAR
-      - user_id: VARCHAR
-      - base_points: INTEGER
-      - base_powerups: INTEGER
-      - powerups_used: INTEGER
-
-    Return ONLY the raw SQL query. Do not wrap the SQL query in markdown blocks, formatting, explanation, or commentary. Do not write anything other than the SQL query.
-    """
+    from backend.utils.sql_assistant_registry import get_db_schema_context
+    schema_desc = (
+        "You are an expert system that translates natural language questions into PostgreSQL-compatible SQL queries for the Gully Predict database.\n"
+        + get_db_schema_context()
+        + "\n\nReturn ONLY the raw SQL query. Do not wrap the SQL query in markdown blocks, formatting, explanation, or commentary. Do not write anything other than the SQL query."
+    )
 
     try:
         raw_llm_response = await llm.generate_chat_response(history=history, system_instruction=schema_desc)
