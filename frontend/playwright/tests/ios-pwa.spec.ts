@@ -46,8 +46,7 @@ test.describe('iOS PWA Styling and Touch Target Verification', () => {
     await page.goto('/matchcenter');
     
     if (isMobile) {
-      // Find mobile navigation blocks
-      const mobileNavbars = page.locator('nav.md\\:hidden');
+      const mobileNavbars = page.locator('nav[class*="md:hidden"]');
       const navbarCount = await mobileNavbars.count();
       expect(navbarCount).toBe(2);
 

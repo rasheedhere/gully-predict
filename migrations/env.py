@@ -23,7 +23,10 @@ import sys
 sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
 
 from dotenv import load_dotenv
-load_dotenv()
+if os.environ.get("TESTING") == "true":
+    load_dotenv(".env.test", override=True)
+else:
+    load_dotenv()
 
 from backend.models import Base
 target_metadata = Base.metadata

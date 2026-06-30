@@ -38,9 +38,14 @@ test.describe('Leaderboard and Tournament Scoping E2E Checks', () => {
     // Wait for the loader to disappear
     await expect(page.locator('text=LOCATING ARENA...')).toBeHidden({ timeout: 15000 });
 
+    // Verify query parameters are automatically appended before inspecting content
+    await expect(page).toHaveURL(/[\?&]tournament=/, { timeout: 10000 });
+
     // Wait for the leaderboard container to load
-    const leaderboardContainer = page.locator('.glass-panel');
-    await expect(leaderboardContainer.first()).toBeVisible({ timeout: 10000 });
+    const width = page.viewportSize()?.width ?? 1280;
+    const isMobileLayout = width < 768;
+    const leaderboardContainer = isMobileLayout ? page.locator('div[class*="md:hidden"]').first() : page.locator('.glass-panel').first();
+    await expect(leaderboardContainer).toBeVisible({ timeout: 10000 });
 
     // Assert that columns (Rank, Player, Points) are present in the table
     const tableHeader = page.locator('table thead tr');

@@ -70,12 +70,12 @@ test.describe('Private Leagues Lifecycle', () => {
     }
 
     // Fill the join code — on mobile it's now in the bottom sheet, on desktop in the sidebar
-    const inviteInput = userPage.locator('input[placeholder="e.g. C9920984"]');
+    const inviteInput = userPage.locator('input[placeholder="e.g. C9920984"]').filter({ visible: true });
     await expect(inviteInput).toBeVisible({ timeout: 10000 });
     await inviteInput.fill(joinCode);
 
     // Click the join button
-    const joinSubmitBtn = userPage.getByRole('button', { name: /JOIN BATTLEGROUND/i });
+    const joinSubmitBtn = userPage.getByRole('button', { name: 'JOIN BATTLEGROUND', exact: true }).filter({ visible: true });
     await expect(joinSubmitBtn).toBeVisible();
     await joinSubmitBtn.click();
 
@@ -83,10 +83,9 @@ test.describe('Private Leagues Lifecycle', () => {
     const toastMessage = userPage.locator('text=Welcome to the Battleground!');
     await expect(toastMessage).toBeVisible({ timeout: 10000 });
 
-    // Verify the new league is listed on the active leagues dashboard
-    await userPage.goto('/leagues');
+    // Verify the new league is listed on the active leagues dashboard (React Query automatically invalidates the query)
     const newlyCreatedLeagueRow = userPage.locator(`text=${uniqueLeagueName}`);
-    await expect(newlyCreatedLeagueRow).toBeVisible({ timeout: 10000 });
+    await expect(newlyCreatedLeagueRow).toBeVisible({ timeout: 15000 });
 
     await userContext.close();
   });
