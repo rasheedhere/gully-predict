@@ -21,6 +21,7 @@ import { apiClient } from '../api/client';
 import ProfileModal from './ProfileModal';
 import { getUserDisplayName } from '../utils/userUtils';
 import { useUiStore } from '../store/ui';
+import { AdminSQLAssistant } from './AdminSQLAssistant';
 
 export default function Layout() {
   const { isAuthenticated, user, logout: storeLogout, setUser, token } = useAuthStore();
@@ -310,6 +311,8 @@ export default function Layout() {
         isOpen={isProfileOpen}
         onClose={() => setIsProfileOpen(false)}
       />
+
+      {user?.is_admin && <AdminSQLAssistant />}
     </div>
   );
 }
