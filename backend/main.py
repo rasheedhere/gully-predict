@@ -4,7 +4,10 @@ from starlette.middleware.sessions import SessionMiddleware
 import os
 from dotenv import load_dotenv
 
-load_dotenv()
+if os.environ.get("TESTING") == "true":
+    load_dotenv(".env.test", override=True)
+else:
+    load_dotenv()
 
 from contextlib import asynccontextmanager
 from backend.scheduler import start_scheduler, stop_scheduler

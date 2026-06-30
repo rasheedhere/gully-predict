@@ -130,7 +130,7 @@ export default function Layout() {
             {location.pathname === '/leagues' && (
               <button
                 onClick={() => navigate('/leagues?join=true')}
-                className="w-7 h-7 rounded-lg bg-white/5 border border-white/10 flex items-center justify-center text-ipl-gold active:scale-90 transition-transform shrink-0"
+                className="w-11 h-11 rounded-lg bg-white/5 border border-white/10 flex items-center justify-center text-ipl-gold active:scale-90 transition-transform shrink-0"
                 title="Join Battleground"
               >
                 <Plus className="w-4 h-4" />
@@ -157,7 +157,7 @@ export default function Layout() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
             <div className="flex items-center space-x-2 lg:space-x-8">
-              <Link to="/" className="text-xl md:text-2xl font-display font-bold text-ipl-gold tracking-widest flex items-center gap-2 shrink-0">
+              <Link to="/" className="text-xl md:text-2xl font-display font-bold text-ipl-gold tracking-widest flex items-center gap-2 shrink-0 min-w-[44px] min-h-[44px] p-2.5 -m-2.5">
                 <Trophy className="w-6 h-6 shrink-0" />
                 <span className="hidden lg:inline">Gully Predict</span>
               </Link>

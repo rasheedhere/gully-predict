@@ -76,7 +76,9 @@ export default defineConfig({
       port: BACKEND_PORT,
       cwd: path.resolve(__dirname, '..'),
       env: {
+        ...process.env,
         DATABASE_URL: process.env.DATABASE_URL || '',
+        TESTING: 'true',
       },
       reuseExistingServer: !process.env.CI,
       timeout: 120000,

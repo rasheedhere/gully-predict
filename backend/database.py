@@ -3,7 +3,10 @@ from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker, Asyn
 from sqlalchemy.orm import declarative_base
 from dotenv import load_dotenv
 
-load_dotenv()
+if os.environ.get("TESTING") == "true":
+    load_dotenv(".env.test", override=True)
+else:
+    load_dotenv()
 
 DATABASE_URL = os.environ.get("DATABASE_URL")
 if not DATABASE_URL:
