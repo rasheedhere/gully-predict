@@ -493,7 +493,7 @@ export function AdminSQLAssistant() {
     <div className="fixed bottom-6 right-6 left-6 md:left-auto z-50 flex flex-col items-end pb-[env(safe-area-inset-bottom)] pr-[env(safe-area-inset-right)] pl-[env(safe-area-inset-left)] select-none pointer-events-none">
       {/* Chat Window Panel */}
       {isOpen && (
-        <div className="pointer-events-auto w-full md:w-[720px] h-[580px] max-h-[calc(100vh-140px-env(safe-area-inset-top)-env(safe-area-inset-bottom))] bg-slate-900/95 backdrop-blur-xl border border-white/10 rounded-3xl shadow-2xl flex mb-4 overflow-hidden animate-in fade-in slide-in-from-bottom-4 duration-300 relative">
+        <div className="pointer-events-auto select-auto w-full md:w-[720px] h-[580px] max-h-[calc(100vh-140px-env(safe-area-inset-top)-env(safe-area-inset-bottom))] bg-slate-900/95 backdrop-blur-xl border border-white/10 rounded-3xl shadow-2xl flex mb-4 overflow-hidden animate-in fade-in slide-in-from-bottom-4 duration-300 relative">
           
           {/* Sidebar for Sessions */}
           {sidebarOpen && (
@@ -623,14 +623,14 @@ export function AdminSQLAssistant() {
                     className={`flex flex-col ${msg.sender === 'user' ? 'items-end' : 'items-start'}`}
                   >
                     <div 
-                      className={`max-w-[95%] rounded-2xl px-4 py-3 text-sm ${
+                      className={`max-w-[95%] overflow-hidden rounded-2xl px-4 py-3 text-sm ${
                         msg.sender === 'user' 
                           ? 'bg-ipl-gold text-ipl-navy font-bold rounded-br-none shadow-md shadow-ipl-gold/10 font-display' 
                           : 'bg-white/5 text-gray-200 border border-white/10 rounded-bl-none'
                       }`}
                     >
                       {msg.sender === 'user' ? (
-                        <p className="whitespace-pre-wrap select-text">{msg.text}</p>
+                          <p className="break-words select-text leading-relaxed">{msg.text}</p>
                       ) : (
                         <div className="select-text">
                           <MarkdownRenderer text={msg.text} />
