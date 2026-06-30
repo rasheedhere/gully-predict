@@ -1,8 +1,9 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { AdminModal } from '../components/Admin/AdminModal';
 import { TournamentMatchGrading } from '../components/Admin/TournamentMatchGrading';
-import { Users, ShieldCheck, Mail, Trash2, Cpu, Plus, Trophy, RefreshCw, Calendar, MapPin, Sword, Star, Pencil, X, List, ChevronLeft, Search, ChevronDown, Megaphone, ListOrdered } from 'lucide-react';
+import { Users, ShieldCheck, Mail, Trash2, Cpu, Plus, Trophy, RefreshCw, Calendar, MapPin, Sword, Star, Pencil, X, List, ChevronLeft, Search, ChevronDown, Megaphone, ListOrdered, MessageSquare, Send, Loader2, Terminal, ChevronUp } from 'lucide-react';
 import { useAuthStore } from '../store/auth';
+import { apiClient } from '../api/client';
 import { Navigate, useSearchParams } from 'react-router-dom';
 import {
   useAllowlist,
@@ -154,6 +155,205 @@ export default function Admin() {
         {activeTab === 'announcements' && <AnnouncementManagement />}
         {activeTab === 'system' && <SystemManagement />}
       </main>
+      {user?.is_admin && <AdminSQLAssistant />}
+    </div>
+  );
+}
+
+interface SQLMessage {
+  id: string;
+  sender: 'user' | 'assistant';
+  text: string;
+  sql?: string;
+  results?: any[];
+  error?: string;
+}
+
+function AdminSQLAssistant() {
+  const [isOpen, setIsOpen] = useState(false);
+  const [messages, setMessages] = useState<SQLMessage[]>([]);
+  const [input, setInput] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [showRawMap, setShowRawMap] = useState<Record<string, boolean>>({});
+
+  const handleSend = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!input.trim() || loading) return;
+
+    const userMessageId = Math.random().toString();
+    const userQuery = input.trim();
+    const newMsg: SQLMessage = {
+      id: userMessageId,
+      sender: 'user',
+      text: userQuery,
+    };
+
+    setMessages(prev => [...prev, newMsg]);
+    setInput('');
+    setLoading(true);
+
+    try {
+      const response = await apiClient.post('/admin/sql-assistant/chat', { query: userQuery });
+      const { sql, results, summary, error } = response.data;
+      
+      setMessages(prev => [
+        ...prev,
+        {
+          id: Math.random().toString(),
+          sender: 'assistant',
+          text: summary || 'Query executed.',
+          sql,
+          results,
+          error,
+        }
+      ]);
+    } catch (err: any) {
+      setMessages(prev => [
+        ...prev,
+        {
+          id: Math.random().toString(),
+          sender: 'assistant',
+          text: 'Error contacting SQL assistant.',
+          error: err.response?.data?.detail || err.message || 'Unknown error',
+        }
+      ]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const toggleRaw = (id: string) => {
+    setShowRawMap(prev => ({ ...prev, [id]: !prev[id] }));
+  };
+
+  return (
+    <div className="fixed bottom-6 right-6 z-50 flex flex-col items-end">
+      {/* Chat Window Panel */}
+      {isOpen && (
+        <div className="w-[380px] h-[550px] bg-slate-900/95 backdrop-blur-xl border border-white/10 rounded-2xl shadow-2xl flex flex-col mb-4 overflow-hidden animate-in fade-in slide-in-from-bottom-4 duration-300">
+          {/* Header */}
+          <div className="px-4 py-3 bg-gradient-to-r from-slate-950 via-slate-900 to-slate-800 border-b border-white/10 flex justify-between items-center">
+            <div className="flex items-center gap-2">
+              <Terminal className="w-4 h-4 text-ipl-gold animate-pulse" />
+              <span className="font-display text-[11px] uppercase tracking-wider text-white">AI SQL Assistant</span>
+            </div>
+            <button 
+              onClick={() => setIsOpen(false)}
+              className="p-1 text-gray-400 hover:text-white rounded-lg active:scale-95 transition-all min-w-[44px] min-h-[44px] flex items-center justify-center"
+            >
+              <X className="w-5 h-5" />
+            </button>
+          </div>
+
+          {/* Messages Area */}
+          <div className="flex-1 p-4 overflow-y-auto space-y-4 scrollbar-thin scrollbar-thumb-white/10">
+            {messages.length === 0 && (
+              <div className="h-full flex flex-col items-center justify-center text-center text-gray-400 px-4">
+                <Terminal className="w-12 h-12 text-ipl-gold/45 mb-3" />
+                <p className="text-sm font-semibold text-white">Query Database with AI</p>
+                <p className="text-xs text-gray-400 mt-1 max-w-[250px]">
+                  Ask questions in plain English, and the assistant will generate and execute SQL.
+                </p>
+                <p className="text-[11px] text-ipl-gold/70 mt-3 font-mono">
+                  Example: "show top 5 users by points"
+                </p>
+              </div>
+            )}
+            
+            {messages.map((msg) => (
+              <div 
+                key={msg.id} 
+                className={`flex flex-col ${msg.sender === 'user' ? 'items-end' : 'items-start'}`}
+              >
+                <div 
+                  className={`max-w-[90%] rounded-2xl px-4 py-3 text-sm ${
+                    msg.sender === 'user' 
+                      ? 'bg-ipl-gold text-ipl-navy font-bold rounded-br-none' 
+                      : 'bg-white/5 text-gray-200 border border-white/10 rounded-bl-none'
+                  }`}
+                >
+                  <p className="whitespace-pre-wrap">{msg.text}</p>
+                  
+                  {msg.sql && (
+                    <div className="mt-3 bg-black/60 p-2.5 rounded-lg border border-white/10 font-mono text-[11px] text-emerald-400 overflow-x-auto whitespace-pre">
+                      <div className="flex justify-between items-center text-[10px] text-gray-500 mb-1 font-sans">
+                        <span>GENERATED SQL</span>
+                      </div>
+                      {msg.sql}
+                    </div>
+                  )}
+
+                  {msg.error && (
+                    <div className="mt-2 bg-red-950/40 p-2.5 rounded-lg border border-red-500/20 text-red-400 font-mono text-[11px]">
+                      <div className="text-[10px] text-red-500 font-sans font-bold mb-1">DATABASE ERROR</div>
+                      {msg.error}
+                    </div>
+                  )}
+
+                  {msg.results && msg.results.length > 0 && (
+                    <div className="mt-3 border-t border-white/5 pt-2">
+                      <button
+                        onClick={() => toggleRaw(msg.id)}
+                        className="flex items-center gap-1 text-[11px] text-ipl-gold hover:text-white transition-colors"
+                      >
+                        {showRawMap[msg.id] ? 'Hide' : 'Show'} Raw Data ({msg.results.length} rows)
+                        {showRawMap[msg.id] ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
+                      </button>
+                      
+                      {showRawMap[msg.id] && (
+                        <pre className="mt-2 bg-black/60 p-2 rounded-lg border border-white/10 font-mono text-[10px] text-gray-300 max-h-[150px] overflow-auto whitespace-pre-wrap">
+                          {JSON.stringify(msg.results, null, 2)}
+                        </pre>
+                      )}
+                    </div>
+                  )}
+
+                  {msg.results && msg.results.length === 0 && !msg.error && (
+                    <p className="text-[11px] text-gray-400 italic mt-2">No matching records found.</p>
+                  )}
+                </div>
+              </div>
+            ))}
+            
+            {loading && (
+              <div className="flex justify-start">
+                <div className="bg-white/5 border border-white/10 rounded-2xl rounded-bl-none px-4 py-3 text-sm text-gray-400 flex items-center gap-2">
+                  <Loader2 className="w-4 h-4 animate-spin text-ipl-gold" />
+                  <span>Thinking & querying DB...</span>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Input Form */}
+          <form onSubmit={handleSend} className="p-3 bg-slate-950 border-t border-white/10 flex gap-2">
+            <input
+              type="text"
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              placeholder="Ask the database..."
+              disabled={loading}
+              className="flex-1 bg-white/5 border border-white/10 rounded-xl px-4 py-2 text-white placeholder-gray-500 focus:outline-none focus:border-ipl-gold/50 text-[17px] disabled:opacity-50"
+            />
+            <button
+              type="submit"
+              disabled={!input.trim() || loading}
+              className="bg-ipl-gold text-ipl-navy hover:bg-white hover:text-ipl-navy transition-all rounded-xl min-w-[44px] min-h-[44px] flex items-center justify-center disabled:opacity-50 disabled:hover:bg-ipl-gold disabled:hover:text-ipl-navy"
+            >
+              <Send className="w-4 h-4" />
+            </button>
+          </form>
+        </div>
+      )}
+
+      {/* Floating Toggle Button */}
+      <button
+        onClick={() => setIsOpen(!isOpen)}
+        className="w-12 h-12 bg-ipl-gold hover:bg-white text-ipl-navy rounded-full shadow-lg shadow-ipl-gold/25 flex items-center justify-center transition-all duration-300 hover:scale-105 active:scale-95 min-w-[44px] min-h-[44px]"
+        title="AI SQL Assistant"
+      >
+        {isOpen ? <X className="w-6 h-6" /> : <MessageSquare className="w-6 h-6" />}
+      </button>
     </div>
   );
 }
