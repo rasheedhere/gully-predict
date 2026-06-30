@@ -293,15 +293,13 @@ function MarkdownRenderer({ text }: { text: string }) {
     if (headerMatch) {
       const level = headerMatch[1].length;
       const content = headerMatch[2];
-      const headerClasses = 
+      const headerClasses =
         level === 1 ? "text-xl font-bold text-white mt-4 mb-2 font-display" :
         level === 2 ? "text-lg font-bold text-white mt-3 mb-2 font-display" :
         "text-base font-bold text-white mt-2 mb-1 font-display";
-      const Tag = `h${level}` as keyof JSX.IntrinsicElements;
+      const tag = `h${Math.min(level, 6)}` as 'h1' | 'h2' | 'h3' | 'h4' | 'h5' | 'h6';
       elements.push(
-        <Tag key={i} className={headerClasses}>
-          {renderInline(content)}
-        </Tag>
+        React.createElement(tag, { key: i, className: headerClasses }, ...renderInline(content))
       );
       continue;
     }
