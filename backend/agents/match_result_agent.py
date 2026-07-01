@@ -93,6 +93,7 @@ class MatchResultAgent:
         Verify if the match was abandoned, washed out, cancelled, or finished.
 
         IMPORTANT: For any question where the 'Type' is 'toggle', 'multiple_choice', or 'dropdown', the correct answer MUST be chosen exactly from the provided 'Options' list. Do not paraphrase or alter the option spelling. If the 'Type' is 'free_number', the answer MUST be numeric, and if the 'Type' is 'free_text', the answer MUST be a string.
+        IMPORTANT: If a team scores 0 goals, 0 points, or 0 in any metric, you MUST explicitly set the value to the number 0. Do not omit the key, leave it blank, or skip it.
 
         Please determine the correct answers for the following match questions:
         1. match_status: 'completed', 'cancelled', 'abandoned', or 'live'
@@ -207,6 +208,7 @@ class MatchResultAgent:
         except Exception as e:
             print(f"[MatchResultAgent] Error during legacy scoring for match {match.id}: {str(e)}")
 
+        await db.commit()
         return result_data
 
 match_result_agent = MatchResultAgent()
