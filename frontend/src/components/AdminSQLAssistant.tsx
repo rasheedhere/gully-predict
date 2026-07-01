@@ -202,6 +202,7 @@ function RechartsViewer({ data, config }: { data: any[]; config: any }) {
   );
 }
 
+
 function MarkdownRenderer({ text }: { text: string }) {
   const lines = text.split('\n');
   const elements: React.ReactNode[] = [];
@@ -241,17 +242,17 @@ function MarkdownRenderer({ text }: { text: string }) {
 
     if (listType === 'ul') {
       return (
-        <ul key={key} className="list-disc pl-5 my-2 space-y-1 text-gray-200">
+        <ul key={key} className="list-disc pl-5 my-2 space-y-1 text-gray-200 break-words">
           {items.map((item, idx) => (
-            <li key={idx}>{renderInline(item)}</li>
+            <li key={idx} className="break-words">{renderInline(item)}</li>
           ))}
         </ul>
       );
     } else {
       return (
-        <ol key={key} className="list-decimal pl-5 my-2 space-y-1 text-gray-200">
+        <ol key={key} className="list-decimal pl-5 my-2 space-y-1 text-gray-200 break-words">
           {items.map((item, idx) => (
-            <li key={idx}>{renderInline(item)}</li>
+            <li key={idx} className="break-words">{renderInline(item)}</li>
           ))}
         </ol>
       );
@@ -294,9 +295,9 @@ function MarkdownRenderer({ text }: { text: string }) {
       const level = headerMatch[1].length;
       const content = headerMatch[2];
       const headerClasses =
-        level === 1 ? "text-xl font-bold text-white mt-4 mb-2 font-display" :
-        level === 2 ? "text-lg font-bold text-white mt-3 mb-2 font-display" :
-        "text-base font-bold text-white mt-2 mb-1 font-display";
+        level === 1 ? "text-xl font-bold text-white mt-4 mb-2 font-display break-words" :
+        level === 2 ? "text-lg font-bold text-white mt-3 mb-2 font-display break-words" :
+        "text-base font-bold text-white mt-2 mb-1 font-display break-words";
       const tag = `h${Math.min(level, 6)}` as 'h1' | 'h2' | 'h3' | 'h4' | 'h5' | 'h6';
       elements.push(
         React.createElement(tag, { key: i, className: headerClasses }, ...renderInline(content))
@@ -310,7 +311,7 @@ function MarkdownRenderer({ text }: { text: string }) {
     }
 
     elements.push(
-      <p key={i} className="mb-2 leading-relaxed">
+      <p key={i} className="mb-2 leading-relaxed break-words whitespace-pre-wrap">
         {renderInline(line)}
       </p>
     );
@@ -490,10 +491,10 @@ export function AdminSQLAssistant() {
   };
 
   return (
-    <div className="fixed bottom-6 right-6 left-6 md:left-auto z-50 flex flex-col items-end pb-[env(safe-area-inset-bottom)] pr-[env(safe-area-inset-right)] pl-[env(safe-area-inset-left)] select-none pointer-events-none">
+    <div className="fixed bottom-[88px] md:bottom-6 right-6 left-6 md:left-auto z-50 flex flex-col items-end pb-[env(safe-area-inset-bottom)] pr-[env(safe-area-inset-right)] pl-[env(safe-area-inset-left)] select-none pointer-events-none">
       {/* Chat Window Panel */}
       {isOpen && (
-        <div className="pointer-events-auto select-auto w-full md:w-[720px] h-[580px] max-h-[calc(100vh-140px-env(safe-area-inset-top)-env(safe-area-inset-bottom))] bg-slate-900/95 backdrop-blur-xl border border-white/10 rounded-3xl shadow-2xl flex mb-4 overflow-hidden animate-in fade-in slide-in-from-bottom-4 duration-300 relative">
+        <div className="pointer-events-auto select-auto w-full md:w-[720px] h-[580px] max-h-[calc(100vh-180px-env(safe-area-inset-top)-env(safe-area-inset-bottom))] bg-slate-900/95 backdrop-blur-xl border border-white/10 rounded-3xl shadow-2xl flex mb-4 overflow-hidden animate-in fade-in slide-in-from-bottom-4 duration-300 relative">
           
           {/* Sidebar for Sessions */}
           {sidebarOpen && (
@@ -524,7 +525,7 @@ export function AdminSQLAssistant() {
                       onClick={() => loadSession(sess.id)}
                       className={`group flex items-center justify-between px-3 py-3 rounded-xl cursor-pointer transition-all duration-200 border text-xs select-none min-h-[44px] ${
                         activeSessionId === sess.id
-                          ? 'bg-ipl-gold text-ipl-navy font-bold border-ipl-gold shadow-md'
+                          ? 'bg-ipl-gold text-[#0B0E1A] font-bold border-ipl-gold shadow-md'
                           : 'bg-white/5 text-gray-400 hover:text-white border-transparent hover:bg-white/10'
                       }`}
                     >
@@ -535,7 +536,7 @@ export function AdminSQLAssistant() {
                         onClick={(e) => handleDeleteSession(sess.id, e)}
                         className={`opacity-0 group-hover:opacity-100 transition-opacity p-2 rounded-md min-w-[44px] min-h-[44px] flex items-center justify-center ${
                           activeSessionId === sess.id
-                            ? 'text-ipl-navy hover:bg-ipl-navy/10'
+                            ? 'text-[#0B0E1A] hover:bg-[#0B0E1A]/10'
                             : 'text-gray-500 hover:text-red-400 hover:bg-white/5'
                         }`}
                         title="Delete Session"
@@ -582,7 +583,7 @@ export function AdminSQLAssistant() {
                   onClick={() => setActiveChatTab('chat')}
                   className={`flex-1 py-2.5 min-h-[44px] flex items-center justify-center text-xs font-display uppercase tracking-wider text-center rounded-xl transition-all ${
                     activeChatTab === 'chat'
-                      ? 'bg-ipl-gold text-ipl-navy font-bold shadow-lg shadow-ipl-gold/20'
+                      ? 'bg-ipl-gold text-[#0B0E1A] font-bold shadow-lg shadow-ipl-gold/20'
                       : 'text-gray-400 hover:text-white hover:bg-white/5'
                   }`}
                 >
@@ -593,7 +594,7 @@ export function AdminSQLAssistant() {
                   onClick={() => setActiveChatTab('chart')}
                   className={`flex-1 py-2.5 min-h-[44px] flex items-center justify-center text-xs font-display uppercase tracking-wider text-center rounded-xl transition-all ${
                     activeChatTab === 'chart'
-                      ? 'bg-ipl-gold text-ipl-navy font-bold shadow-lg shadow-ipl-gold/20'
+                      ? 'bg-ipl-gold text-[#0B0E1A] font-bold shadow-lg shadow-ipl-gold/20'
                       : 'text-gray-400 hover:text-white hover:bg-white/5'
                   }`}
                 >
@@ -625,12 +626,12 @@ export function AdminSQLAssistant() {
                     <div 
                       className={`max-w-[95%] overflow-hidden rounded-2xl px-4 py-3 text-sm ${
                         msg.sender === 'user' 
-                          ? 'bg-ipl-gold text-ipl-navy font-bold rounded-br-none shadow-md shadow-ipl-gold/10 font-display' 
+                          ? 'bg-ipl-gold text-[#0B0E1A] font-bold rounded-br-none shadow-md shadow-ipl-gold/10 font-display' 
                           : 'bg-white/5 text-gray-200 border border-white/10 rounded-bl-none'
                       }`}
                     >
                       {msg.sender === 'user' ? (
-                          <p className="break-words select-text leading-relaxed">{msg.text}</p>
+                          <p className="break-words select-text leading-relaxed text-[#0B0E1A]">{msg.text}</p>
                       ) : (
                         <div className="select-text">
                           <MarkdownRenderer text={msg.text} />
@@ -669,7 +670,7 @@ export function AdminSQLAssistant() {
                           </button>
                           
                           {showRawMap[msg.id] && (
-                            <pre className="mt-2 bg-black/60 p-2 rounded-lg border border-white/10 font-mono text-[10px] text-gray-300 max-h-[150px] overflow-auto whitespace-pre-wrap select-text">
+                            <pre className="mt-2 bg-black/60 p-2.5 rounded-lg border border-white/10 font-mono text-[10px] text-gray-300 overflow-x-auto overflow-y-hidden whitespace-pre select-text">
                               {JSON.stringify(msg.results, null, 2)}
                             </pre>
                           )}
@@ -720,7 +721,7 @@ export function AdminSQLAssistant() {
               <button
                 type="submit"
                 disabled={!input.trim() || loading}
-                className="bg-ipl-gold text-ipl-navy hover:bg-white hover:text-ipl-navy transition-all rounded-xl min-w-[44px] min-h-[44px] flex items-center justify-center disabled:opacity-50 disabled:hover:bg-ipl-gold disabled:hover:text-ipl-navy"
+                className="bg-ipl-gold text-[#0B0E1A] hover:bg-white hover:text-ipl-navy transition-all rounded-xl min-w-[44px] min-h-[44px] flex items-center justify-center disabled:opacity-50 disabled:hover:bg-ipl-gold disabled:hover:text-ipl-navy"
               >
                 <Send className="w-4 h-4" />
               </button>
@@ -732,7 +733,7 @@ export function AdminSQLAssistant() {
       {/* Floating Toggle Button */}
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="pointer-events-auto w-12 h-12 bg-ipl-gold hover:bg-white text-ipl-navy rounded-full shadow-lg shadow-ipl-gold/25 flex items-center justify-center transition-all duration-300 hover:scale-105 active:scale-95 min-w-[44px] min-h-[44px]"
+        className="pointer-events-auto w-12 h-12 bg-ipl-gold hover:bg-white text-[#0B0E1A] rounded-full shadow-lg shadow-ipl-gold/25 flex items-center justify-center transition-all duration-300 hover:scale-105 active:scale-95 min-w-[44px] min-h-[44px]"
         title="AI SQL Assistant"
       >
         {isOpen ? <X className="w-6 h-6" /> : <MessageSquare className="w-6 h-6" />}
