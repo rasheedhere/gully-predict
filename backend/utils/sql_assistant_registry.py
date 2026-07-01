@@ -15,7 +15,7 @@ CUSTOM_FIELD_ANNOTATIONS = {
     "matches": {
         "status": "Match status: 'upcoming', 'live', 'completed', or 'cancelled'.",
         "report_method": "Method used to report match results, e.g. 'telegram', 'manual', 'api', 'agent'.",
-        "raw_result_json": "JSON containing the actual graded answers/results of the match. For cricket, keys include: 'match_winner' (team name), 'ppscore_team1' (int powerplay score), 'ppscore_team2' (int powerplay score), 'potm' (str player of the match), 'more_sixes' (str team name or 'Tie'), 'more_fours' (str team name or 'Tie'), 'dot_ball_team' (str team name). For football/soccer, keys include: 'match_winner' (team name or 'Draw'), 'how_many_goals_team1' (int/str goals scored by team 1), 'how_many_goals_team2' (int/str goals scored by team 2), 'both_teams_to_score' ('yes'/'no'), 'first_team_to_score' (str team name or 'No Goals'), 'clean_sheet' (str team name or 'Neither'), 'total_goals' ('<3', '3-5', '6+'), 'team_with_ball_possession' (str team name), 'will_a_penalty_be_awarded' ('yes'/'no')."
+        "raw_result_json": "JSON containing the actual graded answers/results of the match. Refer to the list of dynamic JSON keys at the end of this schema description to query specific keys."
     },
     "campaigns": {
         "type": "Campaign type: 'match' (match-specific) or 'general' (tournament-wide/non-match).",
@@ -55,11 +55,28 @@ ALLOWED_TABLES = {
     "tournament_match_answers"
 }
 
-async def get_db_schema_context(db = None) -> str:
+from sqlalchemy.ext.asyncio import AsyncSession
+
+async def get_db_schema_context(db: AsyncSession) -> str:
     """
     Dynamically aggregates and formats allowed tables, columns, constraints,
     foreign keys, and annotations into a clean textual prompt context.
     """
+    # Fetch dynamic tournament question keys
+    sport_keys = {}
+    try:
+        from backend.models import TournamentQuestion, Tournament
+        from sqlalchemy import select
+        stmt = select(TournamentQuestion.key, Tournament.sport).join(
+            Tournament, TournamentQuestion.tournament_id == Tournament.id
+        ).distinct()
+        res = await db.execute(stmt)
+        for key, sport in res.all():
+            if key and sport:
+                sport_keys.setdefault(sport.lower(), set()).add(key)
+    except Exception as e:
+        logger.error(f"Error fetching dynamic keys for schema: {e}")
+
     allowed_tables = ALLOWED_TABLES
     
     # Query database dynamically if a session is provided
@@ -173,5 +190,21 @@ async def get_db_schema_context(db = None) -> str:
     lines.append("- Example: To get the match winner from `tournament_match_answers`, use: `correct_answers ->> 'match_winner'`.")
     lines.append("- Since database columns may be stored as JSON, cast to `jsonb` explicitly if using JSONB functions (e.g. `correct_answers::jsonb` or `raw_result_json::jsonb`).")
     lines.append("- Example query to find graded match results: `SELECT m.id, m.team1, m.team2, tma.correct_answers ->> 'match_winner' AS winner FROM matches m JOIN tournament_match_answers tma ON m.id = tma.match_id WHERE m.status = 'completed'`")
+
+    # Add dynamic JSON keys at the very end to maximize KV Cache prefix hits
+    lines.append("\nDynamic JSON Keys in `raw_result_json`, `correct_answers`, and `answers` fields based on active tournaments:")
+    
+    default_cricket = {"match_winner", "ppscore_team1", "ppscore_team2", "potm", "more_sixes", "more_fours", "dot_ball_team"}
+    default_football = {"match_winner", "how_many_goals_team1", "how_many_goals_team2", "both_teams_to_score", "first_team_to_score", "clean_sheet", "total_goals", "team_with_ball_possession", "will_a_penalty_be_awarded"}
+    
+    cricket_keys = default_cricket.union(sport_keys.get("cricket", set()))
+    football_keys = default_football.union(sport_keys.get("football", set()).union(sport_keys.get("soccer", set())))
+    
+    lines.append(f"- For cricket matches: {', '.join(repr(k) for k in sorted(cricket_keys))}")
+    lines.append(f"- For football/soccer matches: {', '.join(repr(k) for k in sorted(football_keys))}")
+    
+    for sport, keys in sorted(sport_keys.items()):
+        if sport not in ("cricket", "football", "soccer"):
+            lines.append(f"- For {sport} matches: {', '.join(repr(k) for k in sorted(keys))}")
 
     return "\n".join(lines)
