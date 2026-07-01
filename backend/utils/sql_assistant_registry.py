@@ -33,7 +33,7 @@ CUSTOM_FIELD_ANNOTATIONS = {
         "is_auto_predicted": "Boolean indicating if this prediction was automatically generated."
     },
     "campaign_results": {
-        "correct_answers": "JSON dict mapping campaign question keys or IDs to their correct answers."
+        "correct_answers": "JSON dict mapping campaign question keys or IDs to their correct/graded answer values."
     },
     "match_stats": {
         "stats_json": "JSON containing pre-match statistics for AI grounding."
@@ -79,6 +79,49 @@ async def get_db_schema_context(db: AsyncSession) -> str:
 
     allowed_tables = ALLOWED_TABLES
     
+    # Query database dynamically if a session is provided
+    tournament_names = []
+    questions_by_key = {}
+    if db is not None:
+        try:
+            from backend.models import Tournament, TournamentQuestion
+            from sqlalchemy import select
+            
+            # Fetch tournament names
+            t_res = await db.execute(select(Tournament.name))
+            tournament_names = [row[0] for row in t_res.all() if row[0]]
+            
+            # Fetch distinct tournament question metadata
+            q_res = await db.execute(select(TournamentQuestion.key, TournamentQuestion.question_text, TournamentQuestion.question_type))
+            for row in q_res.all():
+                q_key, q_text, q_type = row[0], row[1], row[2]
+                q_type_str = q_type.value if hasattr(q_type, 'value') else str(q_type)
+                if q_key and q_key not in questions_by_key:
+                    questions_by_key[q_key] = (q_text, q_type_str)
+        except Exception as e:
+            logger.error(f"Error fetching grounding metadata: {e}")
+
+    # Build local annotations mapping, overriding raw_result_json and correct_answers if questions exist
+    local_annotations = {table: dict(fields) for table, fields in CUSTOM_FIELD_ANNOTATIONS.items()}
+    if questions_by_key:
+        keys_desc_list = []
+        for q_key, (q_text, q_type) in sorted(questions_by_key.items()):
+            type_str = "str"
+            if q_type == "free_number":
+                type_str = "int"
+            elif q_type == "toggle":
+                type_str = "bool/str"
+            
+            keys_desc_list.append(f"'{q_key}' ({type_str}): {q_text}")
+        
+        keys_suffix = " Keys include: " + ", ".join(keys_desc_list)
+        local_annotations["matches"]["raw_result_json"] = (
+            "JSON containing the actual graded answers/results of the match." + keys_suffix
+        )
+        local_annotations["tournament_match_answers"]["correct_answers"] = (
+            "JSON dict mapping question keys (from tournament_questions.key) to their correct/graded answer values." + keys_suffix
+        )
+
     lines = []
     lines.append("The database has the following tables and schemas:")
     
@@ -113,8 +156,8 @@ async def get_db_schema_context(db: AsyncSession) -> str:
             
             # Custom field annotation
             annotation = ""
-            if table_name in CUSTOM_FIELD_ANNOTATIONS and col_name in CUSTOM_FIELD_ANNOTATIONS[table_name]:
-                annotation = f" - {CUSTOM_FIELD_ANNOTATIONS[table_name][col_name]}"
+            if table_name in local_annotations and col_name in local_annotations[table_name]:
+                annotation = f" - {local_annotations[table_name][col_name]}"
                 
             lines.append(f"  - {col_name}: {col_type}{attr_str}{annotation}")
             
@@ -136,6 +179,10 @@ async def get_db_schema_context(db: AsyncSession) -> str:
         lines.append("\nJOIN HINTS:")
         for hint in sorted(join_hints):
             lines.append(hint)
+
+    if tournament_names:
+        unique_t_names = sorted(list(set(tournament_names)))
+        lines.append(f"\nAvailable tournaments in the database: {', '.join(repr(name) for name in unique_t_names)}")
             
     # Add PostgreSQL JSON/JSONB guidelines
     lines.append("\nPostgreSQL JSON/JSONB Querying Guidelines:")
