@@ -585,6 +585,7 @@ async def sql_assistant_session_chat(
                         results.append(make_serializable(dict(row._mapping)))
             await backend_cache.set(cache_key, results, ttl=300)
         except Exception as e:
+            print(f"DEBUG SQL EXEC ERROR: {str(e)}")
             error_msg = str(e)
 
     # 5. Generate Text Summary
@@ -607,16 +608,29 @@ async def sql_assistant_session_chat(
 
     # 6. Optional: Generate Chart Config
     chart_config = { "chart_type": "none", "x_key": None, "y_key": None }
-    if not error_msg and len(results) > 0:
+    if not error_msg and len(results) > 1:
         chart_prompt = (
             f"Data sample: {results[:5]}\n"
             f"Query: {payload.query}\n"
-            "Recommend a chart visualization suggestion. "
-            "Return a JSON object containing keys: "
-            "'chart_type' ('bar' | 'line' | 'pie' | 'none'), "
-            "'x_key' (string name of the field for x-axis or category/labels, or null if chart_type is none), "
-            "'y_key' (string name of the numeric field for y-axis/values, or null if chart_type is none). "
-            "Return ONLY the raw JSON object. Do not include markdown formatting, markdown code block backticks, or extra text."
+            "Recommend a chart visualization suggestion based on the query and the data sample.\n"
+            "Guidelines:\n"
+            "1. Choose the most appropriate chart type:\n"
+            "   - 'bar': Best for comparing discrete categories or items.\n"
+            "   - 'line': Best for trends, sequences, dates, or continuous data over time.\n"
+            "   - 'pie': Best for parts-of-a-whole distributions or percentage shares.\n"
+            "   - 'none': If the data does not fit any of the above, or lacks a numeric metric to plot.\n"
+            "2. Identify 'x_key' and 'y_key':\n"
+            "   - 'x_key' MUST exactly match the name of the column in the data sample to be used as labels (e.g. category, date, name).\n"
+            "   - 'y_key' MUST exactly match the name of the column in the data sample containing numeric values to be plotted.\n"
+            "   - Case sensitivity: Keys must EXACTLY match the keys present in the data sample dicts.\n"
+            "3. If there is no logical x-axis/y-axis mapping, or if there is no numeric column, use 'none' for chart_type.\n\n"
+            "Return a JSON object with keys:\n"
+            "{\n"
+            "  \"chart_type\": \"bar\" | \"line\" | \"pie\" | \"none\",\n"
+            "  \"x_key\": \"column_name_for_x\" or null,\n"
+            "  \"y_key\": \"column_name_for_y\" or null\n"
+            "}\n"
+            "Return ONLY the raw JSON object. Do not include markdown code block formatting (like ```json), backticks, or any additional text."
         )
         try:
             chart_res = await llm.generate_text(prompt=chart_prompt)
@@ -628,9 +642,9 @@ async def sql_assistant_session_chat(
             parsed_cfg = json.loads(chart_res_clean)
             if "chart_type" in parsed_cfg:
                 chart_config = {
-                    "chart_type": parsed_cfg.get("chart_type", "none"),
-                    "x_key": parsed_cfg.get("x_key"),
-                    "y_key": parsed_cfg.get("y_key")
+                     "chart_type": parsed_cfg.get("chart_type", "none"),
+                     "x_key": parsed_cfg.get("x_key"),
+                     "y_key": parsed_cfg.get("y_key")
                 }
         except Exception as e:
             print(f"Error parsing chart config: {str(e)}")
