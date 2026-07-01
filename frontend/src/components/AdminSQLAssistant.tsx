@@ -551,7 +551,7 @@ export function AdminSQLAssistant() {
           )}
 
           {/* Main Chat Area */}
-          <div className="flex-1 flex flex-col bg-slate-900/50">
+          <div className="flex-1 flex flex-col bg-slate-900/50 min-h-0 overflow-hidden">
             {/* Header */}
             <div className="px-4 py-3 bg-gradient-to-r from-slate-950 via-slate-900 to-slate-800 border-b border-white/10 flex justify-between items-center min-h-[56px]">
               <div className="flex items-center gap-2">
@@ -695,7 +695,7 @@ export function AdminSQLAssistant() {
                 <div ref={messagesEndRef} />
               </div>
             ) : (
-              <div className="flex-1 p-4 overflow-y-auto flex flex-col">
+              <div className="flex-1 p-4 overflow-y-auto flex flex-col min-h-0">
                 <div className="mb-3 px-2 py-1.5 bg-white/5 border border-white/10 rounded-xl flex items-center justify-between">
                   <span className="text-[10px] font-display text-gray-400 uppercase tracking-widest font-bold">Active Visualization</span>
                   <span className="text-[10px] font-mono text-ipl-gold uppercase tracking-wider bg-ipl-gold/10 px-2 py-0.5 rounded-full border border-ipl-gold/20">

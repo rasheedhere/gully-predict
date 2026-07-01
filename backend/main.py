@@ -27,6 +27,10 @@ allowed_origins = [url.strip() for url in frontend_url_raw.split(",") if url.str
 # Add n8n cloud origin for webhooks if needed
 allowed_origins.append("https://rasheedhere.app.n8n.cloud")
 
+if os.environ.get("TESTING") == "true":
+    if "http://localhost:5001" not in allowed_origins:
+        allowed_origins.append("http://localhost:5001")
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=allowed_origins,

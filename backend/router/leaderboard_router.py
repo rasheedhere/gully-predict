@@ -311,7 +311,11 @@ async def fetch_leaderboard_data(db: AsyncSession, league_id: str):
         raw_progression = user_progression.get(uid, [])
         # Filter to matches after the user joined the league
         if joined_at:
-            raw_progression = [p for p in raw_progression if p["start_time"] >= joined_at]
+            raw_progression = [
+                p for p in raw_progression 
+                if (p["start_time"].replace(tzinfo=None) if p["start_time"] and p["start_time"].tzinfo else p["start_time"]) >= 
+                   (joined_at.replace(tzinfo=None) if joined_at.tzinfo else joined_at)
+            ]
         # Filter to start match number, take last 10
         progression = [
             {"match_number": p["match_number"], "teams": p["teams"], "points": p["points"], "breakdown": p["breakdown"]}

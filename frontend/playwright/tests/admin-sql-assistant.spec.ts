@@ -10,6 +10,9 @@ test.describe('Admin SQL Assistant Chat E2E Tests', () => {
   // Use pre-saved admin authentication state
   test.use({ storageState: adminFile });
 
+
+  let sessions = [] as any[];
+
   test.beforeEach(async ({ page }) => {
     page.on('console', msg => console.log(`[Browser Console] ${msg.type()}: ${msg.text()}`));
     page.on('request', req => console.log(`[Browser Req] ${req.method()} ${req.url()}`));
@@ -19,8 +22,6 @@ test.describe('Admin SQL Assistant Chat E2E Tests', () => {
     await page.route('**/registerSW.js', route => route.abort());
     await page.route('**/dev-sw.js**', route => route.abort());
     await page.route('**/sw.js', route => route.abort());
-
-    let sessions = [] as any[];
 
     const handler = async (route: any, request: any) => {
       const url = request.url();
@@ -103,6 +104,9 @@ test.describe('Admin SQL Assistant Chat E2E Tests', () => {
   });
 
   test('should navigate to admin dashboard, open SQL assistant, and perform normal chat + safety checks', async ({ page }) => {
+    // Clear sessions before starting test
+    sessions = [];
+
     // 1. Navigate to `/admin`
     await page.goto('/admin');
 
@@ -117,6 +121,10 @@ test.describe('Admin SQL Assistant Chat E2E Tests', () => {
 
     // 4. Click the "New Chat" button to ensure a clean session starts
     const newChatBtn = page.getByTitle('New Session');
+    if (!(await newChatBtn.isVisible())) {
+      const sidebarToggle = page.getByTitle('Toggle Sidebar');
+      await sidebarToggle.click();
+    }
     await expect(newChatBtn).toBeVisible();
     await newChatBtn.click();
 
@@ -152,5 +160,43 @@ test.describe('Admin SQL Assistant Chat E2E Tests', () => {
     // Verify UI handles the backend HTTP 400 validation error cleanly without crashing
     await expect(page.getByText('DATABASE ERROR')).toBeVisible();
     await expect(page.getByText(/SQL safety violation/i)).toBeVisible();
+  });
+
+  test('should load and render message history cleanly when an existing session is opened', async ({ page }) => {
+    // Pre-populate the session list mock state
+    sessions = [{ id: 42, title: 'Existing Tournaments Chat' }];
+
+    // 1. Navigate to `/admin`
+    await page.goto('/admin');
+
+    // 2. Find and click the floating SQL Assistant chat bubble button
+    const chatBubble = page.getByTitle('AI SQL Assistant');
+    await expect(chatBubble).toBeVisible({ timeout: 15000 });
+    await chatBubble.dispatchEvent('click');
+
+    // 3. Ensure sidebar is open to access the session list
+    const newChatBtn = page.getByTitle('New Session');
+    if (!(await newChatBtn.isVisible())) {
+      const sidebarToggle = page.getByTitle('Toggle Sidebar');
+      await sidebarToggle.click();
+    }
+
+    // 4. Find the existing session item in the sidebar and click it
+    const sessionItem = page.getByText('Existing Tournaments Chat');
+    await expect(sessionItem).toBeVisible();
+    await sessionItem.click();
+
+    // 5. Verify the chat history loaded from GET /admin/sql-assistant/sessions/42 is visible
+    //    - User message bubble is visible and has readable text
+    const userBubble = page.getByText('How many tournaments are active?');
+    await expect(userBubble).toBeVisible();
+
+    //    - Assistant response content is visible
+    const assistantBubble = page.getByText('There are currently 3 active tournaments.');
+    await expect(assistantBubble).toBeVisible();
+
+    //    - GENERATED SQL button is visible
+    const generatedSqlHeader = page.getByText('GENERATED SQL');
+    await expect(generatedSqlHeader).toBeVisible();
   });
 });
