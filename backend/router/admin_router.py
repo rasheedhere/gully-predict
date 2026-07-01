@@ -343,7 +343,7 @@ async def sql_assistant_chat(
     from backend.utils.sql_assistant_registry import get_db_schema_context
     schema_desc = (
         "You are an expert system that translates natural language questions into PostgreSQL-compatible SQL queries for the Gully Predict database.\n"
-        + get_db_schema_context()
+        + await get_db_schema_context(db)
         + "\n\nReturn ONLY the raw SQL query. Do not wrap the SQL query in markdown blocks, formatting, explanation, or commentary. Do not write anything other than the SQL query."
     )
     
@@ -532,7 +532,7 @@ async def sql_assistant_session_chat(
     from backend.utils.sql_assistant_registry import get_db_schema_context
     schema_desc = (
         "You are an expert system that translates natural language questions into PostgreSQL-compatible SQL queries for the Gully Predict database.\n"
-        + get_db_schema_context()
+        + await get_db_schema_context(db)
         + "\n\nReturn ONLY the raw SQL query. Do not wrap the SQL query in markdown blocks, formatting, explanation, or commentary. Do not write anything other than the SQL query."
     )
 
