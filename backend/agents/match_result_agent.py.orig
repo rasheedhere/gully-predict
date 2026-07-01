@@ -26,10 +26,10 @@ class MatchResultAgent:
         if match.tournament_id:
             t_res = await db.execute(select(Tournament).where(Tournament.id == match.tournament_id))
             tournament = t_res.scalars().first()
-        
+
         tournament_name = tournament.name if tournament else "sports tournament"
         tournament_gender = tournament.gender if tournament and tournament.gender else ""
-        
+
         gender_str = ""
         if tournament_gender.lower() == "mens":
             gender_str = "Men's "
@@ -63,7 +63,7 @@ class MatchResultAgent:
 
             if not master_cam:
                 master_cam = fallback_master
-            
+
             if master_cam:
                 questions_to_use = master_cam.questions
 
@@ -93,13 +93,12 @@ class MatchResultAgent:
         Verify if the match was abandoned, washed out, cancelled, or finished.
 
         IMPORTANT: For any question where the 'Type' is 'toggle', 'multiple_choice', or 'dropdown', the correct answer MUST be chosen exactly from the provided 'Options' list. Do not paraphrase or alter the option spelling. If the 'Type' is 'free_number', the answer MUST be numeric, and if the 'Type' is 'free_text', the answer MUST be a string.
-        IMPORTANT: If a team scores 0 goals, 0 points, or 0 in any metric, you MUST explicitly set the value to the number 0. Do not omit the key, leave it blank, or skip it.
 
         Please determine the correct answers for the following match questions:
         1. match_status: 'completed', 'cancelled', 'abandoned', or 'live'
         {questions_prompt}
 
-        You MUST respond ONLY with a raw JSON object matching the template below. 
+        You MUST respond ONLY with a raw JSON object matching the template below.
         Do NOT write any introduction, explanation, markdown fences, or conversational text.
         Your response must start with '{{' and end with '}}'.
 
@@ -108,7 +107,7 @@ class MatchResultAgent:
         """
 
         result_data = await gemini_client.generate_structured_json(prompt)
-        
+
         if not result_data:
             print(f"[MatchResultAgent] Failed to fetch results for match {match_id}")
             return None
@@ -119,7 +118,7 @@ class MatchResultAgent:
         from backend.models import User
         agent_res = await db.execute(select(User).where(User.email == "gradingagent@gully-predict.com"))
         agent_user = agent_res.scalars().first()
-        
+
         # Fallback to general AI user if the grading agent email is not found
         if not agent_user:
             ai_user_res = await db.execute(select(User).where(User.is_ai == True))
@@ -141,7 +140,7 @@ class MatchResultAgent:
         match.status = MatchStatus.completed
         match.report_method = "agent"
         match.reported_by = agent_user_id
-        
+
         # 3. Upsert TournamentMatchAnswer
         if match.tournament_id:
             tma_res = await db.execute(
@@ -151,13 +150,13 @@ class MatchResultAgent:
                 )
             )
             tma = tma_res.scalars().first()
-            
+
             correct_answers = {
                 q.key if q.key else q.id: result_data[q.key if q.key else q.id]
                 for q in questions_to_use
                 if (q.key if q.key else q.id) in result_data
             }
-            
+
             if tma:
                 tma.correct_answers = correct_answers
             else:
@@ -167,17 +166,17 @@ class MatchResultAgent:
                     correct_answers=correct_answers
                 )
                 db.add(tma)
-        
+
         await db.commit()
         await db.refresh(match)
-        
+
         print(f"[MatchResultAgent] Match {match.id} marked completed. Triggering campaign scoring...")
-        
+
         # 4. Trigger Campaign-wide scoring
         if match.tournament_id:
             from backend.models import CampaignStatus as CS, CampaignType
             from backend.campaigns_scoring import calculate_campaign_scores
-            
+
             try:
                 campaigns_res = await db.execute(
                     select(Campaign).options(selectinload(Campaign.questions), selectinload(Campaign.target_matches)).where(
@@ -199,7 +198,7 @@ class MatchResultAgent:
                         print(f"[MatchResultAgent] Error scoring campaign {campaign.id}: {str(e)}")
             except Exception as e:
                 print(f"[MatchResultAgent] Error querying/scoring campaigns: {str(e)}")
-                
+
         # Also run legacy / compatibility match scoring
         from backend.scoring import calculate_match_scores
         try:
@@ -208,7 +207,6 @@ class MatchResultAgent:
         except Exception as e:
             print(f"[MatchResultAgent] Error during legacy scoring for match {match.id}: {str(e)}")
 
-        await db.commit()
         return result_data
 
 match_result_agent = MatchResultAgent()
