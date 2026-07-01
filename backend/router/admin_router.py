@@ -223,7 +223,7 @@ async def update_prediction(
         await calculate_match_scores(c_resp.match_id, db)
     else:
         from backend.campaigns_scoring import calculate_campaign_scores
-        await calculate_campaign_scores(db, c_resp.campaign_id)
+        await calculate_campaign_scores(c_resp.campaign_id, db)
 
     # Invalidate cache
     await backend_cache.invalidate("leaderboard_*")
