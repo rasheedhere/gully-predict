@@ -7,27 +7,33 @@ class TestSQLAssistantGrounding(unittest.IsolatedAsyncioTestCase):
     async def test_get_db_schema_context_grounding_empty(self):
         # Setup mock db session returning no tournaments and no tournament questions
         mock_db = AsyncMock()
+        mock_result_sport_keys = MagicMock()
+        mock_result_sport_keys.all.return_value = []
+
         mock_result_tournaments = MagicMock()
         mock_result_tournaments.all.return_value = []
         
         mock_result_questions = MagicMock()
         mock_result_questions.all.return_value = []
         
-        # side_effect to return tournaments result on first call, questions on second call
-        mock_db.execute.side_effect = [mock_result_tournaments, mock_result_questions]
+        # side_effect to return sport keys on first, tournaments on second, questions on third call
+        mock_db.execute.side_effect = [mock_result_sport_keys, mock_result_tournaments, mock_result_questions]
 
         context = await get_db_schema_context(mock_db)
         
         # Verify tournament names header is not in the context
         self.assertNotIn("Available tournaments in the database:", context)
         
-        # Verify db.execute was called twice
-        self.assertEqual(mock_db.execute.call_count, 2)
+        # Verify db.execute was called three times
+        self.assertEqual(mock_db.execute.call_count, 3)
 
     async def test_get_db_schema_context_grounding_with_tournaments_and_questions(self):
         # Setup mock db session returning tournaments and questions
         mock_db = AsyncMock()
         
+        mock_result_sport_keys = MagicMock()
+        mock_result_sport_keys.all.return_value = [("match_winner", "cricket"), ("ppscore_team1", "cricket")]
+
         mock_result_tournaments = MagicMock()
         mock_result_tournaments.all.return_value = [("IPL 2026",), ("FIFA World Cup 2026",)]
         
@@ -37,7 +43,7 @@ class TestSQLAssistantGrounding(unittest.IsolatedAsyncioTestCase):
             ("ppscore_team1", "Powerplay score for team 1?", "free_number")
         ]
         
-        mock_db.execute.side_effect = [mock_result_tournaments, mock_result_questions]
+        mock_db.execute.side_effect = [mock_result_sport_keys, mock_result_tournaments, mock_result_questions]
 
         context = await get_db_schema_context(mock_db)
 
