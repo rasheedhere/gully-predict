@@ -53,13 +53,17 @@ graph TD
 ### 4. 📊 Project Board Integration (`/github-projects`)
 - **Purpose:** Manages cards on GitHub Projects (Beta) boards using the GitHub CLI via helper scripts.
 - **Rules:**
-  - **Add to Board:** Pushes a created issue to a project:
+  - **Project Items vs. Issues:** Prefer creating **Draft Issues (Project Items)** directly on the board rather than full repository-level GitHub Issues. Use the GitHub CLI to create draft items:
+    ```bash
+    gh project item-create <project_number> --owner <owner> --title "<title>" --body "<body>"
+    ```
+  - **Add to Board:** Pushes an existing repository issue to a project:
     ```bash
     python3 /Users/rasheed/.gemini/config/skills/github-projects/scripts/github_projects_helper.py add <project_number> <issue_number>
     ```
-  - **Move Columns:** Progresses issues (e.g., to "In Progress" or "Done"):
+  - **Move Columns:** Progresses issues or draft cards (e.g., to "In Progress" or "Done"):
     ```bash
-    python3 /Users/rasheed/.gemini/config/skills/github-projects/scripts/github_projects_helper.py move <project_number> <issue_number> <column_name>
+    python3 /Users/rasheed/.gemini/config/skills/github-projects/scripts/github_projects_helper.py move <project_number> <issue_number_or_item_id> <column_name>
     ```
 
 ### 5. 🚀 Task Claiming & Work (`/pickup-issues` + TDD)
