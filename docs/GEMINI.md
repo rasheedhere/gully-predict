@@ -234,8 +234,10 @@ Unlike match-specific campaigns, General campaigns are designed for tournament-w
 - **Match Stats Agent**: Nightly APScheduler job fetches head-to-head, form, and player watchlists via Gemini 2.0. Stored in `MatchStats.stats_json`.
 - **Match Result Agent**: Triggered post-match to auto-fetch correct answers (Winner, POM, Powerplays, etc.). Admin validates before saving.
 - **n8n + Telegram**: Admins send results to Telegram → n8n webhook → `PUT /external/match-results` to process matches automatically.
+- **AI SQL Assistant**: Helps admins query the database using natural language. It has access to safe tables including `tournament_questions` and `tournament_match_answers` to retrieve match-specific questions and graded results. It leverages explicit PostgreSQL JSON/JSONB querying guidelines (e.g. `->>` operator and casting to `jsonb`) to extract correct answers from nested fields.
 
 ---
+
 
 ## 🛠️ Development & Deployment
 

@@ -36,13 +36,22 @@ CUSTOM_FIELD_ANNOTATIONS = {
     },
     "match_stats": {
         "stats_json": "JSON containing pre-match statistics for AI grounding."
+    },
+    "tournament_questions": {
+        "key": "A stable string key for the question, e.g. 'match_winner', 'pp_team1', 'will_a_penalty_be_awarded'. Used to identify answers.",
+        "question_text": "The natural language question presented to users.",
+        "question_type": "The input type, e.g. 'multiple_choice', 'dropdown', 'toggle', 'free_text', 'free_number'."
+    },
+    "tournament_match_answers": {
+        "correct_answers": "JSON dict mapping question keys (from tournament_questions.key) to their correct/graded answer values. E.g. '{\"match_winner\": \"France\", \"pp_team1\": 47}'."
     }
 }
 
 ALLOWED_TABLES = {
     "tournaments", "matches", "announcements", "campaigns", 
     "campaign_questions", "campaign_responses", "campaign_results", 
-    "leaderboard_entries", "match_stats"
+    "leaderboard_entries", "match_stats", "tournament_questions", 
+    "tournament_match_answers"
 }
 
 def get_db_schema_context() -> str:
@@ -110,4 +119,11 @@ def get_db_schema_context() -> str:
         for hint in sorted(join_hints):
             lines.append(hint)
             
+    # Add PostgreSQL JSON/JSONB guidelines
+    lines.append("\nPostgreSQL JSON/JSONB Querying Guidelines:")
+    lines.append("- For JSON fields (like `matches.raw_result_json`, `tournament_match_answers.correct_answers`, and `campaign_responses.answers`), use the PostgreSQL `->>` operator to extract key values as text.")
+    lines.append("- Example: To get the match winner from `tournament_match_answers`, use: `correct_answers ->> 'match_winner'`.")
+    lines.append("- Since database columns may be stored as JSON, cast to `jsonb` explicitly if using JSONB functions (e.g. `correct_answers::jsonb` or `raw_result_json::jsonb`).")
+    lines.append("- Example query to find graded match results: `SELECT m.id, m.team1, m.team2, tma.correct_answers ->> 'match_winner' AS winner FROM matches m JOIN tournament_match_answers tma ON m.id = tma.match_id WHERE m.status = 'completed'`")
+
     return "\n".join(lines)

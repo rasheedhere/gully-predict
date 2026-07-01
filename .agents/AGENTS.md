@@ -4,21 +4,32 @@ Whenever executing tasks in this workspace, you must adhere to the issue trackin
 
 ## 🔄 Core Workflow Orchestration
 
-The workflow runs sequentially through seven distinct phases:
+Depending on the entry point, the workflow follows one of two distinct pathways:
 
+### Pathway 1: Feature / Enhancement (Starts with `/grill-me`, `/grilling`, or `/grill-with-docs`)
+Use this flow for building new features, major enhancements, or when planning a refactoring vertical slice.
 ```mermaid
 graph TD
-    A["1. Grill & Align (/grill)"] --> B["2. Triage & State Management (/triage)"]
-    B --> C["3. Vertical Slice Creation (/to-issues)"]
-    C --> D["4. Project Board Push (/github-projects)"]
-    D --> E["5. Task Claiming & Work (/pickup-issues)"]
-    E --> F["6. Verify & Document (build-master + avid-documentor)"]
-    F --> G["7. Code Review (/review)"]
+    A["1. Grill & Align (/grill-me, /grilling, /grill-with-docs)"] --> B["2. Vertical Slice Breakdown (/to-issues)"]
+    B --> C["3. Project Board Push (/github-projects)"]
+    C --> D["4. Task Claiming & Work (/pickup-issues)"]
+    D --> E["5. Verify & Document (build-master + avid-documentor)"]
+    E --> F["6. Code Review (/review)"]
+```
+
+### Pathway 2: Bug / Issue Triage (Starts with `/triage`)
+Use this flow for incoming issues, bugs, or tickets that need reproduction, validation, and direct picking.
+```mermaid
+graph TD
+    A["1. Triage & State Management (/triage)"] --> B["2. Project Board Push (/github-projects)"]
+    B --> C["3. Task Claiming & Work (/pickup-issues)"]
+    C --> D["4. Verify & Document (build-master + avid-documentor)"]
+    D --> E["5. Code Review (/review)"]
 ```
 
 ---
 
-### 1. 💬 Grilling & Alignment (`/grill`)
+### 1. 💬 Grilling & Alignment (such as `/grill`,`/grill-me`,etc)
 - **Purpose:** Relentlessly interviews the user about a plan or design to ensure a shared understanding before code is written.
 - **Rules:**
   - Solicits feedback on one question at a time to prevent overload.
