@@ -550,7 +550,8 @@ async def get_analysis_data(tournament_id: str = "ipl-2026", db: AsyncSession = 
             Match.start_time,
             CampaignResponse.total_points,
             Match.status,
-            Campaign.max_powerups
+            Campaign.max_powerups,
+            Campaign.is_master
         )
         .join(CampaignResponse, User.id == CampaignResponse.user_id)
         .join(Match, CampaignResponse.match_id == Match.id)
@@ -565,7 +566,7 @@ async def get_analysis_data(tournament_id: str = "ipl-2026", db: AsyncSession = 
 
     
     powerup_stats_map = {}
-    for uid, name, alias, use_alias, avatar, base, t1, t2, mid, start_time, points, status, camp_max in powerup_usage_res.all():
+    for uid, name, alias, use_alias, avatar, base, t1, t2, mid, start_time, points, status, camp_max, is_master in powerup_usage_res.all():
         if uid not in powerup_stats_map:
             powerup_stats_map[uid] = {
                 "id": uid,
@@ -587,7 +588,7 @@ async def get_analysis_data(tournament_id: str = "ipl-2026", db: AsyncSession = 
             "date": start_time,
             "points": points or 0,
             "match_status": status,
-            "is_campaign_scoped": camp_max is not None
+            "is_campaign_scoped": (not is_master) and (camp_max is not None)
         })
         
         if status == "completed":
