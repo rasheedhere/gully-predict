@@ -14,7 +14,8 @@ CUSTOM_FIELD_ANNOTATIONS = {
     },
     "matches": {
         "status": "Match status: 'upcoming', 'live', 'completed', or 'cancelled'.",
-        "report_method": "Method used to report match results, e.g. 'telegram', 'manual', 'api', 'agent'."
+        "report_method": "Method used to report match results, e.g. 'telegram', 'manual', 'api', 'agent'.",
+        "raw_result_json": "JSON containing the actual graded answers/results of the match. For cricket, keys include: 'winner' (team name), 'team1_powerplay_score' (int), 'team2_powerplay_score' (int), 'player_of_the_match' (str). For football/soccer, keys include: 'winner' (team name or 'Draw'), 'how_many_goals_team1' (int goals scored by team 1), 'how_many_goals_team2' (int goals scored by team 2), 'clean_sheet' (str), 'any_penalties' (str)."
     },
     "campaigns": {
         "type": "Campaign type: 'match' (match-specific) or 'general' (tournament-wide/non-match).",
