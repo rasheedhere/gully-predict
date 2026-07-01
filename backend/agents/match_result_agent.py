@@ -193,7 +193,7 @@ class MatchResultAgent:
                 campaigns = campaigns_res.scalars().all()
                 for campaign in campaigns:
                     try:
-                        await calculate_campaign_scores(campaign.id, match.id, db)
+                        await calculate_campaign_scores(campaign.id, db, match_id=match.id)
                         print(f"[MatchResultAgent] Successfully scored campaign {campaign.id} for match {match.id}")
                     except Exception as e:
                         print(f"[MatchResultAgent] Error scoring campaign {campaign.id}: {str(e)}")
