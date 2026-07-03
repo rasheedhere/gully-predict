@@ -6,7 +6,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 from sqlalchemy.orm import selectinload
 from backend.database import get_db
-from backend.models import User, AllowlistedEmail, Match, LeagueAdminMapping, TournamentUserMapping, AdminChatSession, AdminChatMessage
+from backend.models import User, AllowlistedEmail, Match, LeagueAdminMapping, TournamentUserMapping, AdminChatSession, AdminChatMessage, LLMCallLog
 from datetime import datetime, timezone
 from backend.dependencies import get_current_admin, get_current_user
 from backend.scoring import calculate_match_scores
@@ -350,7 +350,7 @@ async def sql_assistant_chat(
     prompt = f"Convert this question into a single PostgreSQL-compatible read-only SQL query: {payload.query}"
     
     try:
-        raw_llm_response = await llm.generate_text(prompt=prompt, system_instruction=schema_desc)
+        raw_llm_response = await llm.generate_text(prompt=prompt, system_instruction=schema_desc, caller="sql_assistant")
         sql = raw_llm_response.strip()
         # Clean markdown fences
         if sql.startswith("```"):
@@ -406,9 +406,10 @@ async def sql_assistant_chat(
     """
     
     try:
-        summary = await llm.generate_text(prompt=summary_prompt, system_instruction=summary_instruction)
+        summary = await llm.generate_text(prompt=summary_prompt, system_instruction=summary_instruction, caller="sql_assistant")
     except Exception as e:
         summary = f"Results retrieved but failed to generate text summary: {str(e)}"
+
         
     return SQLAssistantResponse(
         sql=sql,
@@ -537,7 +538,7 @@ async def sql_assistant_session_chat(
     )
 
     try:
-        raw_llm_response = await llm.generate_chat_response(history=history, system_instruction=schema_desc)
+        raw_llm_response = await llm.generate_chat_response(history=history, system_instruction=schema_desc, caller="sql_assistant")
         sql = raw_llm_response.strip()
         if sql.startswith("```"):
             lines = sql.split("\n")
@@ -602,7 +603,7 @@ async def sql_assistant_session_chat(
     """
     
     try:
-        summary = await llm.generate_text(prompt=summary_prompt, system_instruction=summary_instruction)
+        summary = await llm.generate_text(prompt=summary_prompt, system_instruction=summary_instruction, caller="sql_assistant")
     except Exception as e:
         summary = f"Results retrieved but failed to generate text summary: {str(e)}"
 
@@ -633,7 +634,8 @@ async def sql_assistant_session_chat(
             "Return ONLY the raw JSON object. Do not include markdown code block formatting (like ```json), backticks, or any additional text."
         )
         try:
-            chart_res = await llm.generate_text(prompt=chart_prompt)
+            chart_res = await llm.generate_text(prompt=chart_prompt, caller="sql_assistant")
+
             chart_res_clean = chart_res.strip()
             if chart_res_clean.startswith("```"):
                 chart_res_clean = chart_res_clean.split("\n", 1)[1].rsplit("```", 1)[0].strip()
@@ -685,5 +687,55 @@ async def delete_chat_session(
     await db.delete(session)
     await db.commit()
     return {"message": "Session deleted successfully"}
+
+
+@router.get("/llm-logs")
+async def get_llm_logs(
+    caller: Optional[str] = None,
+    tournament_id: Optional[str] = None,
+    limit: int = 50,
+    offset: int = 0,
+    db: AsyncSession = Depends(get_db),
+    current_admin: User = Depends(get_current_admin)
+):
+    from sqlalchemy import func
+    
+    query = select(LLMCallLog)
+    if caller:
+        query = query.where(LLMCallLog.caller == caller)
+    if tournament_id:
+        query = query.where(LLMCallLog.tournament_id == tournament_id)
+        
+    # Get total count
+    count_query = select(func.count()).select_from(query.subquery())
+    total_res = await db.execute(count_query)
+    total = total_res.scalar() or 0
+    
+    # Get paginated results
+    query = query.order_by(LLMCallLog.created_at.desc()).limit(limit).offset(offset)
+    res = await db.execute(query)
+    logs = res.scalars().all()
+    
+    return {
+        "total": total,
+        "logs": [
+            {
+                "id": log.id,
+                "caller": log.caller,
+                "tournament_id": log.tournament_id,
+                "model": log.model,
+                "prompt": log.prompt,
+                "system_instruction": log.system_instruction,
+                "input_tokens": log.input_tokens,
+                "output_tokens": log.output_tokens,
+                "response_time_ms": log.response_time_ms,
+                "raw_request": log.raw_request,
+                "raw_response": log.raw_response,
+                "created_at": log.created_at.isoformat() if log.created_at else None
+            }
+            for log in logs
+        ]
+    }
+
 
 

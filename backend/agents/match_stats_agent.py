@@ -98,7 +98,11 @@ class MatchStatsAgent:
 
         print(f"Generating stats for {match.team1} vs {match.team2} (Match {match_id})...")
         
-        stats_data = await gemini_client.generate_structured_json(prompt)
+        stats_data = await gemini_client.generate_structured_json(
+            prompt,
+            caller="grading_agent",
+            tournament_id=match.tournament_id
+        )
         
         if not stats_data:
             print(f"ERROR: Gemini returned no data for match {match_id}")

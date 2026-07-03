@@ -351,3 +351,40 @@ export function useUploadTournamentRankings() {
   });
 }
 
+export interface LLMCallLog {
+  id: number;
+  caller: string;
+  tournament_id: string | null;
+  model: string | null;
+  prompt: string;
+  system_instruction: string | null;
+  input_tokens: number | null;
+  output_tokens: number | null;
+  response_time_ms: number | null;
+  raw_request: any | null;
+  raw_response: any | null;
+  created_at: string;
+}
+
+export interface LLMLogsResponse {
+  total: number;
+  logs: LLMCallLog[];
+}
+
+export function useLLMLogs(filters: { caller?: string; tournament_id?: string; limit?: number; offset?: number }) {
+  return useQuery({
+    queryKey: ['admin', 'llm-logs', filters],
+    queryFn: async () => {
+      const params = new URLSearchParams();
+      if (filters.caller) params.append('caller', filters.caller);
+      if (filters.tournament_id) params.append('tournament_id', filters.tournament_id);
+      if (filters.limit !== undefined) params.append('limit', String(filters.limit));
+      if (filters.offset !== undefined) params.append('offset', String(filters.offset));
+      
+      const response = await apiClient.get<LLMLogsResponse>(`/admin/llm-logs?${params.toString()}`);
+      return response.data;
+    },
+  });
+}
+
+

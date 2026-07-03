@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { AdminModal } from '../components/Admin/AdminModal';
 import { TournamentMatchGrading } from '../components/Admin/TournamentMatchGrading';
-import { Users, ShieldCheck, Mail, Trash2, Cpu, Plus, Trophy, RefreshCw, Calendar, MapPin, Sword, Star, Pencil, X, List, ChevronLeft, Search, ChevronDown, Megaphone, ListOrdered } from 'lucide-react';
+import { Users, ShieldCheck, Mail, Trash2, Cpu, Plus, Trophy, RefreshCw, Calendar, MapPin, Sword, Star, Pencil, X, List, ChevronLeft, Search, ChevronDown, Megaphone, ListOrdered, Database } from 'lucide-react';
 import { useAuthStore } from '../store/auth';
 import { Navigate, useSearchParams } from 'react-router-dom';
 import {
@@ -25,8 +25,10 @@ import {
   useDeleteTournamentQuestion,
   useUpdateTournamentStatus,
   useTournamentRankings,
-  useUploadTournamentRankings
+  useUploadTournamentRankings,
+  useLLMLogs
 } from '../api/hooks/useAdmin';
+import type { LLMCallLog } from '../api/hooks/useAdmin';
 import { getUserDisplayName } from '../utils/userUtils';
 import { useMatches } from '../api/hooks/useMatches';
 import { useCreateLeague, useLeagueDetails, useToggleLeagueAdmin, useKickMember } from '../api/hooks/useLeagues';
@@ -40,7 +42,7 @@ import { useUiStore } from '../store/ui';
 export default function Admin() {
   const { user } = useAuthStore();
   const [searchParams, setSearchParams] = useSearchParams();
-  const activeTab = searchParams.get('tab') as 'tournaments' | 'leagues' | 'users' | 'campaigns' | 'system' | 'announcements' || (user?.is_admin ? 'tournaments' : 'leagues');
+  const activeTab = searchParams.get('tab') as 'tournaments' | 'leagues' | 'users' | 'campaigns' | 'system' | 'announcements' | 'llm-logs' || (user?.is_admin ? 'tournaments' : 'leagues');
   const managingTournamentId = searchParams.get('tournamentId');
   const managingLeagueId = searchParams.get('leagueId');
 
@@ -55,6 +57,7 @@ export default function Admin() {
         campaigns: 'CAMPAIGNS',
         announcements: 'ANNOUNCEMENTS',
         system: 'SYSTEM',
+        'llm-logs': 'AI CALL LOGS',
       };
       setHeaderTitle(tabLabels[activeTab] || 'ADMIN CONSOLE');
     }
@@ -122,6 +125,7 @@ export default function Admin() {
             { id: 'campaigns', label: 'Campaigns', icon: ShieldCheck },
             ...(user?.is_admin ? [{ id: 'announcements', label: 'Announcements', icon: Megaphone }] : []),
             ...(user?.is_admin ? [{ id: 'system', label: 'System', icon: Cpu }] : []),
+            ...(user?.is_admin ? [{ id: 'llm-logs', label: 'LLM Logs', icon: Database }] : []),
           ].map((tab) => (
             <button
               key={tab.id}
@@ -153,6 +157,7 @@ export default function Admin() {
         {activeTab === 'campaigns' && <CampaignManagement />}
         {activeTab === 'announcements' && <AnnouncementManagement />}
         {activeTab === 'system' && <SystemManagement />}
+        {activeTab === 'llm-logs' && <LLMLogsManagement />}
       </main>
     </div>
   );
@@ -2455,4 +2460,341 @@ function TournamentRankingsManager({ tournamentId }: { tournamentId: string }) {
     </div>
   );
 }
+
+
+function LLMLogsManagement() {
+  const [caller, setCaller] = useState<string>('');
+  const [tournamentId, setTournamentId] = useState<string>('');
+  const [limit] = useState<number>(50);
+  const [offset, setOffset] = useState<number>(0);
+  const [selectedLog, setSelectedLog] = useState<LLMCallLog | null>(null);
+
+  const { data: tournamentsData } = useTournaments();
+  
+  const filters = useMemo(() => {
+    return {
+      caller: caller || undefined,
+      tournament_id: tournamentId || undefined,
+      limit,
+      offset
+    };
+  }, [caller, tournamentId, limit, offset]);
+
+  const { data: logsData, isLoading, refetch } = useLLMLogs(filters);
+
+  // If caller changes or tournament changes, reset offset
+  const handleCallerChange = (val: string) => {
+    setCaller(val);
+    setOffset(0);
+    // If not grading_agent, clear tournament filter
+    if (val !== 'grading_agent') {
+      setTournamentId('');
+    }
+  };
+
+  const handleTournamentChange = (val: string) => {
+    setTournamentId(val);
+    setOffset(0);
+  };
+
+  const totalLogs = logsData?.total || 0;
+  const logs = logsData?.logs || [];
+
+  // Cost calculation helper in CAD
+  const calculateCostCAD = (log: LLMCallLog): number => {
+    const { model, input_tokens, output_tokens, raw_request } = log;
+    if (!input_tokens && !output_tokens) return 0;
+    
+    // Rates per 1 Million tokens in CAD
+    let inputRate = 0.10; // default Flash input: $0.10 CAD / 1M tokens
+    let outputRate = 0.40; // default Flash output: $0.40 CAD / 1M tokens
+    
+    const m = (model || '').toLowerCase();
+    if (m.includes('pro')) {
+      inputRate = 1.65; // Pro input: $1.65 CAD / 1M tokens
+      outputRate = 6.60; // Pro output: $6.60 CAD / 1M tokens
+    } else if (m.includes('flash')) {
+      inputRate = 0.10;
+      outputRate = 0.40;
+    }
+    
+    const inputCost = ((input_tokens || 0) / 1000000) * inputRate;
+    const outputCost = ((output_tokens || 0) / 1000000) * outputRate;
+    
+    // Search Grounding cost: $0.003 USD = $0.004 CAD per request if grounding is enabled
+    let groundingCost = 0;
+    if (raw_request) {
+      const hasSearch = 
+        (Array.isArray(raw_request.tools) && raw_request.tools.some((t: any) => t && typeof t === 'object' && 'google_search' in t)) ||
+        (Array.isArray(raw_request.config?.tools) && raw_request.config.tools.some((t: any) => t && typeof t === 'object' && 'google_search' in t));
+      if (hasSearch) {
+        groundingCost = 0.004; // C$ 0.004 flat rate
+      }
+    }
+    
+    return inputCost + outputCost + groundingCost;
+  };
+
+  // Memoize total cost of currently listed logs
+  const totalCost = useMemo(() => {
+    return logs.reduce((acc, log) => acc + calculateCostCAD(log), 0);
+  }, [logs]);
+
+  return (
+    <div className="space-y-6">
+      {/* Summary Cards */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+        <div className="bg-white/5 border border-white/10 p-5 rounded-2xl flex items-center justify-between">
+          <div className="text-left">
+            <span className="text-[10px] text-gray-400 font-display uppercase tracking-widest block mb-1">Total Calls Found</span>
+            <span className="text-2xl font-mono font-bold text-white">{totalLogs}</span>
+          </div>
+          <Database className="w-8 h-8 text-white/10" />
+        </div>
+        <div className="bg-white/5 border border-white/10 p-5 rounded-2xl flex items-center justify-between">
+          <div className="text-left">
+            <span className="text-[10px] text-gray-400 font-display uppercase tracking-widest block mb-1">Page Cost Projection</span>
+            <span className="text-2xl font-mono font-bold text-green-400">C$ {totalCost.toFixed(5)}</span>
+          </div>
+          <Database className="w-8 h-8 text-green-400/20" />
+        </div>
+      </div>
+
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white/5 p-4 rounded-2xl border border-white/10">
+        <div className="flex flex-wrap items-center gap-3">
+          <div className="space-y-1">
+            <label className="text-[10px] text-gray-400 font-display uppercase tracking-wider block text-left">Caller Type</label>
+            <select
+              value={caller}
+              onChange={(e) => handleCallerChange(e.target.value)}
+              className="bg-black/50 text-white rounded-xl border border-white/10 px-4 py-2.5 text-xs font-mono min-h-[44px] min-w-[160px] focus:outline-none focus:border-ipl-gold transition-colors cursor-pointer"
+            >
+              <option value="">All Callers</option>
+              <option value="sql_assistant">SQL Assistant</option>
+              <option value="grading_agent">Grading Agent</option>
+            </select>
+          </div>
+
+          {caller === 'grading_agent' && (
+            <div className="space-y-1">
+              <label className="text-[10px] text-gray-400 font-display uppercase tracking-wider block text-left">Tournament</label>
+              <select
+                value={tournamentId}
+                onChange={(e) => handleTournamentChange(e.target.value)}
+                className="bg-black/50 text-white rounded-xl border border-white/10 px-4 py-2.5 text-xs font-mono min-h-[44px] min-w-[200px] focus:outline-none focus:border-ipl-gold transition-colors cursor-pointer"
+              >
+                <option value="">All Tournaments</option>
+                {tournamentsData?.map((t) => (
+                  <option key={t.id} value={t.id}>
+                    {t.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
+        </div>
+
+        <button
+          onClick={() => refetch()}
+          className="flex items-center justify-center gap-2 px-5 py-2.5 bg-white/5 border border-white/10 text-white rounded-xl font-display text-[10px] uppercase tracking-widest hover:bg-white/10 active:scale-95 transition-all min-h-[44px] md:self-end"
+        >
+          <RefreshCw className="w-3.5 h-3.5" />
+          Refresh
+        </button>
+      </div>
+
+      {isLoading ? (
+        <div className="text-center py-20">
+          <RefreshCw className="w-10 h-10 text-ipl-gold animate-spin mx-auto mb-4 opacity-50" />
+          <p className="text-xs text-gray-400 font-mono uppercase tracking-widest">Loading AI Call Logs...</p>
+        </div>
+      ) : logs.length === 0 ? (
+        <div className="text-center py-20 bg-white/5 rounded-2xl border border-white/10 border-dashed">
+          <Database className="w-16 h-16 text-white mx-auto mb-4 opacity-10" />
+          <h3 className="text-white font-display text-sm uppercase tracking-wider mb-1">No LLM Calls Found</h3>
+          <p className="text-xs text-gray-400 max-w-xs mx-auto">No LLM API calls match the selected caller type or tournament filter.</p>
+        </div>
+      ) : (
+        <div className="space-y-4">
+          <div className="grid gap-4">
+            {logs.map((log) => {
+              const dateStr = new Date(log.created_at).toLocaleString();
+              const promptLength = log.prompt ? log.prompt.length : 0;
+              const totalTokens = (log.input_tokens || 0) + (log.output_tokens || 0);
+              const costCAD = calculateCostCAD(log);
+
+              return (
+                <div
+                  key={log.id}
+                  onClick={() => setSelectedLog(log)}
+                  className="bg-white/5 border border-white/10 hover:border-ipl-gold/40 hover:bg-white/10 p-5 rounded-2xl transition-all cursor-pointer group active:scale-[0.99] relative overflow-hidden"
+                >
+                  <div className={`absolute left-0 top-0 bottom-0 w-1 ${
+                    log.caller === 'sql_assistant' ? 'bg-blue-500' : 'bg-ipl-gold'
+                  }`} />
+
+                  <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                    <div className="space-y-2">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span className={`text-[9px] font-mono uppercase tracking-widest px-2.5 py-1 rounded-md font-bold ${
+                          log.caller === 'sql_assistant' ? 'bg-blue-500/20 text-blue-400 border border-blue-500/30' : 'bg-ipl-gold/20 text-ipl-gold border border-ipl-gold/30'
+                        }`}>
+                          {log.caller === 'sql_assistant' ? 'SQL Assistant' : 'Grading Agent'}
+                        </span>
+                        {log.model && (
+                          <span className="text-[9px] font-mono uppercase tracking-widest bg-white/10 text-gray-300 border border-white/20 px-2.5 py-1 rounded-md">
+                            {log.model}
+                          </span>
+                        )}
+                        {log.tournament_id && (
+                          <span className="text-[9px] font-mono uppercase tracking-widest bg-purple-500/20 text-purple-400 border border-purple-500/30 px-2.5 py-1 rounded-md">
+                            Tournament: {log.tournament_id}
+                          </span>
+                        )}
+                        <span className="text-[10px] text-gray-400 font-mono">
+                          {dateStr}
+                        </span>
+                      </div>
+
+                      <h4 className="text-xs text-white font-mono line-clamp-1 group-hover:text-ipl-gold transition-colors pr-4 text-left">
+                        {log.prompt}
+                      </h4>
+                    </div>
+
+                    <div className="flex flex-wrap items-center gap-3">
+                      <div className="text-right">
+                        <div className="text-[10px] text-gray-500 font-mono uppercase tracking-wider">Latency</div>
+                        <div className="text-xs text-white font-mono font-bold">
+                          {log.response_time_ms ? `${log.response_time_ms} ms` : 'N/A'}
+                        </div>
+                      </div>
+
+                      <div className="text-right border-l border-white/10 pl-3">
+                        <div className="text-[10px] text-gray-500 font-mono uppercase tracking-wider">Prompt Len</div>
+                        <div className="text-xs text-white font-mono font-bold">
+                          {promptLength} chars
+                        </div>
+                      </div>
+
+                      <div className="text-right border-l border-white/10 pl-3">
+                        <div className="text-[10px] text-gray-500 font-mono uppercase tracking-wider">Est. Cost</div>
+                        <div className="text-xs text-green-400 font-mono font-bold">
+                          C$ {costCAD.toFixed(5)}
+                        </div>
+                      </div>
+
+                      <div className="text-right border-l border-white/10 pl-3 min-w-[90px]">
+                        <div className="text-[10px] text-gray-500 font-mono uppercase tracking-wider">Tokens</div>
+                        <div className="text-xs text-ipl-gold font-mono font-bold">
+                          {totalTokens ? `${totalTokens.toLocaleString()} T` : 'N/A'}
+                          <span className="text-[9px] text-gray-400 ml-1 font-normal">
+                            ({log.input_tokens || 0} / {log.output_tokens || 0})
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
+          {/* Pagination Controls */}
+          {totalLogs > limit && (
+            <div className="flex items-center justify-between bg-white/5 border border-white/10 p-4 rounded-2xl">
+              <button
+                disabled={offset === 0}
+                onClick={() => setOffset(Math.max(0, offset - limit))}
+                className="px-4 py-2 bg-white/5 hover:bg-white/10 text-white rounded-xl text-xs font-display uppercase tracking-wider disabled:opacity-30 disabled:pointer-events-none min-h-[44px]"
+              >
+                Previous
+              </button>
+              <span className="text-xs text-gray-400 font-mono">
+                Showing {offset + 1} - {Math.min(offset + limit, totalLogs)} of {totalLogs}
+              </span>
+              <button
+                disabled={offset + limit >= totalLogs}
+                onClick={() => setOffset(offset + limit)}
+                className="px-4 py-2 bg-white/5 hover:bg-white/10 text-white rounded-xl text-xs font-display uppercase tracking-wider disabled:opacity-30 disabled:pointer-events-none min-h-[44px]"
+              >
+                Next
+              </button>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Detail Inspector Modal */}
+      {selectedLog && (
+        <AdminModal
+          isOpen={!!selectedLog}
+          title={`LLM Call Logs Inspector (#${selectedLog.id})`}
+          onClose={() => setSelectedLog(null)}
+        >
+          <div className="space-y-6 max-h-[80vh] overflow-y-auto pr-2 scrollbar-hide text-left pb-[calc(1rem+env(safe-area-inset-bottom))]">
+            <div className="grid grid-cols-2 md:grid-cols-6 gap-4 bg-white/5 p-4 rounded-xl border border-white/10 font-mono text-xs">
+              <div>
+                <span className="text-gray-400 block uppercase text-[9px] tracking-wider mb-1">Caller</span>
+                <span className="text-white font-bold">{selectedLog.caller}</span>
+              </div>
+              <div>
+                <span className="text-gray-400 block uppercase text-[9px] tracking-wider mb-1">Tournament ID</span>
+                <span className="text-white font-bold">{selectedLog.tournament_id || 'N/A'}</span>
+              </div>
+              <div>
+                <span className="text-gray-400 block uppercase text-[9px] tracking-wider mb-1">Model</span>
+                <span className="text-white font-bold">{selectedLog.model || 'N/A'}</span>
+              </div>
+              <div>
+                <span className="text-gray-400 block uppercase text-[9px] tracking-wider mb-1">Latency</span>
+                <span className="text-ipl-gold font-bold">{selectedLog.response_time_ms ? `${selectedLog.response_time_ms} ms` : 'N/A'}</span>
+              </div>
+              <div>
+                <span className="text-gray-400 block uppercase text-[9px] tracking-wider mb-1">Est. Cost</span>
+                <span className="text-green-400 font-bold">C$ {calculateCostCAD(selectedLog).toFixed(5)}</span>
+              </div>
+              <div>
+                <span className="text-gray-400 block uppercase text-[9px] tracking-wider mb-1">Tokens (In/Out)</span>
+                <span className="text-white font-bold">
+                  {selectedLog.input_tokens || 0} / {selectedLog.output_tokens || 0}
+                </span>
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <h5 className="text-xs uppercase tracking-widest text-ipl-gold font-display font-bold">Prompt Text</h5>
+              <div className="bg-black/50 p-4 rounded-xl border border-white/10 max-h-48 overflow-y-auto text-xs font-mono text-gray-300 whitespace-pre-wrap select-text">
+                {selectedLog.prompt}
+              </div>
+            </div>
+
+            {selectedLog.system_instruction && (
+              <div className="space-y-2">
+                <h5 className="text-xs uppercase tracking-widest text-ipl-gold font-display font-bold">System Instruction</h5>
+                <div className="bg-black/50 p-4 rounded-xl border border-white/10 max-h-32 overflow-y-auto text-xs font-mono text-gray-300 whitespace-pre-wrap select-text">
+                  {selectedLog.system_instruction}
+                </div>
+              </div>
+            )}
+
+            <div className="space-y-2">
+              <h5 className="text-xs uppercase tracking-widest text-blue-400 font-display font-bold">Raw LLM Request (JSON)</h5>
+              <pre className="bg-black/50 p-4 rounded-xl border border-white/10 max-h-64 overflow-y-auto text-[11px] font-mono text-gray-300 overflow-x-auto select-text">
+                {JSON.stringify(selectedLog.raw_request, null, 2)}
+              </pre>
+            </div>
+
+            <div className="space-y-2">
+              <h5 className="text-xs uppercase tracking-widest text-green-400 font-display font-bold">Raw LLM Response (JSON)</h5>
+              <pre className="bg-black/50 p-4 rounded-xl border border-white/10 max-h-64 overflow-y-auto text-[11px] font-mono text-gray-300 overflow-x-auto select-text">
+                {JSON.stringify(selectedLog.raw_response, null, 2)}
+              </pre>
+            </div>
+          </div>
+        </AdminModal>
+      )}
+    </div>
+  );
+}
+
 

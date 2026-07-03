@@ -107,9 +107,14 @@ class MatchResultAgent:
         {json.dumps(json_template, indent=4)}
         """
 
-        result_data = await gemini_client.generate_structured_json(prompt)
+        result_data = await gemini_client.generate_structured_json(
+            prompt,
+            caller="grading_agent",
+            tournament_id=match.tournament_id
+        )
         
         if not result_data:
+
             print(f"[MatchResultAgent] Failed to fetch results for match {match_id}")
             return None
 

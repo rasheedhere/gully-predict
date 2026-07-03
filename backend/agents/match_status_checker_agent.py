@@ -53,7 +53,11 @@ class MatchStatusCheckerAgent:
         Set "completed" to true if the match has finished (or was cancelled/abandoned), and false if it is still live, upcoming, or has not started.
         """
         
-        status_data = await gemini_client.generate_structured_json(status_prompt)
+        status_data = await gemini_client.generate_structured_json(
+            status_prompt,
+            caller="grading_agent",
+            tournament_id=match.tournament_id
+        )
         if status_data and status_data.get("completed"):
             print(f"[MatchStatusCheckerAgent] Match {match_id} completed check: TRUE")
             return True

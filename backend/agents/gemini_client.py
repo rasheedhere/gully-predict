@@ -3,6 +3,7 @@ import httpx
 import json
 import re
 import asyncio
+import time
 from typing import Optional
 
 class GeminiClient:
@@ -10,7 +11,12 @@ class GeminiClient:
         self.api_key = os.environ.get("GEMINI_API_KEY")
         self.model = os.environ.get("GEMINI_MODEL", "gemini-2.5-flash")
 
-    async def generate_structured_json(self, prompt: str) -> Optional[dict]:
+    async def generate_structured_json(
+        self,
+        prompt: str,
+        caller: Optional[str] = None,
+        tournament_id: Optional[str] = None
+    ) -> Optional[dict]:
         if not self.api_key:
             print("ERROR: GEMINI_API_KEY not set in environment.")
             return None
@@ -41,6 +47,7 @@ class GeminiClient:
 
         for attempt in range(1, max_retries + 1):
             try:
+                start_time = time.perf_counter()
                 async with httpx.AsyncClient(timeout=60.0) as client:
                     response = await client.post(url, headers=headers, json=payload)
                     
@@ -54,8 +61,31 @@ class GeminiClient:
                         print(f"Gemini API Error {response.status_code}: {response.text}")
                         return None
                     
+                    duration_ms = int((time.perf_counter() - start_time) * 1000)
                     resp_json = response.json()
+                    
+                    if caller:
+                        from backend.utils.llm_client import log_llm_call
+                        usage_metadata = resp_json.get("usageMetadata", {})
+                        input_tokens = usage_metadata.get("promptTokenCount")
+                        output_tokens = usage_metadata.get("candidatesTokenCount")
+                        asyncio.create_task(
+                            log_llm_call(
+                                caller=caller,
+                                tournament_id=tournament_id,
+                                prompt=prompt,
+                                system_instruction=None,
+                                input_tokens=input_tokens,
+                                output_tokens=output_tokens,
+                                response_time_ms=duration_ms,
+                                raw_request=payload,
+                                raw_response=resp_json,
+                                model=self.model
+                            )
+                        )
+                    
                     candidates = resp_json.get("candidates", [])
+
                     if not candidates:
                         print("Gemini API Error: No candidates returned.")
                         return None

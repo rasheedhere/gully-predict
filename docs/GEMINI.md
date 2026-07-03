@@ -58,6 +58,7 @@ A private Gully Predict prediction platform for a group of friends. Users sign i
 | **TournamentMatchAnswer** | Single source of truth for match outcomes. Automatically copied to CampaignMatchResult mappings. |
 | **LeaderboardCache** | Pre-aggregated scores. `league_id=None` = global; specific `league_id` = league total. |
 | **SystemEvent** | Unified application-wide audit log for events (The 'Pulse' stream) such as logins, joins, predictions, and grading. |
+| **LLMCallLog** | Persists all LLM API invocations (prompt, latency, token usage, raw request/response payloads) for admin auditing and debugging. |
 
 ---
 

@@ -448,3 +448,21 @@ class AdminChatMessage(Base):
 
     session: Mapped["AdminChatSession"] = relationship("AdminChatSession", back_populates="messages")
 
+
+class LLMCallLog(Base):
+    __tablename__ = "llm_call_logs"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    caller: Mapped[str] = mapped_column(String, index=True)  # "grading_agent", "sql_assistant", etc.
+    tournament_id: Mapped[Optional[str]] = mapped_column(String, nullable=True, index=True)
+    model: Mapped[Optional[str]] = mapped_column(String, nullable=True, index=True)
+    prompt: Mapped[str] = mapped_column(Text)
+    system_instruction: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    input_tokens: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
+    output_tokens: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
+    response_time_ms: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
+    raw_request: Mapped[Optional[dict]] = mapped_column(JSON, nullable=True)
+    raw_response: Mapped[Optional[dict]] = mapped_column(JSON, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
+
+
